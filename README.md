@@ -1,3 +1,5 @@
 # LookatMe 
-A simple Python Project for learning and experimenting with Git and GitHub.
-Rock, paper and scissors game.
+A simple Python Project for learning coding.
+Pushing changes to my Github account.
+1st Project: Rock, paper and scissors game. ´´´achieved´´´
+
