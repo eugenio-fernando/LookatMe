@@ -1,4 +1,5 @@
 import random
+import datetime
 
 def get_choices():
     player_choice = input("Enter a choice (rock, paper, scissors): ")
@@ -30,3 +31,7 @@ def check_winner(player, computer):
 choices = get_choices()
 result = check_winner(choices["player"], choices["computer"])
 print(result)
+
+from datetime import date
+today = date.today()
+print(f'Today is: {today}')
