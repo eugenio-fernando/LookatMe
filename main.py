@@ -27,6 +27,12 @@ def check_winner(player, computer):
             return "You win, scissors cut paper!"
         else:
             return "Rock crushes scissors, You lose!"
+        if player not in ["rock", "paper", "scissors"]:
+            return "Invalid choice! You lose by default."
+        print("Invalid choice! You lose by default.")
+        
+        
+            
 
 choices = get_choices()
 result = check_winner(choices["player"], choices["computer"])
