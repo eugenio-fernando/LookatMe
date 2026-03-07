@@ -45,6 +45,7 @@
       font-weight: 600;
       font-size: 0.875rem;
       padding: 0.625rem 1rem;
+      min-height: 44px;
       border-radius: 0.75rem;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
@@ -55,6 +56,7 @@
     .tab {
       flex: 1;
       padding: 0.5rem;
+      min-height: 36px;
       font-size: 0.8125rem;
       font-weight: 600;
       border-radius: 0.5rem;
@@ -272,8 +274,16 @@
   <script>
     let _resetToken = null;
 
-    // ── Page load — handle ?msg and ?reset_token params ───────────────
+    // ── Page load ─────────────────────────────────────────────────────
     window.addEventListener('DOMContentLoaded', () => {
+      // Session check — redirect to dashboard if already logged in.
+      // Skip when ?reset_token is present so the user can complete their reset.
+      if (!new URLSearchParams(window.location.search).has('reset_token')) {
+        fetch('/api/auth/me').then(res => {
+          if (res.ok) window.location.replace('/');
+        }).catch(() => {});
+      }
+
       const params = new URLSearchParams(window.location.search);
 
       const msg = params.get('msg');
