@@ -7,3 +7,5 @@ python-dotenv==1.1.1
 python-socketio==5.16.1
 resend==2.23.0
 anthropic>=0.25.0
+anthropic>=0.25.0
+feedparser>=6.0.11
