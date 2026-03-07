@@ -1,6 +1,6 @@
 datasource db {
   provider = "sqlite"
-  url      = "file:/data/lookatme.db"
+  url      = "file:./lookatme.db"
 }
 
 generator client {
@@ -83,4 +83,17 @@ model User {
   phone         String @default("")
   hobbies       String @default("")
   interests     String @default("")
+
+  // Email verification
+  verified              Boolean @default(false)
+  verification_token    String?
+  verification_expiry   String?
+
+  // Magic login
+  magic_login_token     String?
+  magic_login_expiry    String?
+
+  // Password reset via email
+  reset_token           String?
+  reset_expiry          String?
 }

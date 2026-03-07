@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09090b" />
+  <title>Learning Tracker — Write it Down</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; cursor: pointer; border-radius: 0.5rem; transition: background 0.15s, transform 0.1s, opacity 0.1s; }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-primary { background-color: #3b82f6; color: #fff; padding: 0.625rem 1.25rem; font-size: 0.875rem; }
+    .btn-primary:hover { background-color: #2563eb; }
+    .btn-secondary { background-color: #3a3a3a; color: #e5e7eb; padding: 0.375rem 0.875rem; font-size: 0.75rem; }
+    .btn-secondary:hover { background-color: #4a4a4a; color: #fff; }
+    .btn-danger { background-color: #7f1d1d; color: #fca5a5; padding: 0.25rem 0.75rem; font-size: 0.7rem; }
+    .btn-danger:hover { background-color: #991b1b; color: #fff; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
+            mono: ['SF Mono', 'Fira Code', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen font-sans flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-8 pt-6 pb-4">
+    <span class="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Learning Tracker</span>
+    <div class="flex items-center gap-4">
+      <a href="/focus" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Focus</a>
+      <a href="/" class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Full Dashboard &rarr;</a>
+    </div>
+  </div>
+
+  <main class="flex-1 flex flex-col items-center px-6 pb-12 gap-8 max-w-2xl mx-auto w-full">
+
+    <!-- Add Item Form -->
+    <section class="w-full bg-zinc-900 rounded-2xl p-6">
+      <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-5">Add Item</h2>
+      <div class="space-y-3">
+        <input
+          id="new-title"
+          type="text"
+          placeholder="Title (e.g. AWS Cloud Practitioner)"
+          class="w-full bg-zinc-800 text-white text-sm rounded-xl px-4 py-3 placeholder-zinc-600
+                 border border-zinc-700 focus:outline-none focus:border-blue-500 transition-colors"
+        />
+        <div class="grid grid-cols-2 gap-3">
+          <select
+            id="new-category"
+            class="bg-zinc-800 text-white text-sm rounded-xl px-4 py-3
+                   border border-zinc-700 focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            <option value="coding">Coding</option>
+            <option value="cloud">Cloud</option>
+            <option value="languages">Languages</option>
+            <option value="math">Math</option>
+            <option value="design">Design</option>
+            <option value="business">Business</option>
+            <option value="general" selected>General</option>
+          </select>
+          <input
+            id="new-hours"
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="Hours studied"
+            class="bg-zinc-800 text-white text-sm rounded-xl px-4 py-3 placeholder-zinc-600
+                   border border-zinc-700 focus:outline-none focus:border-blue-500 transition-colors"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="text-xs text-zinc-500 flex-shrink-0 w-24">Progress: <span id="new-progress-val">0</span>%</label>
+          <input
+            id="new-progress"
+            type="range"
+            min="0"
+            max="100"
+            value="0"
+            oninput="document.getElementById('new-progress-val').textContent = this.value"
+            class="flex-1 accent-blue-500"
+          />
+        </div>
+        <textarea
+          id="new-notes"
+          rows="2"
+          placeholder="Notes (optional)"
+          class="w-full bg-zinc-800 text-white text-sm rounded-xl px-4 py-3 placeholder-zinc-600
+                 border border-zinc-700 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+        ></textarea>
+        <button
+          onclick="addItem()"
+          class="btn btn-primary w-full rounded-xl cursor-pointer"
+        >
+          Add to Tracker
+        </button>
+      </div>
+    </section>
+
+    <!-- Items List -->
+    <section class="w-full">
+      <p class="text-xs font-semibold text-zinc-600 uppercase tracking-widest mb-4">Your Items</p>
+      <div id="items-list" class="space-y-3">
+        <p class="text-zinc-600 text-sm">Loading…</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    const CATEGORY_COLORS = {
+      coding:    'text-blue-400',
+      cloud:     'text-cyan-400',
+      languages: 'text-green-400',
+      math:      'text-yellow-400',
+      design:    'text-pink-400',
+      business:  'text-orange-400',
+      general:   'text-zinc-400',
+    };
+
+    function progressColor(pct) {
+      if (pct >= 80) return 'from-green-700 to-green-400';
+      if (pct >= 40) return 'from-blue-700 to-blue-400';
+      return 'from-zinc-700 to-zinc-500';
+    }
+
+    function renderItems(items) {
+      const container = document.getElementById('items-list');
+      if (!items.length) {
+        container.innerHTML = '<p class="text-zinc-600 text-sm">No items yet. Add something to start tracking.</p>';
+        return;
+      }
+      container.innerHTML = items.map(item => {
+        const catCls = CATEGORY_COLORS[item.category] || CATEGORY_COLORS.general;
+        const gradCls = progressColor(item.progress);
+        return `
+          <div class="bg-zinc-900 rounded-2xl px-5 py-4" id="item-${item.id}">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-white font-medium text-base leading-snug">${escapeHtml(item.title)}</p>
+                <div class="flex items-center gap-3 mt-0.5">
+                  <span class="${catCls} text-xs font-medium capitalize">${escapeHtml(item.category)}</span>
+                  <span class="text-zinc-600 text-xs">${item.hours_studied}h studied</span>
+                </div>
+              </div>
+              <button
+                onclick="deleteItem(${item.id})"
+                class="btn btn-danger flex-shrink-0 cursor-pointer"
+              >
+                Remove
+              </button>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="flex items-center gap-3 mb-3">
+              <div class="flex-1 bg-zinc-800 rounded-full h-2 overflow-hidden">
+                <div
+                  class="h-2 rounded-full bg-gradient-to-r ${gradCls} transition-all duration-500"
+                  style="width: ${item.progress}%"
+                ></div>
+              </div>
+              <span class="text-zinc-400 text-xs font-mono w-8 text-right">${item.progress}%</span>
+            </div>
+
+            ${item.notes ? `<p class="text-zinc-500 text-xs italic mb-3">${escapeHtml(item.notes)}</p>` : ''}
+
+            <!-- Inline update form -->
+            <details class="group">
+              <summary class="btn btn-secondary cursor-pointer list-none inline-flex">
+                Update progress
+              </summary>
+              <div class="mt-3 space-y-2">
+                <div class="flex items-center gap-3">
+                  <label class="text-xs text-zinc-500 w-24 flex-shrink-0">Progress: <span id="upd-val-${item.id}">${item.progress}</span>%</label>
+                  <input
+                    id="upd-prog-${item.id}"
+                    type="range" min="0" max="100"
+                    value="${item.progress}"
+                    oninput="document.getElementById('upd-val-${item.id}').textContent = this.value"
+                    class="flex-1 accent-blue-500"
+                  />
+                </div>
+                <div class="flex items-center gap-3">
+                  <label class="text-xs text-zinc-500 w-24 flex-shrink-0">Hours</label>
+                  <input
+                    id="upd-hours-${item.id}"
+                    type="number" min="0" step="0.5"
+                    value="${item.hours_studied}"
+                    class="flex-1 bg-zinc-800 text-white text-xs rounded-lg px-3 py-2
+                           border border-zinc-700 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div class="flex items-center gap-3">
+                  <label class="text-xs text-zinc-500 w-24 flex-shrink-0">Notes</label>
+                  <input
+                    id="upd-notes-${item.id}"
+                    type="text"
+                    value="${escapeHtml(item.notes)}"
+                    class="flex-1 bg-zinc-800 text-white text-xs rounded-lg px-3 py-2
+                           border border-zinc-700 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  onclick="saveUpdate(${item.id})"
+                  class="btn btn-primary cursor-pointer"
+                >
+                  Save changes
+                </button>
+              </div>
+            </details>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadItems() {
+      const data = await fetch('/api/learning').then(r => r.json()).catch(() => []);
+      renderItems(data);
+    }
+    loadItems();
+
+    async function addItem() {
+      const title = document.getElementById('new-title').value.trim();
+      if (!title) {
+        document.getElementById('new-title').focus();
+        return;
+      }
+      const body = {
+        title,
+        category:      document.getElementById('new-category').value,
+        progress:      parseInt(document.getElementById('new-progress').value),
+        hours_studied: parseFloat(document.getElementById('new-hours').value || '0'),
+        notes:         document.getElementById('new-notes').value.trim(),
+      };
+      const res = await fetch('/api/learning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        document.getElementById('new-title').value   = '';
+        document.getElementById('new-hours').value   = '';
+        document.getElementById('new-notes').value   = '';
+        document.getElementById('new-progress').value = 0;
+        document.getElementById('new-progress-val').textContent = 0;
+        loadItems();
+      }
+    }
+
+    async function saveUpdate(id) {
+      const body = {
+        progress:      parseInt(document.getElementById(`upd-prog-${id}`).value),
+        hours_studied: parseFloat(document.getElementById(`upd-hours-${id}`).value || '0'),
+        notes:         document.getElementById(`upd-notes-${id}`).value.trim(),
+      };
+      const res = await fetch(`/api/learning/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) loadItems();
+    }
+
+    async function deleteItem(id) {
+      const res = await fetch(`/api/learning/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const el = document.getElementById(`item-${id}`);
+        if (el) el.remove();
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.activeElement.id === 'new-title') addItem();
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+
+</body>
+</html>

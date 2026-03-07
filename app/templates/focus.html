@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#09090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>Focus — Write it Down</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
+            mono: ['SF Mono', 'Fira Code', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    /* ── Card component ── */
+    .card { background-color: #18181b; border: 1px solid #27272a; border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.25); overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem 0.875rem; border-bottom: 1px solid #27272a; }
+    .card-title { font-size: 0.7rem; font-weight: 700; color: #52525b; text-transform: uppercase; letter-spacing: 0.08em; }
+    .card-body { padding: 1.1rem 1.25rem 1.25rem; }
+
+    .task-row { transition: opacity 0.4s ease, transform 0.4s ease; }
+    .task-row.completing { opacity: 0.35; transform: translateX(6px); }
+    .task-row.completing .task-text { text-decoration: line-through; }
+    .task-row.done { opacity: 0; transform: translateX(16px); }
+    .complete-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background-color: #1a3a5c; color: #60a5fa;
+      font-size: 0.7rem; font-weight: 600;
+      padding: 0.2rem 0.65rem; border-radius: 9999px;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .task-row:hover .complete-btn { background-color: #1d4ed8; color: #fff; transform: scale(1.03); }
+    .task-row:active .complete-btn { transform: scale(0.97); }
+    .nav-btn {
+      display: inline-flex; align-items: center; background-color: #27272a;
+      color: #a1a1aa; font-size: 0.75rem; font-weight: 600;
+      padding: 0.3rem 0.85rem; border-radius: 0.5rem;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
+    }
+    .nav-btn:hover { background-color: #3f3f46; color: #fff; }
+    .nav-btn:active { transform: scale(0.97); }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen font-sans flex flex-col">
+
+  <!-- Top bar -->
+  <div class="flex items-center justify-between px-8 pt-6 pb-2">
+    <span class="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Focus Mode</span>
+    <div class="flex items-center gap-2">
+      <a href="/learning" class="nav-btn">Learning</a>
+      <a href="/" class="nav-btn">Dashboard &rarr;</a>
+    </div>
+  </div>
+
+  <!-- Main content — centered column -->
+  <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 gap-6">
+
+    <!-- Countdown Timer Card -->
+    <section class="card w-full max-w-xl">
+      <div class="card-header">
+        <h2 class="card-title">6-Month Countdown</h2>
+        <span class="text-zinc-600 text-xs">Ends <span id="end-date" class="text-zinc-500"></span></span>
+      </div>
+      <div class="card-body text-center">
+        <div id="timer" class="font-mono text-5xl font-bold text-white tracking-tight tabular-nums mb-4">
+          ---d --h --m --s
+        </div>
+        <div class="w-full bg-zinc-800 rounded-full h-2 overflow-hidden mb-2">
+          <div
+            id="progress-bar"
+            class="h-2 rounded-full bg-gradient-to-r from-blue-700 to-blue-400 transition-all duration-700"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-600 text-xs" id="timer-percent"></span>
+          <p id="streak-text" class="text-xs font-semibold text-blue-400"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tasks Card -->
+    <section class="card w-full max-w-xl">
+      <div class="card-header">
+        <h2 class="card-title">Your Tasks</h2>
+      </div>
+      <div class="card-body">
+        <ul id="task-list" class="space-y-3">
+          <li class="text-zinc-600 text-sm">Loading tasks…</li>
+        </ul>
+        <p id="all-done-msg" class="hidden mt-6 text-center text-zinc-400 text-sm">
+          All done for today. Rest well.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ── Utilities ──────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Timer ──────────────────────────────────────────────────────────
+    async function loadTimer() {
+      try {
+        const data = await fetch('/api/timer').then(r => r.json());
+        document.getElementById('timer').textContent        = data.remaining;
+        document.getElementById('timer-percent').textContent = data.progress.toFixed(1) + '% elapsed';
+        document.getElementById('end-date').textContent     = data.end_date;
+        document.getElementById('progress-bar').style.width = data.progress + '%';
+      } catch { /* keep showing last value */ }
+    }
+    setInterval(loadTimer, 1000);
+    loadTimer();
+
+    // ── Streak ─────────────────────────────────────────────────────────
+    function renderStreak(data) {
+      const el = document.getElementById('streak-text');
+      if (!data || data.current_streak === 0) {
+        el.textContent = 'Complete a task to start your streak';
+        return;
+      }
+      const day = data.current_streak === 1 ? 'day' : 'days';
+      let text = `Streak: ${data.current_streak} ${day}`;
+      if (data.longest_streak > data.current_streak) {
+        text += `  \u2014  Best: ${data.longest_streak} days`;
+      }
+      el.textContent = text;
+    }
+
+    async function loadStreak() {
+      const data = await fetch('/api/streak').then(r => r.json());
+      renderStreak(data);
+    }
+    loadStreak();
+
+    // ── Tasks ──────────────────────────────────────────────────────────
+    const PRIORITY = {
+      high:   { dot: 'bg-red-500',    label: 'High',  labelCls: 'text-red-400'    },
+      medium: { dot: 'bg-yellow-500', label: 'Med',   labelCls: 'text-yellow-400' },
+      low:    { dot: 'bg-green-500',  label: 'Low',   labelCls: 'text-green-400'  },
+    };
+
+    function dueBadge(due_date) {
+      if (!due_date) return '';
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const due   = new Date(due_date + 'T00:00:00');
+      const days  = Math.round((due - today) / 86_400_000);
+      let label, cls;
+      if      (days < 0)   { label = `Overdue ${Math.abs(days)}d`; cls = 'text-red-400';    }
+      else if (days === 0) { label = 'Due today';                  cls = 'text-red-400';    }
+      else if (days <= 3)  { label = `Due in ${days}d`;            cls = 'text-yellow-400'; }
+      else {
+        label = `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        cls = 'text-zinc-500';
+      }
+      return `<span class="${cls} text-xs">${label}</span>`;
+    }
+
+    async function loadTasks() {
+      const list = document.getElementById('task-list');
+      const data = await fetch('/api/todos').then(r => r.json()).catch(() => []);
+
+      if (!data.length) {
+        list.innerHTML = '';
+        document.getElementById('all-done-msg').classList.remove('hidden');
+        return;
+      }
+
+      list.innerHTML = data.map(item => {
+        const p = PRIORITY[item.priority] || PRIORITY.medium;
+        return `
+          <li
+            class="task-row group flex items-start gap-4 bg-zinc-900 hover:bg-zinc-800
+                   rounded-xl px-5 py-4 cursor-pointer transition-colors"
+            data-id="${item.id}"
+            onclick="completeTask(this, ${item.id})"
+          >
+            <span class="mt-1 w-2.5 h-2.5 rounded-full ${p.dot} flex-shrink-0"></span>
+            <div class="flex-1 min-w-0">
+              <p class="task-text text-white text-base leading-snug">${escapeHtml(item.text.replace(/^•\s*/, ''))}</p>
+              <div class="flex items-center gap-3 mt-1.5">
+                <span class="${p.labelCls} text-xs font-medium">${p.label}</span>
+                ${dueBadge(item.due_date)}
+              </div>
+            </div>
+            <span class="complete-btn select-none">
+              ✓ Complete
+            </span>
+          </li>
+        `;
+      }).join('');
+    }
+    loadTasks();
+
+    // ── Complete a task ────────────────────────────────────────────────
+    async function completeTask(el, todoId) {
+      if (el.classList.contains('completing') || el.classList.contains('done')) return;
+
+      el.classList.add('completing');
+      el.style.pointerEvents = 'none';
+
+      try {
+        const res  = await fetch(`/api/todos/${todoId}/complete`, { method: 'POST' });
+        const data = await res.json();
+        renderStreak(data.streak);
+      } catch { /* streak update best-effort */ }
+
+      setTimeout(() => {
+        el.classList.add('done');
+        setTimeout(() => {
+          el.remove();
+          if (!document.querySelector('#task-list li')) {
+            document.getElementById('task-list').innerHTML = '';
+            document.getElementById('all-done-msg').classList.remove('hidden');
+          }
+        }, 420);
+      }, 550);
+    }
+
+    // ── Service Worker ─────────────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
+
+</body>
+</html>

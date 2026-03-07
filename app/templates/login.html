@@ -73,6 +73,40 @@
       padding: 0.625rem 0.875rem;
       font-size: 0.8125rem;
     }
+    .success-box {
+      background-color: #0f2e1a;
+      border: 1px solid #166534;
+      color: #86efac;
+      border-radius: 0.625rem;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.8125rem;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #4b5563;
+      font-size: 0.75rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2a2a2a;
+    }
+    .btn-secondary {
+      width: 100%;
+      background-color: transparent;
+      color: #9ca3af;
+      font-weight: 500;
+      font-size: 0.875rem;
+      padding: 0.625rem 1rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      border: 1px solid #2e2e2e;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { border-color: #4b5563; color: #d1d5db; }
   </style>
 </head>
 <body class="text-white min-h-screen font-sans flex items-center justify-center px-4">
@@ -97,8 +131,18 @@
         <button id="tab-reset"    class="tab tab-inactive" onclick="showTab('reset')">Reset</button>
       </div>
 
+      <!-- Success -->
+      <div id="success-box" class="success-box hidden mb-4"></div>
+
       <!-- Error -->
       <div id="error-box" class="error-box hidden mb-4"></div>
+
+      <!-- Resend verification (shown only after 403) -->
+      <div id="resend-box" class="hidden mb-4">
+        <button id="btn-resend" class="btn-secondary" onclick="submitResendVerification()">
+          Resend verification email
+        </button>
+      </div>
 
       <!-- Login form -->
       <form id="form-login" onsubmit="return false" class="space-y-3">
@@ -120,6 +164,10 @@
         />
         <button id="btn-login" class="btn-primary mt-1" onclick="submitLogin()">
           Sign in
+        </button>
+        <div class="divider">or</div>
+        <button id="btn-magic" class="btn-secondary" onclick="submitMagicLogin()">
+          Send sign-in link to my email
         </button>
       </form>
 
@@ -183,6 +231,34 @@
         <button id="btn-reset" class="btn-primary mt-1" onclick="submitReset()">
           Reset password
         </button>
+        <div class="divider">or</div>
+        <button id="btn-request-reset" class="btn-secondary" onclick="submitRequestReset()">
+          Send reset link to my email
+        </button>
+      </form>
+
+      <!-- Token-based new-password form (shown when ?reset_token is in URL) -->
+      <form id="form-reset-token" onsubmit="return false" class="space-y-3 hidden">
+        <p class="text-[#9ca3af] text-sm">Enter your new password below.</p>
+        <input
+          id="reset-token-password"
+          type="password"
+          class="input"
+          placeholder="New password (min. 8 characters)"
+          autocomplete="new-password"
+          required
+        />
+        <input
+          id="reset-token-confirm"
+          type="password"
+          class="input"
+          placeholder="Confirm new password"
+          autocomplete="new-password"
+          required
+        />
+        <button id="btn-reset-token" class="btn-primary mt-1" onclick="submitResetWithToken()">
+          Set new password
+        </button>
       </form>
 
     </div>
@@ -194,6 +270,38 @@
   </div>
 
   <script>
+    let _resetToken = null;
+
+    // ── Page load — handle ?msg and ?reset_token params ───────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+
+      const msg = params.get('msg');
+      if (msg === 'verified') {
+        showSuccess('Email verified — sign in below.');
+      } else if (msg === 'invalid_token') {
+        showError('This link is invalid or has already been used.');
+      } else if (msg === 'token_expired') {
+        showError('This link has expired. Please request a new one.');
+      }
+
+      const rt = params.get('reset_token');
+      if (rt) {
+        _resetToken = rt;
+        // Hide all standard tabs/forms and show token-reset form
+        ['login', 'register', 'reset'].forEach(t => {
+          document.getElementById('form-' + t).classList.add('hidden');
+          document.getElementById('tab-' + t).classList.add('hidden');
+        });
+        document.getElementById('form-reset-token').classList.remove('hidden');
+      }
+
+      // Clean the URL without reloading
+      if (msg || rt) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    });
+
     // ── Tab switching ─────────────────────────────────────────────────
     function showTab(tab) {
       ['login', 'register', 'reset'].forEach(t => {
@@ -201,9 +309,11 @@
         document.getElementById('tab-' + t).className = 'tab ' + (t === tab ? 'tab-active' : 'tab-inactive');
       });
       hideError();
+      hideSuccess();
+      hideResend();
     }
 
-    // ── Error display ─────────────────────────────────────────────────
+    // ── Message display ───────────────────────────────────────────────
     function showError(msg) {
       const el = document.getElementById('error-box');
       el.textContent = msg;
@@ -212,6 +322,28 @@
 
     function hideError() {
       document.getElementById('error-box').classList.add('hidden');
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('success-box');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideSuccess() {
+      document.getElementById('success-box').classList.add('hidden');
+    }
+
+    let _resendEmail = null;
+    function showResend(email) {
+      _resendEmail = email;
+      document.getElementById('resend-box').classList.remove('hidden');
+    }
+    function hideResend() {
+      _resendEmail = null;
+      document.getElementById('resend-box').classList.add('hidden');
+      document.getElementById('btn-resend').disabled    = false;
+      document.getElementById('btn-resend').textContent = 'Resend verification email';
     }
 
     // ── Login ─────────────────────────────────────────────────────────
@@ -236,6 +368,7 @@
 
         if (!res.ok) {
           showError(data.error || 'Sign in failed.');
+          if (res.status === 403) showResend(email);
           return;
         }
         window.location.href = '/';
@@ -274,7 +407,8 @@
           showError(data.error || 'Registration failed.');
           return;
         }
-        window.location.href = '/';
+        showSuccess(data.message || 'Account created.');
+        showTab('login');
       } catch {
         showError('Could not connect to the server.');
       } finally {
@@ -324,10 +458,125 @@
       }
     }
 
+    // ── Resend verification ───────────────────────────────────────────
+    async function submitResendVerification() {
+      const btn = document.getElementById('btn-resend');
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+
+      try {
+        await fetch('/api/auth/resend-verification', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email: _resendEmail }),
+        });
+        hideResend();
+        hideError();
+        showSuccess('Verification email sent — check your inbox.');
+      } catch {
+        btn.disabled    = false;
+        btn.textContent = 'Resend verification email';
+      }
+    }
+
+    // ── Magic login ───────────────────────────────────────────────────
+    async function submitMagicLogin() {
+      hideError();
+      const email = document.getElementById('login-email').value.trim();
+      const btn   = document.getElementById('btn-magic');
+
+      if (!email) { showError('Enter your email address first.'); return; }
+
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+
+      try {
+        await fetch('/api/auth/magic-login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email }),
+        });
+        showSuccess('Check your inbox — a sign-in link is on its way.');
+      } catch {
+        showError('Could not connect to the server.');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Send sign-in link to my email';
+      }
+    }
+
+    // ── Request reset email ───────────────────────────────────────────
+    async function submitRequestReset() {
+      hideError();
+      const email = document.getElementById('reset-email').value.trim();
+      const btn   = document.getElementById('btn-request-reset');
+
+      if (!email) { showError('Enter your email address first.'); return; }
+
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+
+      try {
+        await fetch('/api/auth/request-reset', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email }),
+        });
+        showSuccess('If an account exists for that email, a reset link has been sent.');
+      } catch {
+        showError('Could not connect to the server.');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Send reset link to my email';
+      }
+    }
+
+    // ── Token-based password reset ────────────────────────────────────
+    async function submitResetWithToken() {
+      hideError();
+      const newPassword = document.getElementById('reset-token-password').value;
+      const confirm     = document.getElementById('reset-token-confirm').value;
+      const btn         = document.getElementById('btn-reset-token');
+
+      if (!newPassword || !confirm) { showError('Please fill in all fields.'); return; }
+      if (newPassword !== confirm)  { showError('Passwords do not match.');     return; }
+      if (newPassword.length < 8)   { showError('Password must be at least 8 characters.'); return; }
+
+      btn.disabled    = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const res  = await fetch('/api/auth/reset-with-token', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ token: _resetToken, new_password: newPassword }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Reset failed.');
+          return;
+        }
+        // Show login form with success message
+        document.getElementById('form-reset-token').classList.add('hidden');
+        ['login', 'register', 'reset'].forEach(t => {
+          document.getElementById('tab-' + t).classList.remove('hidden');
+        });
+        showTab('login');
+        showSuccess('Password updated — sign in with your new password.');
+      } catch {
+        showError('Could not connect to the server.');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Set new password';
+      }
+    }
+
     // ── Enter key submits the active form ─────────────────────────────
     document.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
-      if (!document.getElementById('form-login').classList.contains('hidden'))    submitLogin();
+      if (!document.getElementById('form-reset-token').classList.contains('hidden')) submitResetWithToken();
+      else if (!document.getElementById('form-login').classList.contains('hidden'))  submitLogin();
       else if (!document.getElementById('form-register').classList.contains('hidden')) submitRegister();
       else submitReset();
     });

@@ -259,6 +259,7 @@ def _user_to_dict(row) -> dict:
     return {
         "id":           row.id,
         "email":        row.email,
+        "verified":     row.verified,
         "created_at":   row.created_at,
         "display_name": row.display_name,
         "avatar_url":   row.avatar_url,
@@ -293,6 +294,7 @@ def get_user_by_email(email: str) -> dict | None:
         "id":            row.id,
         "email":         row.email,
         "password_hash": row.password_hash,
+        "verified":      row.verified,
         "created_at":    row.created_at,
     }
 
@@ -323,6 +325,87 @@ def update_profile(user_id: int, **fields) -> dict:
 def update_password(user_id: int, password_hash: str) -> None:
     with Prisma() as client:
         client.user.update(where={"id": user_id}, data={"password_hash": password_hash})
+
+
+# ── Token helpers (verification / magic login / password reset) ─────────
+
+def set_verification_token(user_id: int, token: str, expiry: str) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"verification_token": token, "verification_expiry": expiry},
+        )
+
+
+def get_user_by_verification_token(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.user.find_first(where={"verification_token": token})
+    if row is None:
+        return None
+    d = _user_to_dict(row)
+    d["verification_expiry"] = row.verification_expiry
+    d["verified"] = row.verified
+    return d
+
+
+def mark_user_verified(user_id: int) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"verified": True, "verification_token": None, "verification_expiry": None},
+        )
+
+
+def set_magic_login_token(user_id: int, token: str, expiry: str) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"magic_login_token": token, "magic_login_expiry": expiry},
+        )
+
+
+def get_user_by_magic_token(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.user.find_first(where={"magic_login_token": token})
+    if row is None:
+        return None
+    d = _user_to_dict(row)
+    d["magic_login_expiry"] = row.magic_login_expiry
+    return d
+
+
+def clear_magic_token(user_id: int) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"magic_login_token": None, "magic_login_expiry": None},
+        )
+
+
+def set_reset_token(user_id: int, token: str, expiry: str) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"reset_token": token, "reset_expiry": expiry},
+        )
+
+
+def get_user_by_reset_token(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.user.find_first(where={"reset_token": token})
+    if row is None:
+        return None
+    d = _user_to_dict(row)
+    d["reset_expiry"] = row.reset_expiry
+    return d
+
+
+def clear_reset_token(user_id: int) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"reset_token": None, "reset_expiry": None},
+        )
 
 
 # ── Workspaces ─────────────────────────────────────────────────────────
