@@ -1,14 +1,18 @@
 """
 Email service — wraps Resend SDK for all transactional emails.
 
-Required Fly secrets (set with `fly secrets set KEY=value`):
-    RESEND_API_KEY   — API key from resend.com  (e.g. re_xxxxxxxxxxxx)
-    APP_BASE_URL     — public app URL            (e.g. https://lookatme.fly.dev)
-    EMAIL_FROM       — verified sender address   (e.g. LookatMe <hello@yourdomain.com>)
+Required Fly secrets (set with `fly secrets set KEY=value -a lookatme`):
+    RESEND_API_KEY   — API key from resend.com       (e.g. re_xxxxxxxxxxxx)
+    APP_BASE_URL     — public app URL                 (e.g. https://lookatme.fly.dev)
+    EMAIL_FROM       — verified sender address        (e.g. LookatMe <hello@yourdomain.com>)
 
-Until a custom domain is verified in Resend, use:
-    EMAIL_FROM=LookatMe <onboarding@resend.dev>
-    (Resend's shared test address — only delivers to the account owner's email)
+⚠ Sender address rules:
+  • onboarding@resend.dev  — Resend shared test sender.
+                             Emails are ONLY delivered to the Resend account owner's
+                             email address, regardless of the `to` field.
+                             Use for development/testing only.
+  • Any other address      — The domain MUST be verified in the Resend dashboard.
+                             Unverified domains cause HTTP 403 / invalid_api_key errors.
 """
 
 import logging
@@ -23,50 +27,76 @@ def _send(to: str, subject: str, html: str) -> bool:
     """
     Send an email via Resend.
 
-    Returns True on success.
-    Returns False and logs the reason when:
-      - RESEND_API_KEY is not set
-      - the API call fails for any reason (bad key, unverified domain, network error)
-
-    Never raises — callers can always treat email as best-effort.
+    Returns True on success, False on any failure.
+    Never raises — email is always treated as best-effort.
+    All failures are logged with enough detail to diagnose in fly logs.
     """
-    # Read config inside the function so env vars set after module import are seen
-    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    api_key     = os.environ.get("RESEND_API_KEY", "").strip()
     from_address = os.environ.get("EMAIL_FROM", "LookatMe <onboarding@resend.dev>")
-    base_url = os.environ.get("APP_BASE_URL", "https://lookatme.fly.dev")  # noqa: F841 (used by callers via module-level)
 
-    # ── Key presence check ──────────────────────────────────────────────
+    # ── Guard: key missing ───────────────────────────────────────────────
     if not api_key:
-        logger.warning("EMAIL_SKIP: RESEND_API_KEY is not set — email to %s not sent", to)
-        return False
-
-    if api_key in ("local_testing_disabled", "disabled", "skip"):
-        logger.info("EMAIL_SKIP: RESEND_API_KEY=%s — email to %s not sent (dev mode)", api_key, to)
-        return False
-
-    key_preview = api_key[:6] + "..." if len(api_key) > 6 else "???"
-    logger.info("EMAIL_ATTEMPT: to=%s subject=%r from=%s key_prefix=%s", to, subject, from_address, key_preview)
-
-    # ── Send ────────────────────────────────────────────────────────────
-    try:
-        resend.api_key = api_key
-        response = resend.Emails.send({
-            "from": from_address,
-            "to":   [to],
-            "subject": subject,
-            "html": html,
-        })
-        logger.info("EMAIL_OK: to=%s id=%s", to, getattr(response, "id", response))
-        return True
-
-    except resend.exceptions.ResendError as exc:
-        logger.error(
-            "EMAIL_FAIL [ResendError]: to=%s subject=%r key_prefix=%s error=%s",
-            to, subject, key_preview, exc,
+        logger.warning(
+            "EMAIL_SKIP: RESEND_API_KEY not set — skipping email to=%s subject=%r",
+            to, subject,
         )
         return False
 
-    except Exception as exc:  # network timeout, unexpected SDK error, etc.
+    # ── Guard: known dev-mode placeholder values ─────────────────────────
+    if api_key in ("local_testing_disabled", "disabled", "skip"):
+        logger.info(
+            "EMAIL_SKIP: dev-mode key (%s) — skipping email to=%s subject=%r",
+            api_key, to, subject,
+        )
+        return False
+
+    # ── Warn if using the shared test sender ─────────────────────────────
+    if "onboarding@resend.dev" in from_address:
+        logger.warning(
+            "EMAIL_WARN: using Resend test sender (%s) — email will be delivered "
+            "to the Resend account owner, NOT to to=%s",
+            from_address, to,
+        )
+
+    key_preview = api_key[:6] + "..." if len(api_key) > 6 else "???"
+    logger.info(
+        "EMAIL_ATTEMPT: to=%s subject=%r from=%s key_prefix=%s",
+        to, subject, from_address, key_preview,
+    )
+
+    # ── Send ─────────────────────────────────────────────────────────────
+    try:
+        resend.api_key = api_key
+        response = resend.Emails.send({
+            "from":    from_address,
+            "to":      [to],
+            "subject": subject,
+            "html":    html,
+        })
+        logger.info(
+            "EMAIL_OK: to=%s subject=%r id=%s",
+            to, subject, getattr(response, "id", response),
+        )
+        return True
+
+    except resend.exceptions.ResendError as exc:
+        # Log code + error_type separately so fly logs can distinguish:
+        #   403 invalid_api_key  → bad key OR unverified sender domain
+        #   422 validation_error → malformed request / unverified domain
+        #   429 rate_limit_*     → too many requests
+        #   500 application_error → Resend-side problem
+        logger.error(
+            "EMAIL_FAIL [ResendError]: to=%s subject=%r "
+            "http_code=%s error_type=%s message=%s key_prefix=%s",
+            to, subject,
+            getattr(exc, "code", "?"),
+            getattr(exc, "error_type", "?"),
+            exc.message if hasattr(exc, "message") else str(exc),
+            key_preview,
+        )
+        return False
+
+    except Exception as exc:
         logger.error(
             "EMAIL_FAIL [%s]: to=%s subject=%r error=%s",
             type(exc).__name__, to, subject, exc,
@@ -74,7 +104,7 @@ def _send(to: str, subject: str, html: str) -> bool:
         return False
 
 
-# ── Public senders ──────────────────────────────────────────────────────────
+# ── Public senders ───────────────────────────────────────────────────────────
 
 def send_verification_email(to_email: str, token: str) -> bool:
     """Send account verification email with a one-click link."""
