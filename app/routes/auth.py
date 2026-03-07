@@ -14,8 +14,18 @@ from ..services.email_service import (
 
 logger = logging.getLogger(__name__)
 
+# Page / token-redirect routes — registered without a url_prefix so that
+# /login, /verify/<token>, /login/<token>, /reset/<token> stay at their
+# canonical paths (email links and browser bookmarks point to these).
 auth_bp = Blueprint("auth", __name__)
 
+# JSON API routes — registered with url_prefix="/api/auth" in __init__.py.
+# Route decorators use short paths: "/login", "/register", etc.
+# Flask combines prefix + path, so the final URL is /api/auth/<path>.
+auth_api_bp = Blueprint("auth_api", __name__)
+
+
+# ── Page routes ────────────────────────────────────────────────────────────
 
 @auth_bp.route("/login")
 def login_page():
@@ -24,9 +34,58 @@ def login_page():
     return render_template("login.html")
 
 
-@auth_bp.route("/api/auth/register", methods=["POST"])
+@auth_bp.route("/verify/<token>")
+def verify_email(token):
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
+    user = db.get_user_by_verification_token(token)
+    if not user:
+        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
+
+    expiry = user.get("verification_expiry", "")
+    if expiry and datetime.fromisoformat(expiry) < datetime.now():
+        return redirect(url_for("auth.login_page") + "?msg=token_expired")
+
+    db.mark_user_verified(user["id"])
+    session["user_id"] = user["id"]
+    workspaces = db.get_user_workspaces(user["id"])
+    if workspaces:
+        session["workspace_id"] = workspaces[0]["id"]
+    return redirect(url_for("views.index"))
+
+
+@auth_bp.route("/login/<token>")
+def magic_login(token):
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
+    user = db.get_user_by_magic_token(token)
+    if not user:
+        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
+
+    expiry = user.get("magic_login_expiry", "")
+    if expiry and datetime.fromisoformat(expiry) < datetime.now():
+        return redirect(url_for("auth.login_page") + "?msg=token_expired")
+
+    db.clear_magic_token(user["id"])
+    if not user.get("verified"):
+        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
+    session["user_id"] = user["id"]
+    workspaces = db.get_user_workspaces(user["id"])
+    if workspaces:
+        session["workspace_id"] = workspaces[0]["id"]
+    return redirect(url_for("views.index"))
+
+
+@auth_bp.route("/reset/<token>")
+def reset_page(token):
+    """Redirect to the login page with the reset token so the JS can render the form."""
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
+    return redirect(url_for("auth.login_page") + f"?reset_token={token}")
+
+
+# ── API routes (prefix /api/auth applied in __init__.py) ──────────────────
+
+@auth_api_bp.route("/register", methods=["POST"])
 def register():
-    logger.info("AUTH_ROUTE_TRIGGERED: %s", request.path)
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
     password = body.get("password", "")
@@ -45,7 +104,6 @@ def register():
         password_hash=password_hash,
         created_at=datetime.now().isoformat(),
     )
-    # Create a personal workspace for the new user
     workspace = db.create_workspace(
         name="Personal",
         created_at=datetime.now().isoformat(),
@@ -59,8 +117,9 @@ def register():
     return jsonify({"message": "Account created. Check your email to verify your account."}), 201
 
 
-@auth_bp.route("/api/auth/login", methods=["POST"])
+@auth_api_bp.route("/login", methods=["POST"])
 def login():
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
     password = body.get("password", "")
@@ -72,22 +131,38 @@ def login():
         return jsonify({"error": "Please verify your email before signing in."}), 403
 
     session["user_id"] = user["id"]
-    # Restore the user's first workspace as the active one
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
     return jsonify({"id": user["id"], "email": user["email"]})
 
 
-@auth_bp.route("/api/auth/logout", methods=["POST"])
+@auth_api_bp.route("/logout", methods=["POST"])
 def logout():
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     session.clear()
     return jsonify({"ok": True})
 
 
-@auth_bp.route("/api/auth/reset-password", methods=["POST"])
+@auth_api_bp.route("/me")
+def me():
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    user = db.get_user_by_id(user_id)
+    if not user:
+        session.clear()
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"id": user["id"], "email": user["email"]})
+
+
+@auth_api_bp.route("/reset-password", methods=["POST"])
 def reset_password():
     """Reset password without being logged in — requires only email + new password."""
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
     new_password = body.get("new_password", "")
@@ -105,9 +180,10 @@ def reset_password():
     return jsonify({"ok": True})
 
 
-@auth_bp.route("/api/auth/change-password", methods=["POST"])
+@auth_api_bp.route("/change-password", methods=["POST"])
 def change_password():
     """Change password while logged in — requires current password verification."""
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Authentication required"}), 401
@@ -131,46 +207,12 @@ def change_password():
     return jsonify({"ok": True})
 
 
-@auth_bp.route("/api/auth/me")
-def me():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    user = db.get_user_by_id(user_id)
-    if not user:
-        session.clear()
-        return jsonify({"error": "User not found"}), 404
-
-    return jsonify({"id": user["id"], "email": user["email"]})
-
-
-# ── Email verification ─────────────────────────────────────────────────────
-
-@auth_bp.route("/verify/<token>")
-def verify_email(token):
-    user = db.get_user_by_verification_token(token)
-    if not user:
-        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
-
-    expiry = user.get("verification_expiry", "")
-    if expiry and datetime.fromisoformat(expiry) < datetime.now():
-        return redirect(url_for("auth.login_page") + "?msg=token_expired")
-
-    db.mark_user_verified(user["id"])
-    session["user_id"] = user["id"]
-    workspaces = db.get_user_workspaces(user["id"])
-    if workspaces:
-        session["workspace_id"] = workspaces[0]["id"]
-    return redirect(url_for("views.index"))
-
-
 # ── Resend verification ────────────────────────────────────────────────────
 
-@auth_bp.route("/api/auth/resend-verification", methods=["POST"])
+@auth_api_bp.route("/resend-verification", methods=["POST"])
 def resend_verification():
     """Re-generate and re-send a verification email for an unverified account."""
-    logger.info("AUTH_ROUTE_TRIGGERED: %s", request.path)
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
 
@@ -196,10 +238,10 @@ def resend_verification():
 
 # ── Magic login ────────────────────────────────────────────────────────────
 
-@auth_bp.route("/api/auth/magic-login", methods=["POST"])
+@auth_api_bp.route("/magic-login", methods=["POST"])
 def request_magic_login():
     """Generate a magic sign-in link and email it to the user."""
-    logger.info("AUTH_ROUTE_TRIGGERED: %s", request.path)
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
 
@@ -227,32 +269,12 @@ def request_magic_login():
     return jsonify({"ok": True})
 
 
-@auth_bp.route("/login/<token>")
-def magic_login(token):
-    user = db.get_user_by_magic_token(token)
-    if not user:
-        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
-
-    expiry = user.get("magic_login_expiry", "")
-    if expiry and datetime.fromisoformat(expiry) < datetime.now():
-        return redirect(url_for("auth.login_page") + "?msg=token_expired")
-
-    db.clear_magic_token(user["id"])
-    if not user.get("verified"):
-        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
-    session["user_id"] = user["id"]
-    workspaces = db.get_user_workspaces(user["id"])
-    if workspaces:
-        session["workspace_id"] = workspaces[0]["id"]
-    return redirect(url_for("views.index"))
-
-
 # ── Token-based password reset ─────────────────────────────────────────────
 
-@auth_bp.route("/api/auth/request-reset", methods=["POST"])
+@auth_api_bp.route("/request-reset", methods=["POST"])
 def request_reset():
     """Generate a password-reset token and email it. Always returns 200 to avoid enumeration."""
-    logger.info("AUTH_ROUTE_TRIGGERED: %s", request.path)
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
 
@@ -272,15 +294,10 @@ def request_reset():
     return jsonify({"ok": True})
 
 
-@auth_bp.route("/reset/<token>")
-def reset_page(token):
-    """Redirect to the login page with the reset token in the URL so the JS can render the form."""
-    return redirect(url_for("auth.login_page") + f"?reset_token={token}")
-
-
-@auth_bp.route("/api/auth/reset-with-token", methods=["POST"])
+@auth_api_bp.route("/reset-with-token", methods=["POST"])
 def reset_with_token():
     """Complete a token-based password reset."""
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     body = request.get_json(silent=True) or {}
     token = body.get("token", "")
     new_password = body.get("new_password", "")

@@ -18,7 +18,7 @@ from flask_socketio import join_room, leave_room # type: ignore
 from .extensions import socketio
 from .models.db import migrate_from_json_if_needed
 from .routes.activity import activity_bp
-from .routes.auth import auth_bp
+from .routes.auth import auth_api_bp, auth_bp
 from .routes.external import external_bp
 from .routes.learning import learning_bp
 from .routes.messages import messages_bp
@@ -48,7 +48,8 @@ def create_app() -> Flask:
     )
 
     app.register_blueprint(activity_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp)                              # page routes: /login, /verify/<token>, etc.
+    app.register_blueprint(auth_api_bp, url_prefix="/api/auth")  # API routes: /api/auth/login, etc.
     app.register_blueprint(views_bp)
     app.register_blueprint(tasks_bp)
     app.register_blueprint(learning_bp)
