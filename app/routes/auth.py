@@ -1,8 +1,11 @@
+import logging
 import secrets
 from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+
+logger = logging.getLogger(__name__)
 
 from ..models import db
 from ..services.email_service import (
@@ -167,6 +170,7 @@ def resend_verification():
     """Re-generate and re-send a verification email for an unverified account."""
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
+    logger.info("RESEND_VERIFICATION received for email=%s", email)
 
     if not email or "@" not in email:
         return jsonify({"error": "A valid email address is required"}), 400
@@ -176,7 +180,13 @@ def resend_verification():
         token = secrets.token_urlsafe(32)
         expiry = (datetime.now() + timedelta(hours=24)).isoformat()
         db.set_verification_token(user["id"], token, expiry)
+        logger.info("Calling send_verification_email for email=%s", email)
         send_verification_email(email, token)
+    else:
+        logger.info(
+            "RESEND_VERIFICATION_SKIP: email=%s user_found=%s already_verified=%s",
+            email, user is not None, bool(user and user.get("verified")),
+        )
 
     # Always return ok — don't reveal account state
     return jsonify({"ok": True})
@@ -189,18 +199,29 @@ def request_magic_login():
     """Generate a magic sign-in link and email it to the user."""
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
+    logger.info("LOGIN_EMAIL_REQUEST received for email=%s", email)
 
     if not email or "@" not in email:
         return jsonify({"error": "A valid email address is required"}), 400
 
     user = db.get_user_by_email(email)
-    if not user or not user.get("verified"):
-        # Don't reveal whether the account exists or is unverified
+    if not user:
+        logger.info("LOGIN_EMAIL_SKIP: no account found for email=%s", email)
+        # Don't reveal whether the account exists
+        return jsonify({"ok": True})
+
+    if not user.get("verified"):
+        logger.warning(
+            "LOGIN_EMAIL_SKIP: account for email=%s exists but is NOT verified — "
+            "user must verify their email first",
+            email,
+        )
         return jsonify({"ok": True})
 
     token = secrets.token_urlsafe(32)
     expiry = (datetime.now() + timedelta(minutes=15)).isoformat()
     db.set_magic_login_token(user["id"], token, expiry)
+    logger.info("Calling send_magic_login_link for email=%s", email)
     send_magic_login_link(email, token)
     return jsonify({"ok": True})
 
@@ -232,6 +253,7 @@ def request_reset():
     """Generate a password-reset token and email it. Always returns 200 to avoid enumeration."""
     body = request.get_json(silent=True) or {}
     email = body.get("email", "").strip().lower()
+    logger.info("LOGIN_EMAIL_REQUEST received for email=%s", email)
 
     if not email or "@" not in email:
         return jsonify({"error": "A valid email address is required"}), 400
@@ -241,7 +263,10 @@ def request_reset():
         token = secrets.token_urlsafe(32)
         expiry = (datetime.now() + timedelta(hours=1)).isoformat()
         db.set_reset_token(user["id"], token, expiry)
+        logger.info("Calling send_password_reset_email for email=%s", email)
         send_password_reset_email(email, token)
+    else:
+        logger.info("REQUEST_RESET_SKIP: no account found for email=%s", email)
 
     return jsonify({"ok": True})
 
