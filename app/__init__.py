@@ -2,6 +2,7 @@
 Write it Down — Flask application factory.
 """
 
+import logging
 import math
 import os
 import struct
@@ -28,6 +29,11 @@ from .routes.workspaces import workspaces_bp
 
 
 def create_app() -> Flask:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
