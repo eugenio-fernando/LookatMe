@@ -1,0 +1,30 @@
+# Git artifacts
+FETCH_HEAD
+
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+myenv/
+venv/
+*.db
+
+# Build artifacts (old desktop app)
+build/
+dist/
+echo
+
+# Fly.io / runtime data
+celerybeat-schedule
+daily_notes.json
+notification_state.json
+timer_start.json
+
+# IDE
+.idea/
+.vscode/

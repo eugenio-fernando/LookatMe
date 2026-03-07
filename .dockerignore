@@ -1,0 +1,15 @@
+myenv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git/
+.gitignore
+*.db
+build/
+dist/
+tests/
+docker-compose.yml
+.DS_Store

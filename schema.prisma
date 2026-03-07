@@ -1,0 +1,86 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:/data/lookatme.db"
+}
+
+generator client {
+  provider  = "prisma-client-py"
+  interface = "sync"
+}
+
+model Workspace {
+  id         Int    @id @default(autoincrement())
+  name       String
+  created_at String
+}
+
+model WorkspaceMember {
+  id           Int    @id @default(autoincrement())
+  workspace_id Int
+  user_id      Int
+  role         String @default("member")
+}
+
+model Todo {
+  id           Int     @id @default(autoincrement())
+  workspace_id Int     @default(0)
+  created_by   Int     @default(0)
+  user_id      Int     @default(0)
+  timestamp    String
+  text         String
+  priority     String  @default("medium")
+  due_date     String  @default("")
+  completed    Boolean @default(false)
+}
+
+model Streak {
+  id                  Int    @id
+  current_streak      Int    @default(0)
+  last_completed_date String @default("")
+  longest_streak      Int    @default(0)
+}
+
+model LearningItem {
+  id           Int    @id @default(autoincrement())
+  title        String
+  category     String @default("general")
+  progress     Int    @default(0)
+  hours_studied Float  @default(0)
+  notes        String @default("")
+  created_at   String
+}
+
+model Message {
+  id           Int    @id @default(autoincrement())
+  sender_id    Int
+  recipient_id Int
+  subject      String
+  content      String
+  created_at   String
+  read         Boolean @default(false)
+}
+
+model Activity {
+  id         Int    @id @default(autoincrement())
+  user_id    Int
+  type       String
+  content    String
+  created_at String
+}
+
+model User {
+  id            Int    @id @default(autoincrement())
+  email         String @unique
+  password_hash String
+  created_at    String
+  display_name  String @default("")
+  avatar_url    String @default("")
+  bio           String @default("")
+  company       String @default("")
+  address       String @default("")
+  city          String @default("")
+  zip_code      String @default("")
+  phone         String @default("")
+  hobbies       String @default("")
+  interests     String @default("")
+}

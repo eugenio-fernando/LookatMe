@@ -1,0 +1,33 @@
+
+
+services:
+
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    command: celery -A app.celery_app.celery worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  celery_beat:
+    build: .
+    command: celery -A app.celery_app.celery beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
