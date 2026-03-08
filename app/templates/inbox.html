@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -19,20 +20,23 @@
     }
   </script>
   <style>
-    body { background-color: #161616; }
-    .sidebar { background-color: #111111; border-right: 1px solid #2a2a2a; }
-    .nav-link { color: #8a8a8a; transition: background 0.15s, color 0.15s; }
-    .nav-link:hover { background-color: #1e1e1e; color: #ffffff; }
-    .nav-link.active { background-color: #1e1e1e; color: #ffffff; border-left: 2px solid #3b82f6; }
-    .card { background-color: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.4); overflow: hidden; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem 0.875rem; border-bottom: 1px solid #252525; }
-    .card-title { font-size: 0.7rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; }
-    .msg-row { border-bottom: 1px solid #222; transition: background 0.12s; cursor: pointer; }
-    .msg-row:hover { background-color: #252525; }
-    .msg-row.unread { background-color: #1a2236; }
-    .msg-row.unread:hover { background-color: #1e2a42; }
-    .field-input { background-color: #1a1a1a; border: 1px solid #333; color: #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 100%; transition: border-color 0.15s; }
-    .field-input:focus { outline: none; border-color: #3b82f6; }
+    html[data-theme="dark"]  { --bg:#161616; --sidebar:#111111; --card:#1e1e1e; --hover:#252525; --active:#1e1e1e; --border:#2a2a2a; --text:#ffffff; --muted:#8a8a8a; --soft:#6b7280; --input:#1a1a1a; --input-border:#333; --input-text:#e5e7eb; --accent:#a3e635; --accent-soft:#1a2236; --accent-soft-hover:#1e2a42; }
+    html[data-theme="light"] { --bg:#f5f5f7; --sidebar:#ffffff; --card:#ffffff; --hover:#f3f4f6; --active:#eef2ff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --soft:#6b7280; --input:#f9fafb; --input-border:#d1d5db; --input-text:#111827; --accent:#2563eb; --accent-soft:#eaf1ff; --accent-soft-hover:#dbe7ff; }
+    html[data-theme="sepia"] { --bg:#f4ecd8; --sidebar:#ede4cf; --card:#fbf6e7; --hover:#f0e8d4; --active:#eadfca; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --soft:#8a7060; --input:#f0e8d4; --input-border:#c8b697; --input-text:#3c2a1a; --accent:#b45309; --accent-soft:#efe3cf; --accent-soft-hover:#e6d8c0; }
+    body { background-color: var(--bg); color: var(--text); transition: background-color .2s, color .2s; }
+    .sidebar { background-color: var(--sidebar); border-right: 1px solid var(--border); }
+    .nav-link { color: var(--muted); transition: background 0.15s, color 0.15s; }
+    .nav-link:hover { background-color: var(--hover); color: var(--text); }
+    .nav-link.active { background-color: var(--active); color: var(--text); border-left: 2px solid var(--accent); }
+    .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.22); overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem 0.875rem; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 0.7rem; font-weight: 700; color: var(--soft); text-transform: uppercase; letter-spacing: 0.08em; }
+    .msg-row { border-bottom: 1px solid var(--border); transition: background 0.12s; cursor: pointer; }
+    .msg-row:hover { background-color: var(--hover); }
+    .msg-row.unread { background-color: var(--accent-soft); }
+    .msg-row.unread:hover { background-color: var(--accent-soft-hover); }
+    .field-input { background-color: var(--input); border: 1px solid var(--input-border); color: var(--input-text); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; width: 100%; transition: border-color 0.15s; }
+    .field-input:focus { outline: none; border-color: var(--accent); }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
@@ -40,10 +44,10 @@
     /* Modal */
     #modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; display: flex; align-items: center; justify-content: center; }
     #modal-backdrop.hidden { display: none; }
-    #modal-box { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 1rem; width: 100%; max-width: 540px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
+    #modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; width: 100%; max-width: 540px; box-shadow: 0 8px 40px rgba(0,0,0,0.35); }
 
     /* Compose panel */
-    #compose-panel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 1rem; box-shadow: 0 8px 40px rgba(0,0,0,0.6); z-index: 40; }
+    #compose-panel { position: fixed; bottom: 1.5rem; right: 1.5rem; width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 8px 40px rgba(0,0,0,0.35); z-index: 40; }
     #compose-panel.hidden { display: none; }
 
     /* Toast */
@@ -55,7 +59,7 @@
     .mobile-header {
       display: none;
       position: fixed; top: 0; left: 0; right: 0; height: 52px;
-      background: #111111; border-bottom: 1px solid #2a2a2a;
+      background: var(--sidebar); border-bottom: 1px solid var(--border);
       align-items: center; justify-content: space-between;
       padding: 0 16px; z-index: 50;
     }
@@ -63,7 +67,7 @@
       display: flex; flex-direction: column; justify-content: center; gap: 5px;
       background: none; border: none; cursor: pointer; padding: 8px; margin: -8px;
     }
-    .mobile-hamburger span { display: block; width: 20px; height: 2px; background: #8a8a8a; border-radius: 2px; }
+    .mobile-hamburger span { display: block; width: 20px; height: 2px; background: var(--muted); border-radius: 2px; }
     .nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 15; display: none; }
     @media (max-width: 767px) {
       .mobile-header { display: flex; }
@@ -75,7 +79,7 @@
     }
   </style>
 </head>
-<body class="text-white min-h-screen font-sans flex">
+<body class="min-h-screen font-sans flex">
 
   <!-- Mobile overlay + header -->
   <div id="nav-overlay" class="nav-overlay" onclick="closeMobileNav()"></div>

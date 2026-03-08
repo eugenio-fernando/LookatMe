@@ -67,6 +67,12 @@ def favicon():
                                mimetype="image/svg+xml")
 
 
+@views_bp.route("/logo.svg")
+def logo():
+    return send_from_directory(current_app.static_folder, "logo.svg",
+                               mimetype="image/svg+xml")
+
+
 @views_bp.route("/manifest.json")
 def manifest():
     return send_from_directory(current_app.static_folder, "manifest.json")
