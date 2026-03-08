@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#161616" />
+  <title>Verification failed — Write it Down</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body { background-color: #161616; }
+    .card {
+      background-color: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 1rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4 font-sans">
+  <div class="card w-full max-w-md p-8 text-center">
+
+    <div class="flex justify-center mb-6">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center"
+           style="background-color: rgba(239,68,68,0.12);">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-red-400" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </div>
+    </div>
+
+    {% if reason == "expired" %}
+      <h1 class="text-xl font-semibold text-white mb-2">Link expired</h1>
+      <p class="text-sm mb-6" style="color:#8e8e93;">
+        This verification link is only valid for 30 minutes and has expired.<br>
+        Request a new one and verify your email right away.
+      </p>
+    {% else %}
+      <h1 class="text-xl font-semibold text-white mb-2">Invalid link</h1>
+      <p class="text-sm mb-6" style="color:#8e8e93;">
+        This verification link has already been used or is not valid.<br>
+        If your account is already verified, you can sign in directly.
+      </p>
+    {% endif %}
+
+    <div class="flex flex-col gap-3">
+      {% if reason == "expired" %}
+        <a href="/login?resend=1"
+           class="w-full py-2.5 rounded-lg text-sm font-medium text-white text-center"
+           style="background-color:#0a84ff;">
+          Resend verification email
+        </a>
+      {% endif %}
+      <a href="/login"
+         class="w-full py-2.5 rounded-lg text-sm font-medium text-center"
+         style="background-color:#2a2a2a; color:#ebebf5;">
+        Back to sign in
+      </a>
+    </div>
+
+  </div>
+</body>
+</html>

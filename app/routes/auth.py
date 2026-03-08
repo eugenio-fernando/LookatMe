@@ -39,13 +39,16 @@ def verify_email(token):
     logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
     user = db.get_user_by_verification_token(token)
     if not user:
-        return redirect(url_for("auth.login_page") + "?msg=invalid_token")
+        logger.warning("VERIFY_TOKEN_INVALID: token_prefix=%s", token[:8])
+        return render_template("verify_error.html", reason="invalid"), 400
 
     expiry = user.get("verification_expiry", "")
     if expiry and datetime.fromisoformat(expiry) < datetime.now():
-        return redirect(url_for("auth.login_page") + "?msg=token_expired")
+        logger.warning("VERIFY_TOKEN_EXPIRED: user_id=%s", user["id"])
+        return render_template("verify_error.html", reason="expired"), 400
 
     db.mark_user_verified(user["id"])
+    logger.info("VERIFY_SUCCESS: user_id=%s", user["id"])
     session["user_id"] = user["id"]
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
@@ -110,7 +113,7 @@ def register():
     )
     db.add_workspace_member(workspace["id"], user["id"], role="admin")
     token = secrets.token_urlsafe(32)
-    expiry = (datetime.now() + timedelta(hours=24)).isoformat()
+    expiry = (datetime.now() + timedelta(minutes=30)).isoformat()
     db.set_verification_token(user["id"], token, expiry)
     logger.info("EMAIL_FUNCTION_CALLED: send_verification_email to=%s", email)
     send_verification_email(email, token)
@@ -222,7 +225,7 @@ def resend_verification():
     user = db.get_user_by_email(email)
     if user and not user.get("verified"):
         token = secrets.token_urlsafe(32)
-        expiry = (datetime.now() + timedelta(hours=24)).isoformat()
+        expiry = (datetime.now() + timedelta(minutes=30)).isoformat()
         db.set_verification_token(user["id"], token, expiry)
         logger.info("EMAIL_FUNCTION_CALLED: send_verification_email to=%s", email)
         send_verification_email(email, token)
