@@ -14,45 +14,50 @@
           fontFamily: {
             sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
           },
-          colors: {
-            surface: {
-              DEFAULT: '#1e1e1e',
-              card:    '#262626',
-              hover:   '#2e2e2e',
-              border:  '#333333',
-              input:   '#1a1a1a',
-            },
-          },
         },
       },
     }
   </script>
   <style>
-    html[data-theme="dark"]  { --bg:#161616; --sidebar:#111111; --card:#1e1e1e; --hover:#1e1e1e; --border:#2a2a2a; --text:#ffffff; --muted:#8a8a8a; --soft:#71717a; --accent:#a3e635; }
-    html[data-theme="light"] { --bg:#f5f5f7; --sidebar:#ffffff; --card:#ffffff; --hover:#f3f4f6; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --soft:#6b7280; --accent:#2563eb; }
-    html[data-theme="sepia"] { --bg:#f4ecd8; --sidebar:#ede4cf; --card:#fbf6e7; --hover:#f0e8d4; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --soft:#8a7060; --accent:#b45309; }
+    html[data-theme="dark"]  { --bg:#161616; --sidebar:#111111; --card:#1e1e1e; --panel:#151515; --hover:#252525; --border:#2a2a2a; --text:#ffffff; --muted:#8a8a8a; --soft:#71717a; --accent:#a3e635; --accent-soft:#202a14; --brand-bg:#1a1a1a; --danger:#f87171; }
+    html[data-theme="light"] { --bg:#f5f5f7; --sidebar:#ffffff; --card:#ffffff; --panel:#f9fafb; --hover:#f3f4f6; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --soft:#6b7280; --accent:#2563eb; --accent-soft:#eaf1ff; --brand-bg:#f3f4f6; --danger:#dc2626; }
+    html[data-theme="sepia"] { --bg:#f4ecd8; --sidebar:#ede4cf; --card:#fbf6e7; --panel:#f0e8d4; --hover:#eadfca; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --soft:#8a7060; --accent:#b45309; --accent-soft:#efe3cf; --brand-bg:#e6d8c0; --danger:#b91c1c; }
+
     body { background-color: var(--bg); color: var(--text); transition: background-color .2s, color .2s; }
     .sidebar { background-color: var(--sidebar); border-right: 1px solid var(--border); }
     .nav-link { color: var(--muted); transition: background 0.15s, color 0.15s; }
     .nav-link:hover { background-color: var(--hover); color: var(--text); }
     .nav-link.active { background-color: var(--hover); color: var(--text); border-left: 2px solid var(--accent); }
-    .card {
-      background-color: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.15);
+
+    .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.15); }
+    .surface { background: var(--panel); }
+    .text-soft { color: var(--soft); }
+    .text-muted { color: var(--muted); }
+    .text-main { color: var(--text); }
+    .border-theme { border-color: var(--border); }
+
+    .brand-mark { width: 28px; height: 28px; border-radius: 7px; background: var(--brand-bg); position: relative; flex-shrink: 0; }
+    .brand-mark::before { content: ''; position: absolute; inset: 4px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 999px; }
+    .brand-mark::after { content: ''; position: absolute; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); left: 50%; top: 50%; transform: translate(-50%, -50%); }
+
+    .ghost-btn {
+      border: 1px solid var(--border); background: var(--panel); color: var(--muted);
+      border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600; padding: 0.35rem 0.7rem; transition: background 0.15s, color 0.15s;
     }
-    .pill {
-      display: inline-flex; align-items: center;
-      padding: 2px 10px; border-radius: 999px;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-    }
-    .pill-pending  { background: rgba(113,113,122,0.18); color: #a1a1aa; }
-    .pill-opened   { background: rgba(59,130,246,0.15);  color: #60a5fa; }
-    .pill-accepted { background: rgba(163,230,53,0.15);  color: #a3e635; }
+    .ghost-btn:hover { background: var(--hover); color: var(--text); }
+
+    .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+    .pill-pending  { background: color-mix(in srgb, var(--soft) 24%, transparent); color: var(--muted); }
+    .pill-opened   { background: color-mix(in srgb, #3b82f6 20%, transparent); color: #3b82f6; }
+    .pill-accepted { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+
+    .table-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--soft); }
+    .row-border { border-bottom: 1px solid var(--border); }
+    .error-text { color: var(--danger); }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--soft); border-radius: 4px; }
 
     .mobile-header {
       display: none;
@@ -77,6 +82,8 @@
       }
       aside.open { transform: translateX(0); }
       main { margin-left: 0 !important; padding: 68px 16px 32px !important; }
+      #stats-row { grid-template-columns: 1fr; }
+      .table-grid { grid-template-columns: 1fr 90px 80px 80px 70px !important; }
     }
   </style>
 </head>
@@ -87,23 +94,17 @@
     <button class="mobile-hamburger" onclick="toggleMobileNav()" aria-label="Open menu">
       <span></span><span></span><span></span>
     </button>
-    <a href="/" style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em;text-decoration:none;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></a>
-    <div style="width:36px;"></div>
+    <a href="/" class="text-sm font-bold tracking-tight text-main no-underline">Look<strong>At</strong><span style="color:var(--accent);">Me</span></a>
+    <div class="w-9"></div>
   </header>
 
-  <!-- ── Sidebar ── -->
   <aside class="sidebar fixed top-0 left-0 h-full w-56 flex flex-col z-10 select-none">
-    <div class="px-5 py-5 border-b border-[#2a2a2a]">
-      <a href="/" class="flex items-center gap-2.5" style="text-decoration:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" style="flex-shrink:0;">
-          <rect width="28" height="28" rx="7" fill="#1a1a1a"/>
-          <circle cx="14" cy="14" r="11" fill="none" stroke="#a3e635" stroke-width="1.5" opacity="0.3"/>
-          <circle cx="14" cy="14" r="7" fill="none" stroke="#a3e635" stroke-width="0.75" opacity="0.18"/>
-          <circle cx="14" cy="14" r="4" fill="#a3e635"/>
-        </svg>
-        <span style="color:var(--text);font-weight:700;font-size:16px;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></span>
+    <div class="px-5 py-5 border-b border-theme">
+      <a href="/" class="flex items-center gap-2.5 no-underline">
+        <span class="brand-mark"></span>
+        <span class="text-main font-bold text-base tracking-tight">Look<strong>At</strong><span style="color:var(--accent);">Me</span></span>
       </a>
-      <p id="sidebar-date" class="text-[#5a5a5a] text-xs mt-2"></p>
+      <p id="sidebar-date" class="text-soft text-xs mt-2"></p>
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -125,61 +126,54 @@
       </a>
     </nav>
 
-    <div class="px-5 py-4 border-t border-[#2a2a2a] space-y-3">
-      <div class="font-mono text-xl font-bold text-white tabular-nums" id="sidebar-clock"></div>
-      <button onclick="logout()" class="w-full text-left text-xs text-[#5a5a5a] hover:text-white transition-colors">Sign out →</button>
+    <div class="px-5 py-4 border-t border-theme space-y-3">
+      <div class="font-mono text-xl font-bold text-main tabular-nums" id="sidebar-clock"></div>
+      <button onclick="logout()" class="ghost-btn w-full text-left">Sign out</button>
     </div>
   </aside>
 
-  <!-- ── Main ── -->
   <main class="flex-1 ml-56 p-8 max-w-4xl">
-
-    <div style="margin-bottom:28px;">
-      <h1 style="font-size:22px;font-weight:800;color:#f4f4f5;letter-spacing:-0.02em;margin-bottom:4px;">Invitations</h1>
-      <p style="font-size:13px;color:#71717a;">Track your friend invitations and see who joined.</p>
+    <div class="mb-7">
+      <h1 class="text-[22px] font-extrabold text-main tracking-tight mb-1">Invitations</h1>
+      <p class="text-sm text-soft">Track your friend invitations and see who joined.</p>
     </div>
 
-    <!-- Stats row -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;" id="stats-row">
-      <div class="card" style="padding:16px 20px;">
-        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#71717a;margin-bottom:6px;">Sent</p>
-        <p id="stat-sent" style="font-size:26px;font-weight:800;color:#f4f4f5;line-height:1;">—</p>
+    <div class="grid grid-cols-3 gap-3 mb-6" id="stats-row">
+      <div class="card p-4">
+        <p class="text-xs font-bold uppercase tracking-wider text-soft mb-1.5">Sent</p>
+        <p id="stat-sent" class="text-2xl font-extrabold text-main leading-none">—</p>
       </div>
-      <div class="card" style="padding:16px 20px;">
-        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#71717a;margin-bottom:6px;">Opened</p>
-        <p id="stat-opened" style="font-size:26px;font-weight:800;color:#60a5fa;line-height:1;">—</p>
+      <div class="card p-4">
+        <p class="text-xs font-bold uppercase tracking-wider text-soft mb-1.5">Opened</p>
+        <p id="stat-opened" class="text-2xl font-extrabold text-blue-500 leading-none">—</p>
       </div>
-      <div class="card" style="padding:16px 20px;">
-        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#71717a;margin-bottom:6px;">Joined</p>
-        <p id="stat-joined" style="font-size:26px;font-weight:800;color:#a3e635;line-height:1;">—</p>
-      </div>
-    </div>
-
-    <!-- Invitations table -->
-    <div class="card" style="overflow:hidden;">
-      <div style="padding:16px 20px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:13px;font-weight:700;color:#f4f4f5;">Your Invites</span>
-        <button onclick="loadInvitations()" style="background:none;border:none;cursor:pointer;color:#71717a;font-size:12px;padding:4px 8px;border-radius:6px;transition:color 0.12s;" onmouseover="this.style.color='#f4f4f5'" onmouseout="this.style.color='#71717a'">↻ Refresh</button>
-      </div>
-      <div id="invitations-body" style="padding:0;">
-        <div style="padding:32px;text-align:center;color:#71717a;font-size:13px;">Loading…</div>
+      <div class="card p-4">
+        <p class="text-xs font-bold uppercase tracking-wider text-soft mb-1.5">Joined</p>
+        <p id="stat-joined" class="text-2xl font-extrabold leading-none" style="color:var(--accent);">—</p>
       </div>
     </div>
 
-    <!-- Friends list -->
-    <div class="card" style="overflow:hidden;margin-top:20px;">
-      <div style="padding:16px 20px;border-bottom:1px solid #2a2a2a;">
-        <span style="font-size:13px;font-weight:700;color:#f4f4f5;">Friends</span>
+    <div class="card overflow-hidden">
+      <div class="px-5 py-4 row-border flex items-center justify-between">
+        <span class="text-sm font-bold text-main">Your Invites</span>
+        <button onclick="loadInvitations()" class="ghost-btn">Refresh</button>
       </div>
-      <div id="friends-body" style="padding:0;">
-        <div style="padding:32px;text-align:center;color:#71717a;font-size:13px;">Loading…</div>
+      <div id="invitations-body">
+        <div class="p-8 text-center text-soft text-sm">Loading…</div>
       </div>
     </div>
 
+    <div class="card overflow-hidden mt-5">
+      <div class="px-5 py-4 row-border">
+        <span class="text-sm font-bold text-main">Friends</span>
+      </div>
+      <div id="friends-body">
+        <div class="p-8 text-center text-soft text-sm">Loading…</div>
+      </div>
+    </div>
   </main>
 
   <script>
-    // Sidebar clock/date
     function updateClock() {
       const now = new Date();
       const cl = document.getElementById('sidebar-clock');
@@ -229,33 +223,32 @@
         if (!res.ok) throw new Error('failed');
         const list = await res.json();
 
-        // Update stats
         document.getElementById('stat-sent').textContent   = list.length;
         document.getElementById('stat-opened').textContent = list.filter(i => i.opened_at).length;
         document.getElementById('stat-joined').textContent = list.filter(i => i.accepted_at).length;
 
         if (!list.length) {
-          body.innerHTML = '<div style="padding:32px;text-align:center;color:#71717a;font-size:13px;">No invitations sent yet. Share your link from the dashboard!</div>';
+          body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No invitations sent yet. Share your link from the dashboard!</div>';
           return;
         }
 
         const rows = list.map(inv => {
           const emailCell = inv.invitee_email
-            ? `<p style="font-size:12px;font-weight:600;color:#f4f4f5;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${inv.invitee_email}</p>`
-            : `<p style="font-size:12px;color:#52525b;">—</p>`;
+            ? `<p class="text-xs font-semibold text-main mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">${inv.invitee_email}</p>`
+            : `<p class="text-xs text-soft">—</p>`;
           const viewedCell = inv.opened_at
-            ? `<p style="font-size:11.5px;color:#60a5fa;">${fmtDate(inv.opened_at)}</p>`
-            : `<p style="font-size:11.5px;color:#52525b;">—</p>`;
+            ? `<p class="text-xs text-blue-500">${fmtDate(inv.opened_at)}</p>`
+            : `<p class="text-xs text-soft">—</p>`;
           const joinedCell = inv.accepted_at
-            ? `<p style="font-size:11.5px;color:#a3e635;">${fmtDate(inv.accepted_at)}</p>`
-            : `<p style="font-size:11.5px;color:#52525b;">—</p>`;
+            ? `<p class="text-xs" style="color:var(--accent);">${fmtDate(inv.accepted_at)}</p>`
+            : `<p class="text-xs text-soft">—</p>`;
           return `
-            <div style="display:grid;grid-template-columns:1fr 130px 90px 90px 80px;gap:10px;align-items:center;padding:11px 20px;border-bottom:1px solid #222;">
-              <div style="min-width:0;">
+            <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 items-center px-5 py-3 row-border">
+              <div class="min-w-0">
                 ${emailCell}
-                <p style="font-size:10.5px;color:#71717a;">${METHOD_LABELS[inv.method] || inv.method} · ${fmtDate(inv.created_at)}</p>
+                <p class="text-[10.5px] text-soft">${METHOD_LABELS[inv.method] || inv.method} · ${fmtDate(inv.created_at)}</p>
               </div>
-              <div style="font-size:11.5px;color:#a1a1aa;">${METHOD_LABELS[inv.method] || inv.method}</div>
+              <div class="text-xs text-muted">${METHOD_LABELS[inv.method] || inv.method}</div>
               ${viewedCell}
               ${joinedCell}
               <div>${statusPill(inv)}</div>
@@ -263,16 +256,16 @@
         }).join('');
 
         body.innerHTML = `
-          <div style="display:grid;grid-template-columns:1fr 130px 90px 90px 80px;gap:10px;padding:8px 20px;border-bottom:1px solid #2a2a2a;">
-            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#52525b;">Email</p>
-            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#52525b;">Method</p>
-            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#52525b;">Viewed</p>
-            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#52525b;">Joined</p>
-            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#52525b;">Status</p>
+          <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 px-5 py-2 row-border surface">
+            <p class="table-head">Email</p>
+            <p class="table-head">Method</p>
+            <p class="table-head">Viewed</p>
+            <p class="table-head">Joined</p>
+            <p class="table-head">Status</p>
           </div>
           ${rows}`;
       } catch {
-        body.innerHTML = '<div style="padding:32px;text-align:center;color:#f87171;font-size:13px;">Could not load invitations.</div>';
+        body.innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load invitations.</div>';
       }
     }
 
@@ -284,23 +277,23 @@
         const list = await res.json();
 
         if (!list.length) {
-          body.innerHTML = '<div style="padding:32px;text-align:center;color:#71717a;font-size:13px;">No friends yet — invite someone from the dashboard!</div>';
+          body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No friends yet — invite someone from the dashboard!</div>';
           return;
         }
 
         body.innerHTML = list.map(f => `
-          <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #222;">
-            <div style="width:36px;height:36px;border-radius:50%;background:#262626;border:1px solid #333;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:#a3e635;">
+          <div class="flex items-center gap-3 px-5 py-3 row-border">
+            <div class="w-9 h-9 rounded-full surface border border-theme flex items-center justify-center flex-shrink-0 text-sm font-bold" style="color:var(--accent);">
               ${(f.name || '?').charAt(0).toUpperCase()}
             </div>
-            <div style="flex:1;min-width:0;">
-              <p style="font-size:13px;font-weight:600;color:#f4f4f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</p>
-              <p style="font-size:11px;color:#71717a;">Friends since ${fmtDate(f.friends_since)}</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-main overflow-hidden text-ellipsis whitespace-nowrap">${f.name}</p>
+              <p class="text-xs text-soft">Friends since ${fmtDate(f.friends_since)}</p>
             </div>
-            ${f.streak > 0 ? `<span style="font-size:13px;font-weight:700;color:#fb923c;">${f.streak} 🔥</span>` : ''}
+            ${f.streak > 0 ? `<span class="text-sm font-bold text-orange-500">${f.streak} 🔥</span>` : ''}
           </div>`).join('');
       } catch {
-        body.innerHTML = '<div style="padding:32px;text-align:center;color:#f87171;font-size:13px;">Could not load friends.</div>';
+        body.innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load friends.</div>';
       }
     }
 
