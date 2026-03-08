@@ -11,6 +11,7 @@ Required Fly secrets (set with `fly secrets set KEY=value -a lookatme`):
                              Emails are ONLY delivered to the Resend account owner's
                              email address, regardless of the `to` field.
                              Use for development/testing only.
+  • verify@aitoptutor.com  — Verified production sender (aitoptutor.com domain).
   • Any other address      — The domain MUST be verified in the Resend dashboard.
                              Unverified domains cause HTTP 403 / invalid_api_key errors.
 """
@@ -32,7 +33,7 @@ def _send(to: str, subject: str, html: str) -> bool:
     All failures are logged with enough detail to diagnose in fly logs.
     """
     api_key     = os.environ.get("RESEND_API_KEY", "").strip()
-    from_address = os.environ.get("EMAIL_FROM", "LookatMe <onboarding@resend.dev>")
+    from_address = os.environ.get("EMAIL_FROM", "LookatMe <verify@aitoptutor.com>")
 
     # ── Guard: key missing ───────────────────────────────────────────────
     if not api_key:
@@ -74,8 +75,8 @@ def _send(to: str, subject: str, html: str) -> bool:
             "html":    html,
         })
         logger.info(
-            "EMAIL_OK: to=%s subject=%r id=%s",
-            to, subject, getattr(response, "id", response),
+            "EMAIL_SENT_SUCCESS sender=%s to=%s subject=%r id=%s",
+            from_address, to, subject, getattr(response, "id", response),
         )
         return True
 
