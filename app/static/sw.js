@@ -1,5 +1,5 @@
 // Write it Down — Service Worker
-const CACHE_NAME = 'writeitdown-v2';
+const CACHE_NAME = 'writeitdown-v3';
 
 const APP_SHELL = [
   '/',
@@ -30,20 +30,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Endpoints that must always be fresh — never cached, never retried from cache.
-const NETWORK_ONLY = ['/api/timer'];
-
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
   if (url.origin !== self.location.origin && !url.hostname.includes('tailwindcss')) {
-    return;
-  }
-
-  // Pass time-sensitive endpoints straight to the network with no caching.
-  if (NETWORK_ONLY.some(p => url.pathname.startsWith(p))) {
-    event.respondWith(fetch(request));
     return;
   }
 

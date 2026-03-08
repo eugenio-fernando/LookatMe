@@ -1,55 +1,47 @@
 # LookatMe
 
-A productivity web application that helps users manage tasks, build daily habits, track learning, and stay accountable with teammates.
+AI-powered productivity and habit tracking platform focused on accountability and daily streaks.
 
 **Production:** https://lookatme.fly.dev
 
 ---
 
-## Project Overview
-
-LookatMe is a focused productivity dashboard built around three ideas:
-
-1. **One action per day** — guided onboarding gets users to their first task in under 30 seconds
-2. **Streaks as motivation** — every completed task extends a daily streak visible to the whole workspace
-3. **Accountability** — workspace members see each other's streaks and daily progress on a shared leaderboard
-
----
-
-## Features
+## Core Features
 
 - **Task management** — create, prioritize, and complete tasks with due dates
-- **Daily Mission** — server-tracked goals (3 tasks, 1 habit, 1 note) with live progress bars
-- **Streak system** — per-user and global streak tracking; habit milestone logged on first daily task
-- **Workspace collaboration** — invite teammates via shareable links; compare streaks on the leaderboard
-- **AI Assistant** — analyze your day, plan tomorrow, summarize notes (OpenAI, 10 req/day limit)
+- **Habit tracking** — daily streak system with milestone tracking
 - **Daily notes** — write and retrieve notes tied to the current day
+- **Daily Mission** — server-tracked goals (3 tasks, 1 habit, 1 note) with live progress
+- **Daily Commitment** — one-sentence daily intention with completion animation and streak integration
+- **AI productivity assistant** — analyze your day, plan tomorrow, summarize notes (10 req/day)
+- **Weekly insights** — AI-generated summary of weekly performance
+- **Friend accountability system** — invite friends and compare streaks side by side
+- **Invite system** — tracked social invitations via WhatsApp, Facebook, Twitter/X, and email
+- **Streak leaderboard** — top 10 friends + self ranked by streak and weekly tasks
+- **Real-time updates** — Socket.IO pushes task and streak events to all connected clients
+- **News feed** — trending headlines by category with AI-powered article summarization
 - **Learning tracker** — log study hours and progress for any topic
-- **Real-time updates** — Socket.IO pushes task/streak events to all connected clients
-- **News feed** — trending headlines by category, with AI-powered article summarization
-- **Onboarding flow** — first-login modal that creates a task before the user sees the dashboard
-- **Invite sharing** — WhatsApp, Facebook, Twitter/X, Instagram (copy link), and email
-- **Dark / light / sepia themes**
 - **PWA-ready** — manifest + service worker for mobile install
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Backend | Python, Flask, Flask-SocketIO |
-| ORM | Prisma Client Python (sync) |
-| Database | SQLite (Fly.io persistent volume) |
-| Frontend | HTML, CSS, Vanilla JS |
-| Real-time | Socket.IO (threading async mode) |
-| AI | OpenAI `gpt-4o-mini` |
-| Email | Resend |
-| Deployment | Docker, Fly.io Machines |
+- **Dark / light / sepia themes**
 
 ---
 
 ## Architecture
+
+### Backend
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.11+ |
+| Framework | Flask + Flask-SocketIO |
+| ORM | Prisma Client Python (sync interface) |
+| Database | SQLite on Fly.io persistent volume |
+| Real-time | Socket.IO (threading async mode) |
+| AI | OpenAI `gpt-4o-mini` via `openai` SDK |
+| Email | Resend — verified sender domain `aitoptutor.com` |
+| Deployment | Docker + Fly.io Machines |
+
+### Project Structure
 
 ```
 LookatMe/
@@ -61,24 +53,48 @@ LookatMe/
     ├── __init__.py         # App factory, blueprint registration, SocketIO setup
     ├── extensions.py       # Shared SocketIO instance
     ├── models/
-    │   └── db.py           # All database access functions (no raw SQL)
+    │   └── db.py           # All database access (no ORM queries outside this file)
     ├── routes/
     │   ├── auth.py         # Login, register, verify, magic link, password reset
-    │   ├── tasks.py        # CRUD + completion (emits socket events)
+    │   ├── auth_pages.py   # Page routes: /login, /verify/<token>, /reset/<token>
+    │   ├── tasks.py        # Task CRUD + completion (emits socket events)
     │   ├── mission.py      # GET /api/mission/today
+    │   ├── commitment.py   # Daily Commitment set / complete endpoints
     │   ├── ai.py           # AI endpoints with DB-backed rate limiting
     │   ├── invites.py      # Workspace invite creation and acceptance
-    │   ├── workspaces.py   # Workspace management + leaderboard
+    │   ├── workspaces.py   # Workspace management
+    │   ├── social.py       # Friend invitations and leaderboard
     │   ├── external.py     # News, notes, verse APIs
-    │   └── ...
+    │   └── views.py        # Page render routes (dashboard, profile, invitations)
     ├── services/
     │   ├── ai_service.py   # OpenAI wrapper (test mode support)
-    │   └── email_service.py
+    │   └── email_service.py # Resend wrapper (verification, magic link, password reset)
     └── templates/
-        └── dashboard.html  # Single-page dashboard (all JS inline)
+        ├── dashboard.html  # Main dashboard (all JS inline)
+        ├── focus.html      # Focus mode with local countdown timer
+        ├── invite.html     # Invitation landing page (workspace + social)
+        ├── login.html      # Auth page (login, register, magic link, password reset)
+        └── invitations.html # Invitation analytics and friends list
 ```
 
-Data flows through `app/models/db.py` — all routes call named functions, no ORM queries outside that file.
+All database access flows through `app/models/db.py`. Routes call named functions — no raw ORM queries outside that module.
+
+---
+
+## Key Improvements Implemented
+
+| Area | Change |
+|---|---|
+| **Timer polling** | Removed `/api/timer` backend route and server-sync loop entirely; replaced with a local browser countdown (zero server requests) |
+| **Background traffic** | Service worker `NETWORK_ONLY` bypass for timer removed; cache version bumped to `v3` |
+| **Invitation tracking** | `Invitation` model tracks method, opened_at, accepted_at, and invitee_email |
+| **Auto-accept on register** | Registering via an invite link automatically creates a friendship |
+| **Friend leaderboard** | `/api/friends/leaderboard` returns top 10 friends + self, sorted by streak then weekly tasks |
+| **Email sender** | Default sender updated to `LookatMe <verify@aitoptutor.com>` (verified domain) |
+| **Email verification** | Full flow: register → verify email → login; magic link and password reset supported |
+| **LinkedIn verification** | Badge displayed on profile and leaderboard after manual code verification |
+| **Daily Commitment** | Completion triggers streak pulse animation and card glow; includes "change" and disable-on-submit UX |
+| **Apple-style UI** | Increased card border-radius, whitespace, padding; dashboard fade-in; removed green glow from hover states |
 
 ---
 
@@ -94,7 +110,7 @@ Three endpoints, each guarded by a 10-requests/day per-user limit tracked in the
 
 **Test mode:** set `AI_TEST_MODE=true` to return mock responses without calling OpenAI.
 
-When the daily limit is reached the UI shows an upgrade card instead of an error string.
+Responses are cached per user per day in `AIResponseCache` to avoid duplicate API calls.
 
 ---
 
@@ -108,13 +124,13 @@ A `DailyMission` record is created automatically on first dashboard load each da
 | Habits | 1 | `habit_completed` logged on first streak update of the day |
 | Notes | 1 | `note_created` activity entries |
 
-Progress is computed live from the `Activity` table — no separate counter columns. The mission is marked `completed = true` in the DB once all goals are met.
+Progress is computed live from the `Activity` table. The mission is marked `completed = true` once all goals are met.
 
 ---
 
 ## Installation
 
-**Requirements:** Python 3.11+, Node not required.
+**Requirements:** Python 3.11+
 
 ```bash
 git clone https://github.com/your-org/lookatme.git
@@ -144,26 +160,25 @@ Visit `http://localhost:8080`.
 | `OPENAI_API_KEY` | For AI features | OpenAI API key |
 | `AI_TEST_MODE` | No | Set `true` to skip OpenAI and return mock responses |
 | `RESEND_API_KEY` | For email | Resend API key |
-| `EMAIL_FROM` | No | Sender address (default: `onboarding@resend.dev`) |
+| `EMAIL_FROM` | No | Sender address (default: `LookatMe <verify@aitoptutor.com>`) |
+| `APP_BASE_URL` | No | Public URL used in email links (default: `https://lookatme.fly.dev`) |
+| `ANTHROPIC_API_KEY` | For news AI | Used by the news article summarizer |
 | `FLASK_ENV` | No | Set `production` to disable debug endpoints |
 
-Set via `.env` file locally or `fly secrets set` in production.
+Set via `.env` locally or `fly secrets set KEY=value -a lookatme` in production.
 
 ---
 
 ## Deployment (Fly.io)
 
-The app runs on a Fly.io Machine with a persistent volume mounted at `/data` for the SQLite database.
+The app runs on a Fly.io Machine with a persistent volume at `/data` for SQLite.
 
 ```bash
-# First deploy
-fly launch
-
 # Subsequent deploys
 fly deploy
 
 # Set secrets
-fly secrets set SECRET_KEY=... OPENAI_API_KEY=... RESEND_API_KEY=...
+fly secrets set SECRET_KEY=... OPENAI_API_KEY=... RESEND_API_KEY=... EMAIL_FROM="LookatMe <verify@aitoptutor.com>"
 
 # Check status
 fly status -a lookatme
@@ -183,13 +198,53 @@ fly logs -a lookatme
   destination = "/data"
 ```
 
-The database is never stored inside the container — all writes go to the `/data` volume which persists across deploys.
+The SQLite database is never stored inside the container — all writes go to the `/data` volume which persists across deploys.
 
 ---
 
-## Branch Workflow
+## Development Workflow
 
 | Branch | Purpose |
 |---|---|
 | `main` | Production — merged only after verification |
 | `dev` | Active development |
+
+### Release steps
+
+```bash
+# 1. Develop on dev
+git checkout dev
+
+# 2. Test locally
+python run.py
+
+# 3. Push dev
+git push origin dev
+
+# 4. Merge to main and deploy
+git checkout main
+git pull
+git merge dev
+git push
+fly deploy
+```
+
+### Database schema changes
+
+```bash
+# After editing schema.prisma:
+DATABASE_URL="file:/data/lookatme.db" python -m prisma db push --skip-generate
+
+# Or locally:
+DATABASE_URL="file:$(pwd)/lookatme.db" python -m prisma db push --skip-generate
+```
+
+---
+
+## Future Roadmap
+
+- Invite analytics dashboard (open/accept rates per method)
+- Push notification system for streak reminders
+- LinkedIn verification improvements
+- Mobile-optimized layout refinements
+- Workspace-level leaderboard vs friends leaderboard toggle

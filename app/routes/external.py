@@ -1,7 +1,7 @@
 import json
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import anthropic
 import feedparser
@@ -55,42 +55,6 @@ FEEDS = {
         ("ESPN",       "https://www.espn.com/espn/rss/news"),
     ],
 }
-
-
-@external_bp.route("/api/timer")
-def timer():
-    timer_file = os.path.join(_DATA_DIR, "timer_start.json")
-    # Create on first access so the 180-day countdown starts from now
-    if not os.path.exists(timer_file):
-        with open(timer_file, "w") as f:
-            json.dump({"start_time": datetime.now().isoformat()}, f)
-    try:
-        with open(timer_file) as f:
-            data = json.load(f)
-        start = datetime.fromisoformat(data["start_time"])
-        end = start + timedelta(days=180)
-        now = datetime.now()
-
-        total_seconds = (end - start).total_seconds()
-        elapsed_seconds = (now - start).total_seconds()
-        remaining_seconds = max(0, (end - now).total_seconds())
-        progress = min(100.0, (elapsed_seconds / total_seconds) * 100)
-
-        rem = int(remaining_seconds)
-        days = rem // 86400
-        hours = (rem % 86400) // 3600
-        minutes = (rem % 3600) // 60
-        secs = rem % 60
-
-        return jsonify({
-            "progress":          round(progress, 2),
-            "remaining":         f"{days:03d}d {hours:02d}h {minutes:02d}m {secs:02d}s",
-            "remaining_seconds": int(remaining_seconds),
-            "days_left":         days,
-            "end_date":          end.strftime("%B %d, %Y"),
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @external_bp.route("/api/streak")

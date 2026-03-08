@@ -325,6 +325,12 @@
       from { opacity: 0; transform: scale(0.97); }
       to   { opacity: 1; transform: scale(1); }
     }
+    @keyframes commitCardGlow {
+      0%   { box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2); }
+      35%  { box-shadow: 0 0 0 3px rgba(163,230,53,0.35), 0 8px 32px rgba(163,230,53,0.2); }
+      100% { box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.2); }
+    }
+    .commitment-glow { animation: commitCardGlow 1s ease forwards; }
 
     /* ── Dashboard entrance ──────────────────────────────────────────── */
     @keyframes dashFadeIn {
@@ -1077,22 +1083,27 @@
         </div>
       </section>
 
-      <!-- ── Countdown Timer ── -->
+      <!-- ── Local Countdown Timer ── -->
       <section class="card">
         <div class="card-header">
-          <span class="card-label">6-Month Countdown</span>
-          <span style="font-size:10.5px;color:var(--text-muted);">Ends&nbsp;<span id="end-date" style="color:var(--text-soft);">—</span></span>
+          <span class="card-label">Countdown Timer</span>
+          <span id="local-timer-status" style="font-size:10.5px;color:var(--text-muted);">local only</span>
         </div>
-        <div class="card-body">
-          <p id="timer-remaining"
-            style="font-family:'SF Mono','Fira Code',monospace;font-size:21px;font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums;letter-spacing:-0.02em;margin-bottom:3px;">
-            ---d --h --m --s
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+          <p id="local-timer-display"
+            style="font-family:'SF Mono','Fira Code',monospace;font-size:28px;font-weight:800;color:var(--text-primary);font-variant-numeric:tabular-nums;letter-spacing:-0.02em;text-align:center;">
+            00:00:00
           </p>
-          <p id="timer-percent" style="font-size:10.5px;color:var(--text-muted);margin-bottom:10px;">— % elapsed</p>
-          <div class="progress-track" style="height:5px;">
-            <div id="progress-bar"
-              style="height:100%;border-radius:9999px;background:linear-gradient(90deg,#1d4ed8,#3b82f6);width:0%;transition:width 0.7s ease;">
-            </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="local-timer-input" type="number" min="1" max="1440" value="25" placeholder="min"
+              class="field-input" style="width:80px;text-align:center;font-size:14px;padding:6px 8px;" />
+            <span style="font-size:12px;color:var(--text-muted);flex-shrink:0;">minutes</span>
+            <button onclick="startLocalCountdown()" id="local-timer-start-btn" class="btn-primary" style="flex:1;padding:6px 0;">
+              Start
+            </button>
+            <button onclick="stopLocalCountdown()" class="btn-ghost" style="padding:6px 10px;">
+              Stop
+            </button>
           </div>
         </div>
       </section>
@@ -1643,51 +1654,53 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // ── Countdown Timer ───────────────────────────────────────────────
-    // Counts down client-side; syncs with server every 30 s to stay accurate.
-    let _timerEndAt = null;   // ms epoch when the 180-day period ends
-    let _timerTotalSec = null; // total duration in seconds (for progress)
-    let _timerTickId  = null;
-    let _timerSyncId  = null;
+    // ── Local Countdown Timer (no server calls) ───────────────────────
+    let _localCountdown = null;
+    let _localRemaining = 0;
 
-    function _fmtTimer(sec) {
+    function _fmtLocalTimer(sec) {
       sec = Math.max(0, Math.floor(sec));
-      const d = Math.floor(sec / 86400);
-      const h = Math.floor((sec % 86400) / 3600);
+      const h = Math.floor(sec / 3600);
       const m = Math.floor((sec % 3600) / 60);
       const s = sec % 60;
-      return `${String(d).padStart(3,'0')}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
 
-    function _tickTimer() {
-      if (_timerEndAt === null) return;
-      const remSec = (_timerEndAt - Date.now()) / 1000;
-      document.getElementById('timer-remaining').textContent = _fmtTimer(remSec);
-      if (_timerTotalSec) {
-        const elapsed = _timerTotalSec - Math.max(0, remSec);
-        const pct = Math.min(100, (elapsed / _timerTotalSec) * 100);
-        document.getElementById('progress-bar').style.width = pct + '%';
-      }
+    function _updateLocalTimerUI() {
+      document.getElementById('local-timer-display').textContent = _fmtLocalTimer(_localRemaining);
     }
 
-    async function syncTimer() {
-      try {
-        const data = await fetch('/api/timer').then(r => r.json());
-        if (data.remaining_seconds !== undefined) {
-          _timerEndAt    = Date.now() + data.remaining_seconds * 1000;
-          _timerTotalSec = data.remaining_seconds / (1 - data.progress / 100);
+    function startLocalCountdown() {
+      const minutes = parseInt(document.getElementById('local-timer-input').value, 10) || 25;
+      clearInterval(_localCountdown);
+      _localRemaining = minutes * 60;
+      _updateLocalTimerUI();
+      document.getElementById('local-timer-status').textContent = 'running';
+      document.getElementById('local-timer-start-btn').textContent = 'Restart';
+
+      _localCountdown = setInterval(() => {
+        _localRemaining--;
+        _updateLocalTimerUI();
+        if (_localRemaining <= 0) {
+          clearInterval(_localCountdown);
+          _localCountdown = null;
+          document.getElementById('local-timer-status').textContent = 'done';
+          document.getElementById('local-timer-start-btn').textContent = 'Start';
+          if (Notification.permission === 'granted') {
+            new Notification('LookatMe', { body: 'Countdown complete!', icon: '/favicon.svg' });
+          }
         }
-        document.getElementById('timer-percent').textContent = data.progress.toFixed(1) + '% elapsed';
-        document.getElementById('end-date').textContent      = data.end_date;
-      } catch { /* keep current client-side countdown */ }
+      }, 1000);
     }
 
-    // Initial load, then tick every second (pure JS — no network) and sync every 30 s
-    syncTimer().then(() => {
-      _tickTimer();
-      _timerTickId = setInterval(_tickTimer, 1000);
-      _timerSyncId = setInterval(syncTimer, 30000);
-    });
+    function stopLocalCountdown() {
+      clearInterval(_localCountdown);
+      _localCountdown = null;
+      _localRemaining = 0;
+      document.getElementById('local-timer-display').textContent = '00:00:00';
+      document.getElementById('local-timer-status').textContent = 'local only';
+      document.getElementById('local-timer-start-btn').textContent = 'Start';
+    }
 
     // ── Streak ────────────────────────────────────────────────────────
     const MILESTONES = [3, 7, 14, 21, 30, 60, 90, 180];
@@ -2845,39 +2858,55 @@
       if (!body) return;
 
       if (!data.text) {
-        if (badge) badge.textContent = '';
+        if (badge) { badge.textContent = ''; }
         body.innerHTML = `
-          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.45;">What is the ONE thing you commit to finishing today?</p>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">
+            What is the ONE thing you will finish today?
+          </p>
           <div style="display:flex;gap:8px;">
             <input id="commitment-input" type="text" placeholder="e.g. Finish the API integration"
               class="field-input" style="flex:1;font-size:13px;" maxlength="200"
               onkeydown="if(event.key==='Enter')submitCommitment()">
-            <button onclick="submitCommitment()" class="btn-primary" style="padding:7px 16px;font-size:13px;white-space:nowrap;">Commit</button>
+            <button onclick="submitCommitment()" class="btn-primary" style="padding:7px 16px;font-size:13px;white-space:nowrap;">
+              Commit
+            </button>
           </div>`;
         setTimeout(() => document.getElementById('commitment-input')?.focus(), 50);
         return;
       }
 
       if (data.completed) {
-        if (badge) { badge.textContent = 'Done'; badge.style.color = 'var(--accent)'; }
+        if (badge) { badge.textContent = '✓ Done'; badge.style.color = 'var(--accent)'; }
         body.innerHTML = `
-          <div style="background:rgba(163,230,53,0.07);border:1px solid rgba(163,230,53,0.2);border-radius:10px;padding:12px 14px;animation:commitPulse 0.4s ease;">
-            <p style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.06em;margin-bottom:5px;">COMPLETED</p>
-            <p style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:8px;line-height:1.4;">${escapeHtml(data.text)}</p>
-            <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;">Commitment completed today. Your streak grows.</p>
+          <div style="background:rgba(163,230,53,0.06);border:1px solid rgba(163,230,53,0.22);border-radius:12px;padding:16px;animation:commitPulse 0.35s ease;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <span style="font-size:20px;line-height:1;filter:drop-shadow(0 0 6px rgba(163,230,53,0.5));">✅</span>
+              <span style="font-size:10.5px;font-weight:700;color:var(--accent);letter-spacing:0.08em;text-transform:uppercase;">Commitment kept</span>
+            </div>
+            <p style="font-size:14.5px;font-weight:600;color:var(--text-primary);line-height:1.45;margin-bottom:12px;">"${escapeHtml(data.text)}"</p>
+            <div style="display:flex;align-items:center;gap:7px;padding-top:10px;border-top:1px solid rgba(163,230,53,0.15);">
+              <span style="font-size:16px;">🔥</span>
+              <span style="font-size:12px;color:var(--text-secondary);line-height:1.4;">Great work. Your streak is growing — come back tomorrow.</span>
+            </div>
           </div>`;
         return;
       }
 
       if (badge) { badge.textContent = 'In progress'; badge.style.color = 'var(--text-muted)'; }
       body.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="background:var(--bg-card-inner);border-radius:8px;padding:10px 12px;">
-            <p style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.05em;margin-bottom:5px;">TODAY'S COMMITMENT</p>
-            <p style="font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.4;">${escapeHtml(data.text)}</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="background:var(--bg-card-inner);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:13px 15px;position:relative;">
+            <p style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:0.09em;text-transform:uppercase;margin-bottom:6px;">Today's commitment</p>
+            <p style="font-size:15px;font-weight:600;color:var(--text-primary);line-height:1.45;padding-right:44px;">"${escapeHtml(data.text)}"</p>
+            <button onclick="resetCommitment()"
+              style="position:absolute;top:10px;right:12px;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;padding:2px 4px;transition:color 0.12s;line-height:1;"
+              onmouseover="this.style.color='var(--text-secondary)'" onmouseout="this.style.color='var(--text-muted)'">
+              change
+            </button>
           </div>
-          <button onclick="completeCommitment()" class="btn-primary" style="width:100%;padding:9px;font-size:13px;">
-            Mark completed
+          <button onclick="completeCommitment()" id="complete-commitment-btn" class="btn-primary"
+            style="width:100%;padding:11px;font-size:14px;font-weight:700;letter-spacing:0.01em;">
+            ✓ Mark completed
           </button>
         </div>`;
     }
@@ -2893,15 +2922,53 @@
           body: JSON.stringify({ text }),
         });
         const data = await r.json();
-        if (data.text) renderCommitment(data);
+        if (data && data.text) {
+          renderCommitment(data);
+          // Subtle card entrance glow on first commit
+          const card = document.getElementById('commitment-card');
+          if (card) {
+            card.classList.remove('commitment-glow');
+            void card.offsetWidth;
+            card.classList.add('commitment-glow');
+          }
+        }
       } catch {}
     }
 
     async function completeCommitment() {
+      const btn = document.getElementById('complete-commitment-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
       try {
         await fetch('/api/commitment/complete', { method: 'POST' });
+
+        // Glow the commitment card
+        const card = document.getElementById('commitment-card');
+        if (card) {
+          card.classList.remove('commitment-glow');
+          void card.offsetWidth; // force reflow so animation restarts
+          card.classList.add('commitment-glow');
+        }
+
+        // Pulse the streak flame
+        const flame = document.getElementById('streak-flame');
+        if (flame) {
+          flame.classList.remove('streak-pulse-once');
+          void flame.offsetWidth;
+          flame.classList.add('streak-pulse-once');
+        }
+
+        // Refresh both sections
         loadCommitment();
-      } catch {}
+        loadStreak();
+      } catch {
+        if (btn) { btn.disabled = false; btn.textContent = '✓ Mark completed'; }
+      }
+    }
+
+    function resetCommitment() {
+      // Show the input form locally so the user can overwrite their commitment.
+      // The new text will be saved via submitCommitment() which calls /api/commitment/set.
+      renderCommitment({ text: null, completed: false });
     }
 
     // ── Share LookatMe (tracked invites) ─────────────────────────────
