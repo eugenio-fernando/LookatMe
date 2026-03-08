@@ -129,7 +129,11 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       overflow: hidden;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      box-shadow: 0 1px 4px var(--shadow);
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      box-shadow: 0 4px 18px var(--shadow);
     }
     .card-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -246,6 +250,19 @@
     /* ── News ────────────────────────────────────────────────────────── */
     .news-item { border-radius: 9px; padding: 7px 8px; transition: background 0.12s; }
     .news-item:hover { background: var(--bg-hover); }
+    .news-card {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 10px; border-radius: 9px;
+      transition: background 0.12s;
+    }
+    .news-card:hover { background: var(--bg-hover); }
+    .news-tag {
+      flex-shrink: 0; margin-top: 2px;
+      font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; white-space: nowrap;
+      color: #3b82f6; background: rgba(59,130,246,0.1);
+      border-radius: 4px; padding: 2px 6px;
+    }
     .news-link {
       color: var(--text-body); font-size: 12.5px; line-height: 1.5;
       text-decoration: none; display: block; transition: color 0.12s;
@@ -569,6 +586,20 @@
         <p id="header-date-full" style="font-size:12.5px;color:var(--text-secondary);margin-top:3px;"></p>
       </div>
 
+      <!-- ── Trending News ── -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Trending News</span>
+          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
+          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
+          </ul>
+        </div>
+      </section>
+
       <!-- Quick stat row -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
         <div class="stat-chip">
@@ -650,19 +681,6 @@
         </div>
       </section>
 
-      <!-- ── World News ── -->
-      <section class="card">
-        <div class="card-header">
-          <span class="card-label">World News</span>
-          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
-        </div>
-        <div class="card-body">
-          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
-          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:300px;overflow-y:auto;">
-            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
-          </ul>
-        </div>
-      </section>
 
     </div>
 
@@ -1219,7 +1237,7 @@
     }
 
     // ── News ──────────────────────────────────────────────────────────
-    const CATEGORIES = ['all', 'world', 'tech', 'science', 'health', 'business'];
+    const CATEGORIES = ['all', 'world', 'tech', 'science', 'health', 'business', 'sports'];
     let newsData = [];
     let activeCategory = 'all';
 
@@ -1242,20 +1260,12 @@
           list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">No headlines available.</li>';
           return;
         }
-        list.innerHTML = newsData.map((item, idx) => `
-          <li class="news-item">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-              <span style="flex-shrink:0;margin-top:2px;font-size:10.5px;font-weight:700;color:#3b82f6;width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.source)}</span>
-              <div style="flex:1;min-width:0;">
-                <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer"
-                  class="news-link"
-                >${escapeHtml(item.title)}</a>
-                <div style="margin-top:4px;">
-                  <button id="sum-btn-${idx}" onclick="summarize(${idx})" class="btn-inline">Summarize</button>
-                </div>
-                <p id="summary-${idx}" class="hidden" style="margin-top:6px;font-size:11px;color:var(--text-soft);font-style:italic;line-height:1.6;border-left:2px solid var(--border);padding-left:8px;"></p>
-              </div>
-            </div>
+        list.innerHTML = newsData.map(item => `
+          <li class="news-card">
+            <span class="news-tag">${escapeHtml(item.category || 'news')}</span>
+            <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer"
+               class="news-link" style="flex:1;font-size:13px;line-height:1.4;"
+            >${escapeHtml(item.title)}</a>
           </li>`).join('');
       } catch {
         list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Error loading news.</li>';

@@ -49,6 +49,11 @@ FEEDS = {
         ("NPR",     "https://feeds.npr.org/1006/rss.xml"),
         ("Reuters", "https://feeds.reuters.com/reuters/businessNews"),
     ],
+    "sports": [
+        ("BBC",        "http://feeds.bbci.co.uk/news/sport/rss.xml"),
+        ("Sky Sports", "https://www.skysports.com/rss/12040"),
+        ("ESPN",       "https://www.espn.com/espn/rss/news"),
+    ],
 }
 
 
