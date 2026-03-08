@@ -111,6 +111,7 @@ model User {
   linkedin_url               String?
   linkedin_verified          Boolean @default(false)
   linkedin_verification_code String?
+  linkedin_verify_attempts   Int     @default(0)
 
   // Daily Commitment
   daily_commitment           String?

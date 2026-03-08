@@ -393,8 +393,25 @@ def set_linkedin_verified(user_id: int) -> None:
             data={
                 "linkedin_verified":          True,
                 "linkedin_verification_code": None,
+                "linkedin_verify_attempts":   0,
             },
         )
+
+
+def get_linkedin_attempts(user_id: int) -> int:
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+    return user.linkedin_verify_attempts if user else 0
+
+
+def increment_linkedin_attempts(user_id: int) -> None:
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if user:
+            client.user.update(
+                where={"id": user_id},
+                data={"linkedin_verify_attempts": user.linkedin_verify_attempts + 1},
+            )
 
 
 # ── Daily Commitment ────────────────────────────────────────────────────
