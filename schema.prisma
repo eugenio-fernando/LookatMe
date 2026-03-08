@@ -99,4 +99,5 @@ model User {
 
   // Onboarding
   has_seen_onboarding   Boolean @default(false)
+  last_onboarding_seen  String  @default("")
 }

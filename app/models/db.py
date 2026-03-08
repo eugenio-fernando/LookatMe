@@ -271,7 +271,8 @@ def _user_to_dict(row) -> dict:
         "phone":        row.phone,
         "hobbies":      row.hobbies,
         "interests":    row.interests,
-        "has_seen_onboarding": row.has_seen_onboarding,
+        "has_seen_onboarding":  row.has_seen_onboarding,
+        "last_onboarding_seen": row.last_onboarding_seen,
     }
 
 
@@ -414,6 +415,15 @@ def mark_onboarding_seen(user_id: int) -> None:
         client.user.update(
             where={"id": user_id},
             data={"has_seen_onboarding": True},
+        )
+
+
+def update_onboarding_seen(user_id: int) -> None:
+    """Record UTC timestamp when onboarding was last dismissed."""
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"last_onboarding_seen": datetime.utcnow().isoformat()},
         )
 
 

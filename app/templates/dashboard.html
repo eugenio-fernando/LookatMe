@@ -1465,14 +1465,14 @@
     }
 
     // ── Onboarding ────────────────────────────────────────────────────
-    async function dismissOnboarding() {
-      await fetch('/api/auth/dismiss-onboarding', { method: 'POST' });
+    function dismissOnboarding() {
       const banner = document.getElementById('onboarding-banner');
       if (banner) {
         banner.style.transition = 'opacity 0.3s';
         banner.style.opacity = '0';
         setTimeout(() => banner.remove(), 300);
       }
+      fetch('/api/user/onboarding-seen', { method: 'POST' });
     }
 
     // ── Share LookatMe ────────────────────────────────────────────────

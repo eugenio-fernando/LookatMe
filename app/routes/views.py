@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, current_app, render_template, send_from_directory, session
 
@@ -21,7 +21,16 @@ def index():
         word = "Good afternoon"
     else:
         word = "Good evening"
-    show_onboarding = not user.get("has_seen_onboarding", False) if user else False
+    show_onboarding = False
+    if user:
+        last_seen = user.get("last_onboarding_seen", "")
+        if not last_seen:
+            show_onboarding = True
+        else:
+            try:
+                show_onboarding = (datetime.utcnow() - datetime.fromisoformat(last_seen)) > timedelta(hours=24)
+            except ValueError:
+                show_onboarding = True
     return render_template("dashboard.html", greeting_message=f"{word}, {name}", show_onboarding=show_onboarding)
 
 

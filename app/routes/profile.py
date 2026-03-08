@@ -1,3 +1,4 @@
+import logging
 import os
 
 from flask import Blueprint, jsonify, request, session
@@ -7,6 +8,7 @@ from ..models import db
 from ..utils import api_login_required
 
 profile_bp = Blueprint("profile", __name__)
+logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -36,6 +38,14 @@ def update_profile():
     updates = {k: v for k, v in body.items() if k in allowed_fields}
     user = db.update_profile(session["user_id"], **updates)
     return jsonify(user)
+
+
+@profile_bp.route("/api/user/onboarding-seen", methods=["POST"])
+@api_login_required
+def onboarding_seen():
+    db.update_onboarding_seen(session["user_id"])
+    logger.info("ONBOARDING_SEEN_UPDATED user_id=%s", session["user_id"])
+    return jsonify({"ok": True})
 
 
 @profile_bp.route("/api/profile/avatar", methods=["POST"])
