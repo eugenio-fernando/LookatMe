@@ -55,7 +55,7 @@ def complete_todo(todo_id):
     todo = db.get_todo_by_id(todo_id)
     if not todo or todo["workspace_id"] != session["workspace_id"]:
         return jsonify({"error": "Not found"}), 404
-    updated_streak = db.complete_todo(todo_id)
+    updated_streak = db.complete_todo(todo_id, user_id=session["user_id"])
     activity = db.log_activity(session["user_id"], "task_completed", f"Completed: {todo['text']}")
     uid = session["user_id"]
     socketio.emit("task_completed", {"todo_id": todo_id, "streak": updated_streak}, to=f"user_{uid}")

@@ -561,6 +561,7 @@
           <option value="">Loading…</option>
         </select>
         <button onclick="showNewWorkspaceModal()" title="New workspace" class="btn-icon">+</button>
+        <button onclick="showInviteModal()" title="Invite to workspace" class="btn-icon" style="flex-shrink:0;">👥</button>
       </div>
     </div>
 
@@ -858,6 +859,17 @@
         </div>
       </section>
 
+      <!-- ── Friends Progress (Leaderboard) ── -->
+      <section class="card" id="leaderboard-card">
+        <div class="card-header">
+          <span class="card-label">Friends Progress</span>
+          <button onclick="loadLeaderboard()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <div class="card-body" id="leaderboard-body" style="padding-top:10px;padding-bottom:10px;">
+          <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0;">Loading…</div>
+        </div>
+      </section>
+
       <!-- ── Streak ── -->
       <section class="card streak-card">
         <div class="card-header" style="border-bottom-color:rgba(234,88,12,0.15);">
@@ -1021,6 +1033,75 @@
         </div>
       </section>
 
+    </div>
+  </div>
+
+  <!-- ── Invite Modal ── -->
+  <div id="invite-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:250;align-items:center;justify-content:center;padding:16px;">
+    <div class="card" style="width:100%;max-width:420px;">
+      <div class="card-header">
+        <span class="card-label">Invite to Workspace</span>
+        <button onclick="closeInviteModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;padding:0;transition:color 0.12s;" onmouseover="this.style.color='var(--text-body)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+      </div>
+      <div class="card-body" style="padding-top:16px;">
+
+        <!-- Viral hook -->
+        <div style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.2);border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+          <p style="font-size:12.5px;font-weight:700;color:#fb923c;margin-bottom:3px;">🔥 Stay accountable together</p>
+          <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;">Invite a friend and compare streaks side by side. Friendly competition builds better habits.</p>
+          <div id="invite-streak-row" style="display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(251,146,60,0.15);">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:13px;">🔥</span>
+              <span style="font-size:12px;font-weight:700;color:#fb923c;"><span id="invite-my-streak">0</span> day streak</span>
+              <span style="font-size:11px;color:var(--text-muted);">(you)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;opacity:0.45;">
+              <span style="font-size:13px;">🔥</span>
+              <span style="font-size:12px;font-weight:600;color:var(--text-secondary);">? days</span>
+              <span style="font-size:11px;color:var(--text-muted);">(friend)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email input form -->
+        <div id="invite-form-section">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input id="invite-email-input" type="email" placeholder="friend@example.com"
+              class="field-input" style="flex:1;" onkeydown="if(event.key==='Enter') submitInvite()" />
+            <button onclick="submitInvite()" id="invite-send-btn" class="btn-primary" style="padding:7px 14px;white-space:nowrap;">
+              Send
+            </button>
+          </div>
+          <p id="invite-form-status" style="font-size:12px;min-height:16px;color:var(--text-muted);"></p>
+        </div>
+
+        <!-- Share options (shown after invite created) -->
+        <div id="invite-share-section" style="display:none;">
+          <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Share your invite link:</p>
+          <div style="display:flex;gap:2px;background:var(--bg-card-inner);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px;align-items:center;">
+            <span id="invite-link-display" style="font-size:11.5px;color:var(--text-secondary);flex:1;word-break:break-all;line-height:1.4;"></span>
+            <button onclick="copyInviteLink()" id="invite-copy-btn" class="btn-ghost" style="flex-shrink:0;white-space:nowrap;padding:4px 10px;font-size:11px;">Copy</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <a id="invite-whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer"
+               class="btn-ghost" style="flex:1;gap:7px;padding:7px 0;justify-content:center;text-decoration:none;font-size:12px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="color:#22c55e;flex-shrink:0;">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.849L.057 23.643a.75.75 0 00.916.908l5.944-1.56A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.71 9.71 0 01-4.953-1.355l-.355-.21-3.676.964.981-3.584-.231-.369A9.718 9.718 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+              </svg>
+              WhatsApp
+            </a>
+            <a id="invite-email-btn" href="#" class="btn-ghost" style="flex:1;gap:7px;padding:7px 0;justify-content:center;text-decoration:none;font-size:12px;">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+              </svg>
+              Email
+            </a>
+          </div>
+          <button onclick="resetInviteForm()" class="btn-ghost" style="width:100%;margin-top:10px;font-size:12px;padding:7px 0;">Invite someone else</button>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -1285,11 +1366,13 @@
       window.location.href = '/login';
     }
 
+    let _myUserId = null;
     (async () => {
       try {
         const res  = await fetch('/api/auth/me');
         if (res.status === 401) { window.location.href = '/login'; return; }
         const user = await res.json();
+        _myUserId = user.id;
         document.getElementById('sidebar-user').textContent = user.email;
       } catch { /* non-critical */ }
     })();
@@ -1775,8 +1858,8 @@
       });
 
       // ── Event: task completed ──────────────────────────────────────
-      // Toast is handled directly in completeTask(); socket drives streak display only
-      socket.on('task_completed', () => {});
+      // Toast is handled directly in completeTask(); socket refreshes leaderboard
+      socket.on('task_completed', () => { loadLeaderboard(); });
 
       // ── Event: streak updated ──────────────────────────────────────
       socket.on('streak_updated', data => {
@@ -1962,6 +2045,151 @@
     }
     document.getElementById('ai-modal').addEventListener('click', function(e) {
       if (e.target === this) closeAIModal();
+    });
+
+    // ── Leaderboard ───────────────────────────────────────────────────
+    async function loadLeaderboard() {
+      const body = document.getElementById('leaderboard-body');
+      if (!body) return;
+      try {
+        const res  = await fetch('/api/workspace/leaderboard');
+        if (!res.ok) { body.innerHTML = ''; return; }
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length <= 1) {
+          body.innerHTML = `
+            <div style="text-align:center;padding:14px 0 8px;">
+              <p style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;">No friends yet</p>
+              <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Invite a friend to stay<br>accountable together.</p>
+              <button onclick="showInviteModal()" class="btn-primary" style="padding:7px 16px;font-size:12px;">👥 Invite a Friend</button>
+            </div>`;
+          return;
+        }
+
+        const MEDALS = ['🥇', '🥈', '🥉'];
+        body.innerHTML = data.map((m, i) => {
+          const isMe  = m.user_id === _myUserId;
+          const medal = MEDALS[i] || `<span style="font-size:11px;color:var(--text-muted);">${i + 1}</span>`;
+          const nameTxt = escapeHtml(m.name) + (isMe ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(you)</span>' : '');
+          const taskTxt = m.tasks_today === 1 ? '1 task today' : `${m.tasks_today} tasks today`;
+          const streakColor = m.current_streak > 0 ? '#fb923c' : 'var(--text-muted)';
+          const streakTxt   = m.current_streak > 0
+            ? `${m.current_streak} 🔥`
+            : '<span style="font-size:11px;">—</span>';
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+              <span style="font-size:15px;width:20px;text-align:center;flex-shrink:0;">${medal}</span>
+              <div style="flex:1;min-width:0;">
+                <p style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;">${nameTxt}</p>
+                <p style="font-size:11px;color:var(--text-muted);">${taskTxt}</p>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:${streakColor};flex-shrink:0;">${streakTxt}</span>
+            </div>`;
+        }).join('') + `
+          <button onclick="showInviteModal()" class="btn-ghost" style="width:100%;margin-top:10px;font-size:11.5px;padding:6px 0;gap:5px;">
+            <span>👥</span> Invite more friends
+          </button>`;
+      } catch {
+        document.getElementById('leaderboard-body').innerHTML =
+          '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:8px 0;">Could not load leaderboard.</p>';
+      }
+    }
+    loadLeaderboard();
+
+    // ── Invite Modal ──────────────────────────────────────────────────
+    let _currentInviteUrl = '';
+
+    function showInviteModal() {
+      // Seed with current streak
+      const streakEl = document.getElementById('stat-streak');
+      const myStreak = document.getElementById('invite-my-streak');
+      if (streakEl && myStreak) myStreak.textContent = streakEl.textContent || '0';
+      resetInviteForm();
+      document.getElementById('invite-modal').style.display = 'flex';
+      setTimeout(() => document.getElementById('invite-email-input').focus(), 60);
+    }
+
+    function closeInviteModal() {
+      document.getElementById('invite-modal').style.display = 'none';
+    }
+
+    function resetInviteForm() {
+      document.getElementById('invite-form-section').style.display  = 'block';
+      document.getElementById('invite-share-section').style.display = 'none';
+      document.getElementById('invite-email-input').value = '';
+      document.getElementById('invite-form-status').textContent = '';
+      document.getElementById('invite-form-status').style.color = 'var(--text-muted)';
+      const btn = document.getElementById('invite-send-btn');
+      btn.disabled    = false;
+      btn.textContent = 'Send';
+      _currentInviteUrl = '';
+    }
+
+    async function submitInvite() {
+      const emailInput = document.getElementById('invite-email-input');
+      const email      = emailInput.value.trim();
+      const status     = document.getElementById('invite-form-status');
+      const btn        = document.getElementById('invite-send-btn');
+
+      if (!email || !email.includes('@')) {
+        status.style.color = '#f87171';
+        status.textContent = 'Please enter a valid email address.';
+        emailInput.focus();
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+      status.style.color = 'var(--text-muted)';
+      status.textContent = '';
+
+      try {
+        const res  = await fetch('/api/workspaces/invite', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          status.style.color = '#f87171';
+          status.textContent = data.error || 'Could not send invite.';
+          btn.disabled    = false;
+          btn.textContent = 'Send';
+          return;
+        }
+
+        _currentInviteUrl = data.invite_url;
+        document.getElementById('invite-link-display').textContent = _currentInviteUrl;
+
+        const msg = encodeURIComponent(`Hey! Join me on LookatMe — a productivity app where we can track streaks together. ${_currentInviteUrl}`);
+        document.getElementById('invite-whatsapp-btn').href = `https://wa.me/?text=${msg}`;
+        document.getElementById('invite-email-btn').href   =
+          `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('Join me on LookatMe')}&body=${msg}`;
+
+        document.getElementById('invite-form-section').style.display  = 'none';
+        document.getElementById('invite-share-section').style.display = 'block';
+      } catch {
+        status.style.color = '#f87171';
+        status.textContent = 'Network error. Please try again.';
+        btn.disabled    = false;
+        btn.textContent = 'Send';
+      }
+    }
+
+    async function copyInviteLink() {
+      const btn = document.getElementById('invite-copy-btn');
+      try {
+        await navigator.clipboard.writeText(_currentInviteUrl);
+        btn.textContent = 'Copied!';
+      } catch {
+        btn.textContent = 'Failed';
+      }
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    }
+
+    document.getElementById('invite-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeInviteModal();
     });
 
     // ── Share LookatMe ────────────────────────────────────────────────

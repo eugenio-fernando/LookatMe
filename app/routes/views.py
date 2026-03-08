@@ -58,6 +58,11 @@ def inbox():
     return render_template("inbox.html")
 
 
+@views_bp.route("/invite/<token>")
+def invite_page(token):
+    return render_template("invite.html", token=token)
+
+
 @views_bp.route("/manifest.json")
 def manifest():
     return send_from_directory(current_app.static_folder, "manifest.json")

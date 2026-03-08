@@ -69,12 +69,13 @@ model Activity {
 }
 
 model WorkspaceInvite {
-  id           Int    @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   workspace_id Int
   email        String
-  token        String @unique
+  token        String  @unique
   created_at   String
   expires_at   String
+  accepted     Boolean @default(false)
 }
 
 model User {
@@ -109,4 +110,9 @@ model User {
   // Onboarding
   has_seen_onboarding   Boolean @default(false)
   last_onboarding_seen  String  @default("")
+
+  // Per-user streak (maintained alongside global Streak record)
+  current_streak        Int    @default(0)
+  longest_streak        Int    @default(0)
+  last_completed_date   String @default("")
 }

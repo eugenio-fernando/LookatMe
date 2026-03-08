@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You're invited — LookatMe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html[data-theme="dark"]  { --bg: #0f0f0f; --card: #1b1b1b; --border: rgba(255,255,255,0.07); --text: #f4f4f5; --muted: #71717a; --soft: #a1a1aa; --accent: #3b82f6; --shadow: rgba(0,0,0,0.55); }
+    html[data-theme="light"] { --bg: #f5f5f7; --card: #ffffff; --border: rgba(0,0,0,0.08); --text: #1c1c1e; --muted: #6b7280; --soft: #6b7280; --accent: #2563eb; --shadow: rgba(0,0,0,0.1); }
+    html[data-theme="sepia"] { --bg: #f4ecd8; --card: #fbf6e7; --border: rgba(91,70,54,0.18); --text: #3c2a1a; --muted: #7c6350; --soft: #8a7060; --accent: #b45309; --shadow: rgba(91,70,54,0.15); }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+      box-shadow: 0 8px 40px var(--shadow); width: 100%; max-width: 420px;
+      padding: 36px 32px 32px;
+    }
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 11px 0; border-radius: 9px; border: none;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: opacity 0.12s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); margin-top: 10px;
+      font-size: 13px; font-weight: 600;
+    }
+    .btn-secondary:hover { color: var(--text); }
+    #status { font-size: 13px; color: var(--muted); margin-top: 14px; text-align: center; min-height: 18px; }
+    #status.error { color: #f87171; }
+    #status.success { color: #22c55e; }
+  </style>
+</head>
+<body>
+  <div class="card" id="invite-card">
+
+    <!-- Loading state -->
+    <div id="state-loading" style="text-align:center;">
+      <p style="color:var(--muted);font-size:14px;">Loading invite…</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="state-error" style="display:none;text-align:center;">
+      <p style="font-size:32px;margin-bottom:14px;">😕</p>
+      <p id="error-msg" style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">Invite not found</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">This link may have expired or already been used.</p>
+      <a href="/" class="btn btn-primary" style="text-decoration:none;">Go to dashboard</a>
+    </div>
+
+    <!-- Invite state -->
+    <div id="state-invite" style="display:none;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="width:56px;height:56px;border-radius:14px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">👥</div>
+        <h1 style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:6px;">You're invited!</h1>
+        <p style="font-size:14px;color:var(--muted);line-height:1.55;">
+          You've been invited to join<br>
+          <strong id="workspace-name" style="color:var(--text);font-size:15px;"></strong>
+          on LookatMe.
+        </p>
+      </div>
+
+      <!-- Viral loop message -->
+      <div style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.2);border-radius:10px;padding:12px 14px;margin-bottom:20px;text-align:center;">
+        <p style="font-size:12.5px;color:#fb923c;font-weight:600;margin-bottom:3px;">🔥 Stay accountable together</p>
+        <p style="font-size:12px;color:var(--soft);line-height:1.5;">Join your friend's workspace, track streaks side by side, and keep each other motivated.</p>
+      </div>
+
+      <div id="accept-section">
+        <button id="accept-btn" class="btn btn-primary" onclick="acceptInvite()">
+          Accept invite →
+        </button>
+        <a href="/login?next={{ request.path }}" id="login-link" class="btn btn-secondary" style="display:none;text-decoration:none;">
+          Log in to accept →
+        </a>
+      </div>
+      <p id="status"></p>
+    </div>
+
+  </div>
+
+  <script>
+    const TOKEN = {{ token | tojson }};
+
+    async function init() {
+      try {
+        // Check if user is logged in
+        const meRes  = await fetch('/api/auth/me');
+        const isAuth = meRes.ok;
+
+        // Fetch invite details
+        const res  = await fetch(`/api/workspaces/invite-info/${TOKEN}`);
+        const data = await res.json();
+
+        document.getElementById('state-loading').style.display = 'none';
+
+        if (!res.ok) {
+          document.getElementById('error-msg').textContent = data.error || 'Invite not found';
+          document.getElementById('state-error').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('workspace-name').textContent = data.workspace_name;
+        document.getElementById('state-invite').style.display = 'block';
+
+        if (!isAuth) {
+          document.getElementById('accept-btn').style.display  = 'none';
+          document.getElementById('login-link').style.display  = 'flex';
+        }
+      } catch {
+        document.getElementById('state-loading').style.display = 'none';
+        document.getElementById('state-error').style.display   = 'block';
+      }
+    }
+
+    async function acceptInvite() {
+      const btn    = document.getElementById('accept-btn');
+      const status = document.getElementById('status');
+      btn.disabled    = true;
+      btn.textContent = 'Joining…';
+      status.className = '';
+      status.textContent = '';
+      try {
+        const res  = await fetch('/api/workspaces/accept-invite', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ token: TOKEN }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.className   = 'error';
+          status.textContent = data.error || 'Could not accept invite.';
+          btn.disabled    = false;
+          btn.textContent = 'Accept invite →';
+          return;
+        }
+        status.className   = 'success';
+        status.textContent = 'Joined! Redirecting…';
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } catch {
+        status.className   = 'error';
+        status.textContent = 'Network error. Please try again.';
+        btn.disabled    = false;
+        btn.textContent = 'Accept invite →';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

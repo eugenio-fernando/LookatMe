@@ -11,6 +11,23 @@ invites_bp = Blueprint("invites", __name__)
 logger = logging.getLogger(__name__)
 
 
+@invites_bp.route("/api/workspaces/invite-info/<token>", methods=["GET"])
+def invite_info(token):
+    """Public endpoint — returns workspace name for the invite acceptance page."""
+    invite = db.get_workspace_invite(token)
+    if not invite:
+        return jsonify({"error": "Invalid or expired invite"}), 404
+    if datetime.fromisoformat(invite["expires_at"]) < datetime.utcnow():
+        return jsonify({"error": "Invite has expired"}), 400
+    workspace = db.get_workspace_by_id(invite["workspace_id"])
+    return jsonify({
+        "ok":             True,
+        "workspace_name": workspace["name"] if workspace else "a workspace",
+        "email":          invite["email"],
+        "token":          token,
+    })
+
+
 @invites_bp.route("/api/workspaces/invite", methods=["POST"])
 @api_login_required
 def send_invite():

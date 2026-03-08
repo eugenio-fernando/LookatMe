@@ -103,18 +103,44 @@ def delete_todo(todo_id: int) -> None:
         client.todo.delete(where={"id": todo_id})
 
 
-def complete_todo(todo_id: int) -> dict:
-    """Mark a todo as completed and increment the daily streak. Returns updated streak."""
+def _update_user_streak(user_id: int) -> None:
+    """Increment the per-user streak fields on the User row."""
+    today     = datetime.now().date().isoformat()
+    yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return
+        last = user.last_completed_date or ""
+        if last == today:
+            return  # already incremented today
+        current = (user.current_streak + 1) if last == yesterday else 1
+        longest = max(user.longest_streak, current)
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "current_streak":      current,
+                "longest_streak":      longest,
+                "last_completed_date": today,
+            },
+        )
+
+
+def complete_todo(todo_id: int, user_id: int | None = None) -> dict:
+    """Mark a todo as completed. Updates global streak and, if user_id given, per-user streak."""
     with Prisma() as client:
         client.todo.update(where={"id": todo_id}, data={"completed": True})
-    streak = get_streak()
-    today = datetime.now().date().isoformat()
-    if streak["last_completed_date"] == today:
-        return streak
+    # Global streak (existing behaviour)
+    streak    = get_streak()
+    today     = datetime.now().date().isoformat()
     yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
-    current = streak["current_streak"] + 1 if streak["last_completed_date"] == yesterday else 1
-    longest = max(streak["longest_streak"], current)
-    update_streak(current, today, longest)
+    if streak["last_completed_date"] != today:
+        current = streak["current_streak"] + 1 if streak["last_completed_date"] == yesterday else 1
+        longest = max(streak["longest_streak"], current)
+        update_streak(current, today, longest)
+    # Per-user streak
+    if user_id is not None:
+        _update_user_streak(user_id)
     return get_streak()
 
 
@@ -273,6 +299,9 @@ def _user_to_dict(row) -> dict:
         "interests":    row.interests,
         "has_seen_onboarding":  row.has_seen_onboarding,
         "last_onboarding_seen": row.last_onboarding_seen,
+        "current_streak":       row.current_streak,
+        "longest_streak":       row.longest_streak,
+        "last_completed_date":  row.last_completed_date,
     }
 
 
@@ -504,6 +533,40 @@ def get_workspace_role(workspace_id: int, user_id: int) -> str | None:
     return row.role if row else None
 
 
+def get_leaderboard(workspace_id: int) -> list[dict]:
+    """Return workspace members sorted by current_streak desc, tasks_today desc."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        memberships = client.workspacemember.find_many(where={"workspace_id": workspace_id})
+        user_ids    = [m.user_id for m in memberships]
+        users       = {u.id: u for u in client.user.find_many(where={"id": {"in": user_ids}})}
+        # Fetch today's task_completed activities for all members
+        activities  = client.activity.find_many(
+            where={"user_id": {"in": user_ids}, "type": "task_completed"},
+        )
+
+    tasks_today: dict[int, int] = {}
+    for a in activities:
+        if a.created_at.startswith(today):
+            tasks_today[a.user_id] = tasks_today.get(a.user_id, 0) + 1
+
+    result = []
+    for uid in user_ids:
+        u = users.get(uid)
+        if not u:
+            continue
+        name = u.display_name.strip() or u.email.split("@")[0]
+        result.append({
+            "user_id":        u.id,
+            "name":           name,
+            "current_streak": u.current_streak or 0,
+            "longest_streak": u.longest_streak or 0,
+            "tasks_today":    tasks_today.get(uid, 0),
+        })
+
+    return sorted(result, key=lambda x: (-x["current_streak"], -x["tasks_today"]))
+
+
 def invite_to_workspace(workspace_id: int, email: str) -> dict | None:
     """Find user by email and add them to the workspace as a member.
     Returns the new membership dict, or None if user not found."""
@@ -525,6 +588,7 @@ def _invite_to_dict(row) -> dict:
         "id": row.id, "workspace_id": row.workspace_id,
         "email": row.email, "token": row.token,
         "created_at": row.created_at, "expires_at": row.expires_at,
+        "accepted": row.accepted,
     }
 
 
@@ -542,13 +606,18 @@ def create_workspace_invite(workspace_id: int, email: str, token: str, expires_a
 
 def get_workspace_invite(token: str) -> dict | None:
     with Prisma() as client:
-        row = client.workspaceinvite.find_unique(where={"token": token})
+        row = client.workspaceinvite.find_first(
+            where={"token": token, "accepted": False}
+        )
     return _invite_to_dict(row) if row else None
 
 
 def consume_workspace_invite(token: str) -> None:
     with Prisma() as client:
-        client.workspaceinvite.delete(where={"token": token})
+        client.workspaceinvite.update(
+            where={"token": token},
+            data={"accepted": True},
+        )
 
 
 # ── Messages ───────────────────────────────────────────────────────────

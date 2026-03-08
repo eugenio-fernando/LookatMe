@@ -66,6 +66,17 @@ def list_members():
     return jsonify(db.get_workspace_members(workspace_id))
 
 
+@workspaces_bp.route("/api/workspace/leaderboard")
+@api_login_required
+def leaderboard():
+    workspace_id = session.get("workspace_id")
+    if not workspace_id:
+        return jsonify([])
+    if not db.is_workspace_member(workspace_id, session["user_id"]):
+        return jsonify({"error": "Access denied"}), 403
+    return jsonify(db.get_leaderboard(workspace_id))
+
+
 @workspaces_bp.route("/api/workspace/invite", methods=["POST"])
 @api_login_required
 def invite_member():
