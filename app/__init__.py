@@ -19,6 +19,7 @@ from .extensions import socketio
 from .models.db import migrate_from_json_if_needed
 from .routes.activity import activity_bp
 from .routes.auth import auth_api_bp, auth_bp
+from .routes.debug import debug_bp
 from .routes.external import external_bp
 from .routes.learning import learning_bp
 from .routes.messages import messages_bp
@@ -57,6 +58,8 @@ def create_app() -> Flask:
     app.register_blueprint(profile_bp)
     app.register_blueprint(messages_bp)
     app.register_blueprint(workspaces_bp)
+    if os.environ.get("FLASK_ENV", "development") != "production":
+        app.register_blueprint(debug_bp, url_prefix="/api/debug")
 
     # ── Socket event handlers ──────────────────────────────────────────
     @socketio.on("connect")
