@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, current_app, render_template, send_from_directory, session
 
@@ -21,16 +21,8 @@ def index():
         word = "Good afternoon"
     else:
         word = "Good evening"
-    show_onboarding = False
-    if user:
-        last_seen = user.get("last_onboarding_seen", "")
-        if not last_seen:
-            show_onboarding = True
-        else:
-            try:
-                show_onboarding = (datetime.utcnow() - datetime.fromisoformat(last_seen)) > timedelta(hours=24)
-            except ValueError:
-                show_onboarding = True
+    # Only show on first login (last_onboarding_seen is empty = never completed onboarding)
+    show_onboarding = bool(user) and not user.get("last_onboarding_seen", "")
     return render_template("dashboard.html", greeting_message=f"{word}, {name}", show_onboarding=show_onboarding)
 
 
