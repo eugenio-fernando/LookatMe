@@ -3,10 +3,10 @@ import os
 import random
 from datetime import datetime
 
-import anthropic
 import feedparser
 import requests
 from flask import Blueprint, jsonify, request, send_from_directory, session
+from openai import OpenAI
 
 from ..extensions import socketio
 from ..models import db
@@ -95,7 +95,7 @@ def summarize():
     if not title:
         return jsonify({"error": "title is required"}), 400
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         return jsonify({"error": "AI summarization is not configured"}), 503
 
@@ -104,19 +104,29 @@ def summarize():
         content += f"\nDescription: {description}"
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You summarize news in exactly two concise factual sentences.",
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "Summarize this news article in exactly 2 sentences. "
+                        "Be factual and concise.\n\n" + content
+                    ),
+                },
+            ],
             max_tokens=150,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Summarize this news article in exactly 2 sentences. "
-                    "Be factual and concise.\n\n" + content
-                ),
-            }],
+            temperature=0.2,
         )
-        return jsonify({"summary": message.content[0].text.strip()})
+        summary = (response.choices[0].message.content or "").strip()
+        if not summary:
+            raise RuntimeError("empty summary")
+        return jsonify({"summary": summary})
     except Exception:
         return jsonify({"error": "Failed to generate summary"}), 503
 

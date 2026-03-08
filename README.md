@@ -162,10 +162,16 @@ Visit `http://localhost:8080`.
 | `RESEND_API_KEY` | For email | Resend API key |
 | `EMAIL_FROM` | No | Sender address (default: `LookatMe <verify@aitoptutor.com>`) |
 | `APP_BASE_URL` | No | Public URL used in email links (default: `https://lookatme.fly.dev`) |
-| `ANTHROPIC_API_KEY` | For news AI | Used by the news article summarizer |
 | `FLASK_ENV` | No | Set `production` to disable debug endpoints |
 
 Set via `.env` locally or `fly secrets set KEY=value -a lookatme` in production.
+
+Local setup:
+
+```bash
+cp .env.example .env
+# then edit .env and set real secrets (never commit this file)
+```
 
 ---
 

@@ -25,7 +25,7 @@ myenv/
 # Environment variables
 # -----------------------------
 .env
-.env.
+.env.*
 !.env.example
 
 # -----------------------------
