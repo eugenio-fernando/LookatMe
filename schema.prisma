@@ -107,6 +107,11 @@ model User {
   reset_token           String?
   reset_expiry          String?
 
+  // LinkedIn
+  linkedin_url               String?
+  linkedin_verified          Boolean @default(false)
+  linkedin_verification_code String?
+
   // Daily Commitment
   daily_commitment           String?
   daily_commitment_date      String?

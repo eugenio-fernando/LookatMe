@@ -306,6 +306,8 @@ def _user_to_dict(row) -> dict:
         "current_streak":       row.current_streak,
         "longest_streak":       row.longest_streak,
         "last_completed_date":  row.last_completed_date,
+        "linkedin_url":         row.linkedin_url,
+        "linkedin_verified":    row.linkedin_verified,
     }
 
 
@@ -360,6 +362,39 @@ def update_profile(user_id: int, **fields) -> dict:
 def update_password(user_id: int, password_hash: str) -> None:
     with Prisma() as client:
         client.user.update(where={"id": user_id}, data={"password_hash": password_hash})
+
+
+# ── LinkedIn Verification ───────────────────────────────────────────────
+
+def set_linkedin_verification(user_id: int, url: str, code: str) -> None:
+    """Store LinkedIn URL and verification code; reset verified flag."""
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "linkedin_url":               url,
+                "linkedin_verification_code": code,
+                "linkedin_verified":          False,
+            },
+        )
+
+
+def get_linkedin_verification_code(user_id: int) -> str | None:
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+    return user.linkedin_verification_code if user else None
+
+
+def set_linkedin_verified(user_id: int) -> None:
+    """Mark the user's LinkedIn as verified and clear the verification code."""
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "linkedin_verified":          True,
+                "linkedin_verification_code": None,
+            },
+        )
 
 
 # ── Daily Commitment ────────────────────────────────────────────────────

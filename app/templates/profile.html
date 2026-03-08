@@ -248,6 +248,68 @@
         </div>
       </form>
 
+      <!-- LinkedIn Verification -->
+      <div class="card p-6 space-y-4">
+        <p class="section-title">LinkedIn Verification</p>
+
+        <!-- Verified state -->
+        <div id="linkedin-verified-state" class="hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(10,102,194,0.1);border:1px solid rgba(10,102,194,0.3);border-radius:10px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#0a66c2" style="flex-shrink:0;">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            <div>
+              <p style="font-size:13.5px;font-weight:700;color:#0a66c2;">LinkedIn Verified ✓</p>
+              <a id="linkedin-verified-url" href="#" target="_blank" rel="noopener noreferrer"
+                style="font-size:11.5px;color:#6b7280;word-break:break-all;"></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unverified state -->
+        <div id="linkedin-unverified-state" class="space-y-3">
+          <div>
+            <p class="field-label">LinkedIn Profile URL</p>
+            <input class="field-input" id="linkedin-url-input" type="url"
+              placeholder="https://www.linkedin.com/in/yourname" />
+          </div>
+
+          <!-- Step 1: Start -->
+          <div id="linkedin-step1">
+            <button onclick="startLinkedInVerification()" id="linkedin-start-btn"
+              style="padding:8px 20px;border-radius:8px;background:#0a66c2;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;"
+              onmouseover="this.style.background='#004182'" onmouseout="this.style.background='#0a66c2'">
+              Start Verification
+            </button>
+          </div>
+
+          <!-- Step 2: Code shown, awaiting verify -->
+          <div id="linkedin-step2" class="hidden space-y-3">
+            <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:12px 14px;">
+              <p style="font-size:11px;font-weight:600;color:#6b7280;letter-spacing:0.05em;margin-bottom:6px;">YOUR VERIFICATION CODE</p>
+              <code id="linkedin-code-display" style="font-size:15px;font-weight:700;color:#f0f0f0;letter-spacing:0.08em;"></code>
+            </div>
+            <p style="font-size:12.5px;color:#9ca3af;line-height:1.6;">
+              Add this code to your LinkedIn bio, save your profile, then click <strong style="color:#e5e7eb;">Verify</strong>.
+              You can remove it after verification.
+            </p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="verifyLinkedIn()" id="linkedin-verify-btn"
+                style="padding:8px 20px;border-radius:8px;background:#0a66c2;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;"
+                onmouseover="this.style.background='#004182'" onmouseout="this.style.background='#0a66c2'">
+                Verify
+              </button>
+              <button onclick="linkedInReset()"
+                style="padding:8px 16px;border-radius:8px;background:transparent;color:#6b7280;font-size:13px;font-weight:600;border:1px solid #333;cursor:pointer;">
+                Change URL
+              </button>
+            </div>
+          </div>
+
+          <p id="linkedin-error" style="font-size:12px;color:#f87171;display:none;line-height:1.5;"></p>
+        </div>
+      </div>
+
       <!-- Change password -->
       <div class="card p-6 space-y-4">
         <p class="section-title">Security</p>
@@ -312,6 +374,81 @@
       // sidebar user
       const su = document.getElementById('sidebar-user');
       if (su) su.textContent = u.email;
+
+      // LinkedIn state
+      if (u.linkedin_verified) {
+        document.getElementById('linkedin-verified-state').classList.remove('hidden');
+        document.getElementById('linkedin-unverified-state').classList.add('hidden');
+        const link = document.getElementById('linkedin-verified-url');
+        if (link) { link.textContent = u.linkedin_url; link.href = u.linkedin_url; }
+      } else {
+        document.getElementById('linkedin-verified-state').classList.add('hidden');
+        document.getElementById('linkedin-unverified-state').classList.remove('hidden');
+        if (u.linkedin_url) document.getElementById('linkedin-url-input').value = u.linkedin_url;
+      }
+    }
+
+    // ── LinkedIn Verification ─────────────────────────────────────────
+    function linkedInReset() {
+      document.getElementById('linkedin-step2').classList.add('hidden');
+      document.getElementById('linkedin-step1').classList.remove('hidden');
+      document.getElementById('linkedin-error').style.display = 'none';
+    }
+
+    async function startLinkedInVerification() {
+      const url   = document.getElementById('linkedin-url-input').value.trim();
+      const btn   = document.getElementById('linkedin-start-btn');
+      const errEl = document.getElementById('linkedin-error');
+      errEl.style.display = 'none';
+
+      if (!url) { errEl.textContent = 'Please enter your LinkedIn URL.'; errEl.style.display = 'block'; return; }
+
+      btn.textContent = 'Starting…'; btn.disabled = true;
+      try {
+        const r = await fetch('/api/linkedin/start-verification', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ url }),
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          errEl.textContent = data.error || data.message || 'Something went wrong.';
+          errEl.style.display = 'block';
+          return;
+        }
+        document.getElementById('linkedin-code-display').textContent = data.code;
+        document.getElementById('linkedin-step1').classList.add('hidden');
+        document.getElementById('linkedin-step2').classList.remove('hidden');
+      } catch {
+        errEl.textContent = 'Request failed. Please try again.';
+        errEl.style.display = 'block';
+      } finally {
+        btn.textContent = 'Start Verification'; btn.disabled = false;
+      }
+    }
+
+    async function verifyLinkedIn() {
+      const btn   = document.getElementById('linkedin-verify-btn');
+      const errEl = document.getElementById('linkedin-error');
+      errEl.style.display = 'none';
+
+      btn.textContent = 'Checking…'; btn.disabled = true;
+      try {
+        const r = await fetch('/api/linkedin/verify', { method: 'POST' });
+        const data = await r.json();
+        if (r.ok && data.verified) {
+          showToast('LinkedIn verified!');
+          loadProfile();
+          return;
+        }
+        errEl.textContent = data.error || 'Verification failed. Make sure you saved your LinkedIn bio.';
+        errEl.style.display = 'block';
+      } catch {
+        errEl.textContent = 'Request failed. Please try again.';
+        errEl.style.display = 'block';
+      } finally {
+        btn.textContent = 'Verify'; btn.disabled = false;
+      }
     }
 
     async function saveProfile(e) {
