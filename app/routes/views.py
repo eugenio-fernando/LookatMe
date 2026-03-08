@@ -14,7 +14,7 @@ views_bp = Blueprint("views", __name__)
 def index():
     user = db.get_user_by_id(session["user_id"])
     name = (user.get("display_name") or user["email"].split("@")[0]) if user else "there"
-    hour = datetime.now().hour
+    hour = datetime.utcnow().hour
     if 5 <= hour < 12:
         word = "Good morning"
     elif 12 <= hour < 18:

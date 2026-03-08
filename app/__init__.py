@@ -26,6 +26,7 @@ from .routes.messages import messages_bp
 from .routes.profile import profile_bp
 from .routes.tasks import tasks_bp
 from .routes.views import views_bp
+from .routes.invites import invites_bp
 from .routes.workspaces import workspaces_bp
 
 
@@ -70,6 +71,7 @@ def create_app() -> Flask:
     app.register_blueprint(profile_bp)
     app.register_blueprint(messages_bp)
     app.register_blueprint(workspaces_bp)
+    app.register_blueprint(invites_bp)
     if os.environ.get("FLASK_ENV", "development") != "production":
         app.register_blueprint(debug_bp, url_prefix="/api/debug")
 

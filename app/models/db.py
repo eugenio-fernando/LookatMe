@@ -518,6 +518,39 @@ def invite_to_workspace(workspace_id: int, email: str) -> dict | None:
     return _member_to_dict(row, {"email": user["email"], "display_name": user.get("display_name", "")})
 
 
+# ── Workspace Invites ──────────────────────────────────────────────────
+
+def _invite_to_dict(row) -> dict:
+    return {
+        "id": row.id, "workspace_id": row.workspace_id,
+        "email": row.email, "token": row.token,
+        "created_at": row.created_at, "expires_at": row.expires_at,
+    }
+
+
+def create_workspace_invite(workspace_id: int, email: str, token: str, expires_at: str) -> dict:
+    with Prisma() as client:
+        row = client.workspaceinvite.create(data={
+            "workspace_id": workspace_id,
+            "email":        email,
+            "token":        token,
+            "created_at":   datetime.utcnow().isoformat(),
+            "expires_at":   expires_at,
+        })
+    return _invite_to_dict(row)
+
+
+def get_workspace_invite(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.workspaceinvite.find_unique(where={"token": token})
+    return _invite_to_dict(row) if row else None
+
+
+def consume_workspace_invite(token: str) -> None:
+    with Prisma() as client:
+        client.workspaceinvite.delete(where={"token": token})
+
+
 # ── Messages ───────────────────────────────────────────────────────────
 
 def _message_to_dict(row) -> dict:

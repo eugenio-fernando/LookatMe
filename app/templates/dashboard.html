@@ -17,12 +17,13 @@
 
     /* ── Theme tokens ────────────────────────────────────────────────── */
     html[data-theme="dark"] {
-      --bg-main:        #09090b;
-      --bg-sidebar:     #0d0d0d;
-      --bg-card:        #141414;
-      --bg-card-inner:  #1a1a1a;
-      --bg-hover:       #1f1f21;
-      --bg-active:      #252528;
+      --bg-main:        #0f0f0f;
+      --bg-sidebar:     #111111;
+      --bg-card:        #1b1b1b;
+      --bg-card-inner:  #222222;
+      --bg-hover:       #252525;
+      --bg-active:      #2e2e2e;
+      --accent:         #4f7cff;
       --bg-input:       #171717;
       --text-primary:   #f4f4f5;
       --text-secondary: #71717a;
@@ -323,6 +324,22 @@
       text-align: center; padding: 6px 0 2px;
       animation: missionPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
     }
+
+    /* ── Quick Actions ───────────────────────────────────────────────── */
+    .quick-action-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; padding: 14px 8px; width: 100%;
+      background: var(--bg-card-inner); border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer; text-decoration: none;
+      font-size: 12px; font-weight: 600; color: var(--text-body);
+      transition: background 0.12s, border-color 0.15s, transform 0.1s;
+    }
+    .quick-action-btn:hover {
+      background: var(--bg-hover);
+      border-color: rgba(79,124,255,0.4);
+    }
+    .quick-action-btn:active { transform: scale(0.97); }
+    .quick-action-icon { font-size: 20px; line-height: 1; }
 
     /* ── Pills ───────────────────────────────────────────────────────── */
     .pill { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; border: none; }
@@ -641,20 +658,6 @@
         <p id="header-date-full" style="font-size:12.5px;color:var(--text-secondary);margin-top:3px;"></p>
       </div>
 
-      <!-- ── Trending News ── -->
-      <section class="card">
-        <div class="card-header">
-          <span class="card-label">Trending News</span>
-          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
-        </div>
-        <div class="card-body">
-          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
-          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
-            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
-          </ul>
-        </div>
-      </section>
-
       <!-- Quick stat row -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
         <div class="stat-chip">
@@ -682,6 +685,47 @@
         </div>
         <div class="card-body" id="mission-body" style="padding-top:12px;padding-bottom:12px;">
           <div style="color:var(--text-muted);font-size:13px;">Loading…</div>
+        </div>
+      </section>
+
+      <!-- ── Quick Actions ── -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Quick Actions</span>
+        </div>
+        <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+            <button onclick="toggleAddTask()" class="quick-action-btn">
+              <span class="quick-action-icon">＋</span>
+              <span>Add Task</span>
+            </button>
+            <button onclick="document.getElementById('note-input').focus();document.getElementById('note-input').scrollIntoView({behavior:'smooth',block:'center'})" class="quick-action-btn">
+              <span class="quick-action-icon">✎</span>
+              <span>Write Note</span>
+            </button>
+            <button onclick="startFocusSession()" class="quick-action-btn">
+              <span class="quick-action-icon">⏱</span>
+              <span>Focus</span>
+            </button>
+            <a href="/learning" class="quick-action-btn">
+              <span class="quick-action-icon">📚</span>
+              <span>Learning</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Trending News ── -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Trending News</span>
+          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
+          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
+          </ul>
         </div>
       </section>
 
@@ -797,6 +841,9 @@
             <span id="streak-milestone-pct" style="font-size:10.5px;font-weight:700;color:#fb923c;"></span>
           </div>
           <p id="streak-milestone-sub" style="font-size:10px;color:#6b3a1f;margin-top:2px;"></p>
+          <p id="streak-motivational" style="font-size:11px;color:#92400e;margin-top:10px;padding-top:10px;border-top:1px solid rgba(234,88,12,0.12);font-style:italic;">
+            Complete something today to keep your streak alive.
+          </p>
         </div>
       </section>
 
@@ -1731,7 +1778,11 @@
     }
 
     // ── Onboarding ────────────────────────────────────────────────────
+    let _onboardingDismissed = false;
     function dismissOnboarding() {
+      if (_onboardingDismissed) return;
+      _onboardingDismissed = true;
+      console.log('Onboarding dismissed');
       const banner = document.getElementById('onboarding-banner');
       if (banner) {
         banner.style.transition = 'opacity 0.3s';
@@ -1739,6 +1790,66 @@
         setTimeout(() => banner.remove(), 300);
       }
       fetch('/api/user/onboarding-seen', { method: 'POST' });
+    }
+
+    // ── Focus Mode ────────────────────────────────────────────────────
+    let _focusInterval = null;
+    let _focusSeconds  = 0;
+    let _focusPoints   = parseInt(localStorage.getItem('focus_points') || '0', 10);
+
+    function startFocusSession() {
+      if (document.getElementById('focus-overlay')) return;
+      _focusSeconds = 25 * 60;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'focus-overlay';
+      overlay.style.cssText =
+        'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;' +
+        'display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.innerHTML = `
+        <div class="card" style="width:100%;max-width:340px;text-align:center;">
+          <div class="card-header" style="justify-content:center;">
+            <span class="card-label">Focus Session</span>
+          </div>
+          <div class="card-body" style="padding:28px 24px 24px;">
+            <p id="focus-display"
+               style="font-size:58px;font-weight:800;color:var(--text-primary);
+                      font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
+                      line-height:1;margin-bottom:16px;">25:00</p>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+              Stay focused. You got this. 💪
+            </p>
+            <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:22px;">
+              🎯 Focus points: <strong id="focus-pts-display"
+              style="color:#fb923c;">${_focusPoints}</strong>
+            </p>
+            <button onclick="endFocusSession(false)" class="btn-ghost"
+                    style="width:100%;padding:9px;">End Session</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      _focusInterval = setInterval(() => {
+        _focusSeconds--;
+        const m = String(Math.floor(_focusSeconds / 60)).padStart(2, '0');
+        const s = String(_focusSeconds % 60).padStart(2, '0');
+        const el = document.getElementById('focus-display');
+        if (el) el.textContent = `${m}:${s}`;
+        if (_focusSeconds <= 0) endFocusSession(true);
+      }, 1000);
+    }
+
+    function endFocusSession(completed = false) {
+      clearInterval(_focusInterval);
+      _focusInterval = null;
+      const overlay = document.getElementById('focus-overlay');
+      if (overlay) overlay.remove();
+      if (completed) {
+        _focusPoints++;
+        localStorage.setItem('focus_points', _focusPoints);
+        showMicroToast('task', 'Focus session completed ✔',
+          `+1 focus point · Total: ${_focusPoints}`);
+      }
     }
 
     // ── Share LookatMe ────────────────────────────────────────────────

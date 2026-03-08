@@ -68,6 +68,15 @@ model Activity {
   created_at String
 }
 
+model WorkspaceInvite {
+  id           Int    @id @default(autoincrement())
+  workspace_id Int
+  email        String
+  token        String @unique
+  created_at   String
+  expires_at   String
+}
+
 model User {
   id            Int    @id @default(autoincrement())
   email         String @unique
