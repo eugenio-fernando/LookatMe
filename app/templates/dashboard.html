@@ -224,6 +224,22 @@
       cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
     }
     .task-complete-btn:hover { border-color: #22c55e; background: rgba(34,197,94,0.15); color: #22c55e; }
+    @keyframes checkPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.45); color: #22c55e; border-color: #22c55e; background: rgba(34,197,94,0.25); }
+      100% { transform: scale(1);   color: #22c55e; border-color: #22c55e; background: rgba(34,197,94,0.15); }
+    }
+    .task-completing {
+      animation: checkPop 0.32s cubic-bezier(0.34,1.56,0.64,1) forwards;
+      pointer-events: none;
+    }
+    @keyframes taskDone {
+      to { opacity: 0; transform: translateX(6px) scale(0.98); }
+    }
+    .task-fading {
+      animation: taskDone 0.25s ease forwards;
+      pointer-events: none;
+    }
     .task-section-label {
       font-size: 10px; font-weight: 700; color: var(--border-color);
       text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
@@ -247,6 +263,19 @@
     /* ── Progress bar ────────────────────────────────────────────────── */
     .progress-track { background: var(--border-soft); border-radius: 9999px; overflow: hidden; }
 
+    /* ── Progress / Heatmap widget ───────────────────────────────────── */
+    .pw-stat {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 0; border-bottom: 1px solid var(--border-soft);
+    }
+    .pw-stat:last-child { border-bottom: none; }
+    .heatmap-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      background: var(--bg-hover);
+      transition: background 0.2s;
+      cursor: default;
+    }
+
     /* ── News ────────────────────────────────────────────────────────── */
     .news-item { border-radius: 9px; padding: 7px 8px; transition: background 0.12s; }
     .news-item:hover { background: var(--bg-hover); }
@@ -268,6 +297,32 @@
       text-decoration: none; display: block; transition: color 0.12s;
     }
     .news-link:hover { color: var(--text-primary); }
+
+    /* ── Daily Mission ───────────────────────────────────────────────── */
+    .mission-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border-soft);
+    }
+    .mission-item:last-child { border-bottom: none; }
+    .mission-check {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .mission-check.done { background: rgba(34,197,94,0.15); color: #22c55e; border: 1.5px solid rgba(34,197,94,0.3); }
+    .mission-check.todo { background: transparent; color: transparent; border: 1.5px solid var(--border-color); }
+    .mission-label      { font-size: 13px; color: var(--text-body); transition: color 0.2s; }
+    .mission-label.done { color: var(--text-muted); text-decoration: line-through; }
+    @keyframes missionPop {
+      0%   { transform: scale(0.9); opacity: 0; }
+      60%  { transform: scale(1.06); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    .mission-complete {
+      text-align: center; padding: 6px 0 2px;
+      animation: missionPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
 
     /* ── Pills ───────────────────────────────────────────────────────── */
     .pill { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; border: none; }
@@ -619,6 +674,17 @@
         </div>
       </div>
 
+      <!-- ── Daily Mission ── -->
+      <section class="card" id="mission-card">
+        <div class="card-header">
+          <span class="card-label">Daily Mission</span>
+          <span id="mission-progress" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0 / 3</span>
+        </div>
+        <div class="card-body" id="mission-body" style="padding-top:12px;padding-bottom:12px;">
+          <div style="color:var(--text-muted);font-size:13px;">Loading…</div>
+        </div>
+      </section>
+
       <!-- ── Today's Tasks ── -->
       <section class="card">
         <div class="card-header">
@@ -731,6 +797,29 @@
             <span id="streak-milestone-pct" style="font-size:10.5px;font-weight:700;color:#fb923c;"></span>
           </div>
           <p id="streak-milestone-sub" style="font-size:10px;color:#6b3a1f;margin-top:2px;"></p>
+        </div>
+      </section>
+
+      <!-- ── Weekly Progress ── -->
+      <section class="card" id="progress-widget">
+        <div class="card-header">
+          <span class="card-label">Weekly Progress</span>
+        </div>
+        <div class="card-body" style="padding-bottom:16px;">
+          <div id="pw-stats"></div>
+          <p style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-top:14px;margin-bottom:5px;">Last 7 days</p>
+          <div id="pw-day-labels" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+          <div id="pw-heatmap"    style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:3px;"></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+            <span style="font-size:9.5px;color:var(--text-muted);">less</span>
+            <div style="display:flex;gap:2px;">
+              <div style="width:10px;height:10px;border-radius:2px;background:var(--bg-hover);"></div>
+              <div style="width:10px;height:10px;border-radius:2px;background:rgba(34,197,94,0.2);"></div>
+              <div style="width:10px;height:10px;border-radius:2px;background:rgba(34,197,94,0.45);"></div>
+              <div style="width:10px;height:10px;border-radius:2px;background:rgba(34,197,94,0.75);"></div>
+            </div>
+            <span style="font-size:9.5px;color:var(--text-muted);">more</span>
+          </div>
         </div>
       </section>
 
@@ -966,6 +1055,81 @@
     }
     loadActivityFeed();
 
+    // ── Weekly Progress widget ─────────────────────────────────────────
+    async function loadProgressWidget() {
+      try {
+        const [streakData, activityData] = await Promise.all([
+          fetch('/api/streak').then(r => r.json()),
+          fetch('/api/activity?limit=100').then(r => r.json()),
+        ]);
+
+        // Start of this week (Monday 00:00)
+        const now = new Date();
+        const dowOffset = now.getDay() === 0 ? -6 : 1 - now.getDay();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() + dowOffset);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const thisWeek      = activityData.filter(a => new Date(a.created_at) >= weekStart);
+        const tasksThisWeek  = thisWeek.filter(a => a.type === 'task_completed').length;
+        const habitsThisWeek = thisWeek.filter(a => a.type === 'habit_completed').length;
+
+        // ── Stats rows ───────────────────────────────────────────────
+        const statsEl = document.getElementById('pw-stats');
+        if (statsEl) {
+          const rows = [
+            { label: 'Current streak',   val: `${streakData.current_streak ?? 0} days`, color: '#fb923c' },
+            { label: 'Longest streak',   val: `${streakData.longest_streak  ?? 0} days`, color: '#fb923c' },
+            { label: 'Tasks this week',  val: tasksThisWeek,                              color: 'var(--text-primary)' },
+            { label: 'Habits this week', val: habitsThisWeek || '—',                      color: 'var(--text-primary)' },
+          ];
+          statsEl.innerHTML = rows.map(r => `
+            <div class="pw-stat">
+              <span style="font-size:12px;color:var(--text-secondary);">${r.label}</span>
+              <span style="font-size:13px;font-weight:700;color:${r.color};">${r.val}</span>
+            </div>`).join('');
+        }
+
+        // ── Heatmap — last 7 days ────────────────────────────────────
+        const TODAY_STR   = now.toISOString().slice(0, 10);
+        const DAY_LABELS  = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        const last7 = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(now);
+          d.setDate(now.getDate() - (6 - i));
+          return d;
+        });
+
+        const counts   = last7.map(d => {
+          const ds = d.toISOString().slice(0, 10);
+          return activityData.filter(a => a.created_at?.slice(0, 10) === ds).length;
+        });
+        const maxCount = Math.max(...counts, 1);
+
+        const labelsEl = document.getElementById('pw-day-labels');
+        const cellsEl  = document.getElementById('pw-heatmap');
+
+        if (labelsEl) {
+          labelsEl.innerHTML = last7.map(d =>
+            `<div style="font-size:9px;text-align:center;color:var(--text-muted);">${DAY_LABELS[d.getDay()]}</div>`
+          ).join('');
+        }
+
+        if (cellsEl) {
+          cellsEl.innerHTML = counts.map((count, i) => {
+            const isToday   = last7[i].toISOString().slice(0, 10) === TODAY_STR;
+            const intensity = count === 0 ? 0 : Math.min(0.85, 0.2 + (count / maxCount) * 0.65);
+            const bg     = count === 0 ? 'var(--bg-hover)' : `rgba(34,197,94,${intensity.toFixed(2)})`;
+            const border = isToday ? '1.5px solid rgba(34,197,94,0.55)' : '1px solid transparent';
+            const label  = last7[i].toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
+            return `<div class="heatmap-cell" title="${label}: ${count} action${count === 1 ? '' : 's'}"
+              style="background:${bg};border:${border};"></div>`;
+          }).join('');
+        }
+
+      } catch { /* non-critical */ }
+    }
+    loadProgressWidget();
+
     function prependActivity(activity) {
       const list = document.getElementById('activity-list');
       if (!list) return;
@@ -1197,6 +1361,7 @@
       if (qsUp) qsUp.textContent = upcomingData.length;
     }
     loadTasks();
+    initMission();
 
     function toggleAddTask() {
       const form = document.getElementById('add-task-form');
@@ -1225,15 +1390,105 @@
       }
     }
 
+    // ── Daily Mission ─────────────────────────────────────────────────
+    const MISSION_TODAY = new Date().toISOString().slice(0, 10);
+    const MISSION_KEY   = `mission_${MISSION_TODAY}`;
+    let missionState    = JSON.parse(localStorage.getItem(MISSION_KEY) || '{"task":false,"habit":false,"note":false}');
+
+    function saveMission() {
+      localStorage.setItem(MISSION_KEY, JSON.stringify(missionState));
+    }
+
+    function markMission(item) {
+      if (missionState[item]) return;
+      missionState[item] = true;
+      saveMission();
+      renderMission();
+    }
+
+    function renderMission() {
+      const body     = document.getElementById('mission-body');
+      const progress = document.getElementById('mission-progress');
+      if (!body) return;
+      const items = [
+        { key: 'task',  label: 'Complete one task'  },
+        { key: 'habit', label: 'Complete a habit'   },
+        { key: 'note',  label: 'Write a daily note' },
+      ];
+      const doneCount = items.filter(i => missionState[i.key]).length;
+      if (progress) progress.textContent = `${doneCount} / ${items.length}`;
+      if (doneCount === items.length) {
+        body.innerHTML = `
+          <div class="mission-complete">
+            <p style="font-size:28px;margin-bottom:6px;">🎉</p>
+            <p style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">Daily mission completed!</p>
+            <p style="font-size:11.5px;color:var(--text-secondary);">Come back tomorrow for a new mission.</p>
+          </div>`;
+        return;
+      }
+      body.innerHTML = items.map(i => `
+        <div class="mission-item">
+          <span class="mission-check ${missionState[i.key] ? 'done' : 'todo'}">${missionState[i.key] ? '✓' : ''}</span>
+          <span class="mission-label ${missionState[i.key] ? 'done' : ''}">${i.label}</span>
+        </div>`).join('');
+    }
+
+    async function initMission() {
+      // Restore note completion from today's saved notes
+      if (!missionState.note) {
+        try {
+          const notes = await fetch('/api/notes').then(r => r.json());
+          if (notes.some(n => n.timestamp && n.timestamp.startsWith(MISSION_TODAY))) {
+            missionState.note = true;
+            saveMission();
+          }
+        } catch { /* non-critical */ }
+      }
+      renderMission();
+    }
+
+    function showMicroToast(type, title, sub) {
+      const stack = document.getElementById('notification-stack');
+      if (!stack) return;
+      const icons = { task: '✅', streak: '🔥' };
+      const toast = document.createElement('div');
+      toast.className = 'notif-toast';
+      toast.innerHTML = `
+        <div class="notif-icon ${type}">${icons[type] || '🔔'}</div>
+        <div class="notif-body">
+          <p class="notif-title">${title}</p>
+          ${sub ? `<p class="notif-sub">${escapeHtml(sub)}</p>` : ''}
+        </div>
+        <button class="notif-close" onclick="window.dismissToast(this.parentElement)">✕</button>`;
+      stack.appendChild(toast);
+      setTimeout(() => window.dismissToast(toast), 3000);
+    }
+
     async function completeTask(id) {
-      const el = document.getElementById(`task-${id}`);
-      if (el) { el.style.opacity = '0.25'; el.style.pointerEvents = 'none'; }
+      const el       = document.getElementById(`task-${id}`);
+      const taskText = el?.querySelector('.task-text')?.textContent?.trim() || 'Task';
+      const btn      = el?.querySelector('.task-complete-btn');
+      if (btn) btn.classList.add('task-completing');
+      const prevStreak = parseInt(document.getElementById('stat-streak')?.textContent || '0', 10);
       try {
         const res  = await fetch(`/api/todos/${id}/complete`, { method: 'POST' });
         const data = await res.json();
         if (data.streak) updateStreakDisplay(data.streak);
-      } catch { /* best-effort */ }
-      loadTasks();
+        // Fade row out then reload list
+        setTimeout(() => { if (el) el.classList.add('task-fading'); }, 200);
+        setTimeout(loadTasks, 480);
+        // Task completion toast + mission tracking
+        showMicroToast('task', 'Task completed ✓', taskText);
+        markMission('task');
+        // Streak increase toast, staggered so toasts stack cleanly
+        const newStreak = data.streak?.current_streak ?? 0;
+        if (newStreak > prevStreak) {
+          setTimeout(() => showMicroToast('streak', `🔥 Streak increased to ${newStreak} day${newStreak === 1 ? '' : 's'}`, ''), 450);
+        }
+      } catch {
+        if (btn) btn.classList.remove('task-completing');
+        if (el)  { el.style.opacity = ''; el.style.pointerEvents = ''; }
+      }
     }
 
     // ── News ──────────────────────────────────────────────────────────
@@ -1358,6 +1613,7 @@
         input.value     = '';
         btn.textContent = 'Saved ✓';
         loadNotes();
+        markMission('note');
         setTimeout(() => { btn.textContent = 'Save Note'; btn.disabled = false; }, 1500);
       } catch {
         btn.textContent = 'Save Note';
@@ -1420,13 +1676,13 @@
       });
 
       // ── Event: task completed ──────────────────────────────────────
-      socket.on('task_completed', data => {
-        showNotification('task', 'Task completed ✓', `Streak: ${data.streak?.current_streak ?? '—'} days`, null);
-      });
+      // Toast is handled directly in completeTask(); socket drives streak display only
+      socket.on('task_completed', () => {});
 
       // ── Event: streak updated ──────────────────────────────────────
       socket.on('streak_updated', data => {
         if (data.streak) updateStreakDisplay(data.streak);
+        loadProgressWidget();
       });
 
       // ── Event: activity created ────────────────────────────────────
