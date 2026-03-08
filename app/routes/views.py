@@ -13,6 +13,7 @@ views_bp = Blueprint("views", __name__)
 @login_required
 def index():
     user = db.get_user_by_id(session["user_id"])
+    fun_welcome = session.pop("fun_welcome", None)
     name = (user.get("display_name") or user["email"].split("@")[0]) if user else "there"
     hour = datetime.utcnow().hour
     if 5 <= hour < 12:
@@ -23,7 +24,12 @@ def index():
         word = "Good evening"
     # Only show on first login (last_onboarding_seen is empty = never completed onboarding)
     show_onboarding = bool(user) and not user.get("last_onboarding_seen", "")
-    return render_template("dashboard.html", greeting_message=f"{word}, {name}", show_onboarding=show_onboarding)
+    return render_template(
+        "dashboard.html",
+        greeting_message=f"{word}, {name}",
+        show_onboarding=show_onboarding,
+        fun_welcome=fun_welcome,
+    )
 
 
 @views_bp.route("/focus")

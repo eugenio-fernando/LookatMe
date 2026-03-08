@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta
 
 from prisma import Prisma
+from ..services.welcome_service import build_fun_welcome
 
 # Project root (two levels up from app/models/)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -301,6 +302,7 @@ def _user_to_dict(row) -> dict:
         "phone":        row.phone,
         "hobbies":      row.hobbies,
         "interests":    row.interests,
+        "gender":       row.gender,
         "has_seen_onboarding":  row.has_seen_onboarding,
         "last_onboarding_seen": row.last_onboarding_seen,
         "current_streak":       row.current_streak,
@@ -347,7 +349,7 @@ def get_user_by_id(user_id: int) -> dict | None:
 
 _PROFILE_FIELDS = {
     "display_name", "avatar_url", "bio", "company",
-    "address", "city", "zip_code", "phone", "hobbies", "interests",
+    "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
 }
 
 
@@ -1089,6 +1091,36 @@ def update_last_login(user_id: int) -> None:
     now = datetime.now().isoformat()
     with Prisma() as client:
         client.user.update(where={"id": user_id}, data={"last_login_at": now})
+
+
+def record_login_and_get_welcome(user_id: int) -> dict | None:
+    """Track per-day login count and return a playful message for first 3 logins."""
+    now = datetime.now()
+    day_key = now.date().isoformat()
+
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return None
+
+        count = user.welcome_count_today if (user.welcome_day_key or "") == day_key else 0
+        count += 1
+
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "last_login_at": now.isoformat(),
+                "welcome_day_key": day_key,
+                "welcome_count_today": count,
+            },
+        )
+
+        if count > 3:
+            return None
+
+        display_name = (user.display_name or user.email.split("@")[0]).strip()
+        message = build_fun_welcome(display_name, user.gender or "prefer_not_to_say", count)
+        return {"message": message, "count_today": count}
 
 
 # ── Messages ───────────────────────────────────────────────────────────

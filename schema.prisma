@@ -113,6 +113,7 @@ model User {
   phone         String @default("")
   hobbies       String @default("")
   interests     String @default("")
+  gender        String @default("prefer_not_to_say")
 
   // Email verification
   verified              Boolean @default(false)
@@ -149,6 +150,8 @@ model User {
 
   // Session tracking
   last_login_at         String @default("")
+  welcome_day_key       String @default("")
+  welcome_count_today   Int    @default(0)
 }
 
 model DailyMission {

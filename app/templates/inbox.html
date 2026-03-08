@@ -87,22 +87,22 @@
     <button class="mobile-hamburger" onclick="toggleMobileNav()" aria-label="Open menu">
       <span></span><span></span><span></span>
     </button>
-    <span style="font-size:14px;font-weight:700;color:#f4f4f5;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:#a3e635;">Me</span></span>
+    <a href="/" style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-0.01em;text-decoration:none;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></a>
     <div style="width:36px;"></div>
   </header>
 
   <!-- ── Sidebar ── -->
   <aside class="sidebar fixed top-0 left-0 h-full w-56 flex flex-col z-10 select-none">
     <div class="px-5 py-5 border-b border-[#2a2a2a]">
-      <div class="flex items-center gap-2.5">
+      <a href="/" class="flex items-center gap-2.5" style="text-decoration:none;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" style="flex-shrink:0;">
           <rect width="28" height="28" rx="7" fill="#1a1a1a"/>
           <circle cx="14" cy="14" r="11" fill="none" stroke="#a3e635" stroke-width="1.5" opacity="0.3"/>
           <circle cx="14" cy="14" r="7" fill="none" stroke="#a3e635" stroke-width="0.75" opacity="0.18"/>
           <circle cx="14" cy="14" r="4" fill="#a3e635"/>
         </svg>
-        <span class="text-white font-bold text-base tracking-tight">Look<strong>At</strong><span style="color:#a3e635;">Me</span></span>
-      </div>
+        <span style="color:var(--text);font-weight:700;font-size:16px;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></span>
+      </a>
       <p id="sidebar-date" class="text-[#5a5a5a] text-xs mt-2"></p>
     </div>
 

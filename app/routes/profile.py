@@ -31,9 +31,13 @@ def get_profile():
 @api_login_required
 def update_profile():
     body = request.get_json(silent=True) or {}
+    allowed_genders = {"male", "female", "non_binary", "prefer_not_to_say"}
+    if "gender" in body and body["gender"] not in allowed_genders:
+        return jsonify({"error": "Invalid gender value"}), 400
+
     allowed_fields = {
         "display_name", "bio", "company",
-        "address", "city", "zip_code", "phone", "hobbies", "interests",
+        "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
     }
     updates = {k: v for k, v in body.items() if k in allowed_fields}
     user = db.update_profile(session["user_id"], **updates)
