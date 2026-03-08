@@ -1169,6 +1169,19 @@
         </div>
       </section>
 
+      <!-- ── Invitations ── -->
+      <section class="card" id="invitations-dash-card">
+        <div class="card-header">
+          <span class="card-label">Invitations</span>
+          <a href="/invitations" style="font-size:11px;color:var(--text-muted);text-decoration:none;transition:color 0.12s;" onmouseover="this.style.color='var(--text-body)'" onmouseout="this.style.color='var(--text-muted)'">See all →</a>
+        </div>
+        <div class="card-body" style="padding-top:6px;padding-bottom:8px;">
+          <div id="inv-dash-body">
+            <p style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px 0;">Loading…</p>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 
@@ -2499,6 +2512,69 @@
       }
     }
     loadLeaderboard();
+
+    // ── Dashboard Invitations widget ──────────────────────────────────
+    const _METHOD_ICONS = {
+      copy: '🔗', whatsapp: '💬', facebook: '📘', twitter: '🐦',
+      instagram: '📸', email: '✉️',
+    };
+
+    async function loadDashboardInvitations() {
+      const body = document.getElementById('inv-dash-body');
+      if (!body) return;
+      try {
+        const res  = await fetch('/api/invitations');
+        if (!res.ok) { body.innerHTML = ''; return; }
+        const list = await res.json();
+
+        if (!list.length) {
+          body.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px 0;">No invites yet — share your link above!</p>';
+          return;
+        }
+
+        // Show at most 5 most recent
+        const rows = list.slice(0, 5).map(inv => {
+          const icon    = _METHOD_ICONS[inv.method] || '🔗';
+          const email   = inv.invitee_email
+            ? `<span style="font-size:11.5px;font-weight:600;color:var(--text-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;display:inline-block;">${escapeHtml(inv.invitee_email)}</span>`
+            : `<span style="font-size:11px;color:var(--text-muted);">—</span>`;
+          let statusDot, statusLabel;
+          if (inv.accepted_at) {
+            statusDot   = 'background:#a3e635;';
+            statusLabel = 'Joined';
+          } else if (inv.opened_at) {
+            statusDot   = 'background:#60a5fa;';
+            statusLabel = 'Opened';
+          } else {
+            statusDot   = 'background:var(--border-color);';
+            statusLabel = 'Sent';
+          }
+          const sentDate = inv.created_at
+            ? new Date(inv.created_at).toLocaleDateString([], { month:'short', day:'numeric' })
+            : '—';
+          return `
+            <div style="display:grid;grid-template-columns:18px 1fr auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft);">
+              <span style="font-size:13px;">${icon}</span>
+              <div style="min-width:0;">
+                ${email}
+                <p style="font-size:10px;color:var(--text-muted);margin-top:1px;">${sentDate}</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+                <span style="width:6px;height:6px;border-radius:50%;flex-shrink:0;${statusDot}"></span>
+                <span style="font-size:10.5px;color:var(--text-muted);white-space:nowrap;">${statusLabel}</span>
+              </div>
+            </div>`;
+        }).join('');
+
+        const moreLink = list.length > 5
+          ? `<a href="/invitations" style="display:block;text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px;text-decoration:none;transition:color 0.12s;" onmouseover="this.style.color='var(--text-body)'" onmouseout="this.style.color='var(--text-muted)'">+${list.length - 5} more →</a>`
+          : '';
+        body.innerHTML = rows + moreLink;
+      } catch {
+        body.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px 0;">Could not load invitations.</p>';
+      }
+    }
+    loadDashboardInvitations();
 
     // ── Invite Modal ──────────────────────────────────────────────────
     let _currentInviteUrl = '';

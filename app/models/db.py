@@ -902,17 +902,21 @@ def open_social_invitation(token: str) -> None:
             )
 
 
-def accept_social_invitation(token: str, recipient_user_id: int) -> bool:
+def accept_social_invitation(
+    token: str,
+    recipient_user_id: int,
+    invitee_email: str | None = None,
+) -> bool:
     """Mark accepted and create friendship. Returns False if already used."""
     now = datetime.now().isoformat()
     with Prisma() as client:
         row = client.invitation.find_unique(where={"token": token})
         if not row or row.accepted_at or row.recipient_user_id:
             return False
-        client.invitation.update(
-            where={"token": token},
-            data={"accepted_at": now, "recipient_user_id": recipient_user_id},
-        )
+        update_data: dict = {"accepted_at": now, "recipient_user_id": recipient_user_id}
+        if invitee_email:
+            update_data["invitee_email"] = invitee_email
+        client.invitation.update(where={"token": token}, data=update_data)
         # Create friendship if it doesn't already exist
         existing = client.friendship.find_first(where={
             "OR": [
@@ -930,25 +934,37 @@ def accept_social_invitation(token: str, recipient_user_id: int) -> bool:
 
 
 def get_user_invitations(user_id: int) -> list[dict]:
-    """List all invitations sent by a user, with recipient name if accepted."""
+    """List all invitations sent by a user, with recipient name/email if accepted."""
     with Prisma() as client:
         rows = client.invitation.find_many(
             where={"sender_id": user_id},
             order={"created_at": "desc"},
         )
         recipient_ids = [r.recipient_user_id for r in rows if r.recipient_user_id]
-        recipients: dict[int, str] = {}
+        recipients: dict[int, dict] = {}
         if recipient_ids:
             users = client.user.find_many(where={"id": {"in": recipient_ids}})
-            recipients = {u.id: (u.display_name or u.email.split("@")[0]) for u in users}
+            recipients = {
+                u.id: {"name": u.display_name or u.email.split("@")[0], "email": u.email}
+                for u in users
+            }
     return [
         {
-            "id":          row.id,
-            "method":      row.method,
-            "created_at":  row.created_at,
-            "opened_at":   row.opened_at,
-            "accepted_at": row.accepted_at,
-            "recipient":   recipients.get(row.recipient_user_id),
+            "id":             row.id,
+            "method":         row.method,
+            "created_at":     row.created_at,
+            "opened_at":      row.opened_at,
+            "accepted_at":    row.accepted_at,
+            "invitee_email":  row.invitee_email or (
+                recipients[row.recipient_user_id]["email"]
+                if row.recipient_user_id and row.recipient_user_id in recipients
+                else None
+            ),
+            "recipient_name": (
+                recipients[row.recipient_user_id]["name"]
+                if row.recipient_user_id and row.recipient_user_id in recipients
+                else None
+            ),
         }
         for row in rows
     ]

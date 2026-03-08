@@ -76,12 +76,17 @@ def accept_invitation():
     if inv["sender_id"] == user_id:
         return jsonify({"error": "Cannot accept your own invitation"}), 400
 
-    ok = db.accept_social_invitation(token, user_id)
+    # Capture the acceptor's email so it appears in the inviter's dashboard
+    acceptor = db.get_user_by_id(user_id)
+    invitee_email = acceptor["email"] if acceptor else None
+
+    ok = db.accept_social_invitation(token, user_id, invitee_email=invitee_email)
     if not ok:
         return jsonify({"error": "already_accepted",
                         "message": "This invite has already been used."}), 400
 
-    logger.info("INVITE_ACCEPTED token=%s recipient_user_id=%s", token, user_id)
+    logger.info("INVITE_ACCEPTED token=%s recipient_user_id=%s email=%s",
+                token, user_id, invitee_email)
     return jsonify({"ok": True})
 
 

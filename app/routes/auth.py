@@ -112,11 +112,25 @@ def register():
         created_at=datetime.now().isoformat(),
     )
     db.add_workspace_member(workspace["id"], user["id"], role="admin")
-    token = secrets.token_urlsafe(32)
+
+    # Auto-accept a social invite if the registration came through an invite link
+    invite_token = body.get("invite_token", "").strip()
+    if invite_token:
+        try:
+            accepted = db.accept_social_invitation(invite_token, user["id"], invitee_email=email)
+            logger.info(
+                "INVITE_ACCEPTED_ON_REGISTER token_prefix=%s user_id=%s accepted=%s",
+                invite_token[:8], user["id"], accepted,
+            )
+        except Exception as exc:
+            logger.warning("INVITE_ACCEPT_FAILED_ON_REGISTER token_prefix=%s err=%s",
+                           invite_token[:8], exc)
+
+    ver_token = secrets.token_urlsafe(32)
     expiry = (datetime.now() + timedelta(minutes=30)).isoformat()
-    db.set_verification_token(user["id"], token, expiry)
+    db.set_verification_token(user["id"], ver_token, expiry)
     logger.info("EMAIL_FUNCTION_CALLED: send_verification_email to=%s", email)
-    send_verification_email(email, token)
+    send_verification_email(email, ver_token)
     return jsonify({"message": "Account created. Check your email to verify your account."}), 201
 
 

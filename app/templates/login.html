@@ -406,11 +406,20 @@
       btn.disabled    = true;
       btn.textContent = 'Creating account…';
 
+      // If the user arrived via /invite/<token>, forward the token so the
+      // new account is automatically linked to that invitation.
+      const _urlP  = new URLSearchParams(window.location.search);
+      const _next  = _urlP.get('next') || '';
+      const _iMatch = _next.match(/^\/invite\/([A-Za-z0-9_-]+)$/);
+      const _inviteToken = _iMatch ? _iMatch[1] : '';
+
       try {
+        const body = { email, password };
+        if (_inviteToken) body.invite_token = _inviteToken;
         const res  = await fetch('/api/auth/register', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ email, password }),
+          body:    JSON.stringify(body),
         });
         const data = await res.json();
 
