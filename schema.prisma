@@ -81,10 +81,11 @@ model Invitation {
 }
 
 model Friendship {
-  id         Int    @id @default(autoincrement())
-  user_a     Int
-  user_b     Int
-  created_at String
+  id          Int     @id @default(autoincrement())
+  user_a      Int
+  user_b      Int
+  created_at  String
+  accepted_at String?
 }
 
 model WorkspaceInvite {
@@ -145,6 +146,9 @@ model User {
   current_streak        Int    @default(0)
   longest_streak        Int    @default(0)
   last_completed_date   String @default("")
+
+  // Session tracking
+  last_login_at         String @default("")
 }
 
 model DailyMission {

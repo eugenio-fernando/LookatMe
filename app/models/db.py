@@ -926,9 +926,10 @@ def accept_social_invitation(
         })
         if not existing:
             client.friendship.create(data={
-                "user_a":     row.sender_id,
-                "user_b":     recipient_user_id,
-                "created_at": now,
+                "user_a":      row.sender_id,
+                "user_b":      recipient_user_id,
+                "created_at":  now,
+                "accepted_at": now,
             })
     return True
 
@@ -1003,6 +1004,91 @@ def get_friends(user_id: int) -> list[dict]:
         }
         for u in users
     ]
+
+
+def get_friends_with_stats(user_id: int) -> list[dict]:
+    """Return friends enriched with tasks_today, tasks_this_week, and last_login."""
+    today      = datetime.now().date().isoformat()
+    week_start = (datetime.now().date() - timedelta(days=datetime.now().weekday())).isoformat()
+
+    with Prisma() as client:
+        friendships = client.friendship.find_many(where={
+            "OR": [{"user_a": user_id}, {"user_b": user_id}]
+        })
+        friend_ids = [
+            f.user_b if f.user_a == user_id else f.user_a
+            for f in friendships
+        ]
+        friendship_dates = {
+            (f.user_b if f.user_a == user_id else f.user_a): f.created_at
+            for f in friendships
+        }
+        if not friend_ids:
+            return []
+
+        users = client.user.find_many(where={"id": {"in": friend_ids}})
+        activities = client.activity.find_many(where={
+            "user_id": {"in": friend_ids},
+            "type":    "task_completed",
+        })
+
+    tasks_today: dict[int, int] = {}
+    tasks_week:  dict[int, int] = {}
+    for a in activities:
+        if a.created_at.startswith(today):
+            tasks_today[a.user_id] = tasks_today.get(a.user_id, 0) + 1
+        if a.created_at[:10] >= week_start:
+            tasks_week[a.user_id] = tasks_week.get(a.user_id, 0) + 1
+
+    result = [
+        {
+            "id":              u.id,
+            "name":            u.display_name or u.email.split("@")[0],
+            "current_streak":  u.current_streak or 0,
+            "longest_streak":  u.longest_streak or 0,
+            "last_login_at":   u.last_login_at or "",
+            "last_active":     u.last_completed_date or "",
+            "tasks_today":     tasks_today.get(u.id, 0),
+            "tasks_this_week": tasks_week.get(u.id, 0),
+            "friends_since":   friendship_dates.get(u.id),
+            "linkedin_verified": u.linkedin_verified,
+        }
+        for u in users
+    ]
+    return sorted(result, key=lambda x: (-x["current_streak"], -x["tasks_this_week"]))
+
+
+def get_user_stats_for_leaderboard(user_id: int) -> dict | None:
+    """Return a single user's leaderboard-compatible stats dict."""
+    today      = datetime.now().date().isoformat()
+    week_start = (datetime.now().date() - timedelta(days=datetime.now().weekday())).isoformat()
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return None
+        activities = client.activity.find_many(where={
+            "user_id": user_id,
+            "type":    "task_completed",
+        })
+    tasks_today = sum(1 for a in activities if a.created_at.startswith(today))
+    tasks_week  = sum(1 for a in activities if a.created_at[:10] >= week_start)
+    return {
+        "id":              user.id,
+        "name":            user.display_name or user.email.split("@")[0],
+        "current_streak":  user.current_streak or 0,
+        "longest_streak":  user.longest_streak or 0,
+        "last_login_at":   user.last_login_at or "",
+        "last_active":     user.last_completed_date or "",
+        "tasks_today":     tasks_today,
+        "tasks_this_week": tasks_week,
+    }
+
+
+def update_last_login(user_id: int) -> None:
+    """Stamp last_login_at for a user after a successful authentication."""
+    now = datetime.now().isoformat()
+    with Prisma() as client:
+        client.user.update(where={"id": user_id}, data={"last_login_at": now})
 
 
 # ── Messages ───────────────────────────────────────────────────────────

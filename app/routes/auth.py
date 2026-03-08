@@ -53,6 +53,7 @@ def verify_email(token):
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
+    db.update_last_login(user["id"])
     return redirect(url_for("views.index"))
 
 
@@ -74,6 +75,7 @@ def magic_login(token):
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
+    db.update_last_login(user["id"])
     return redirect(url_for("views.index"))
 
 
@@ -151,6 +153,7 @@ def login():
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
+    db.update_last_login(user["id"])
     return jsonify({"id": user["id"], "email": user["email"]})
 
 

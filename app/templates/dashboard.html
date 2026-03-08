@@ -898,6 +898,17 @@
         </div>
       </section>
 
+      <!-- ── Friends ── -->
+      <section class="card" id="friends-card">
+        <div class="card-header">
+          <span class="card-label">Friends</span>
+          <button onclick="loadFriendsSection()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <div class="card-body" id="friends-section-body" style="padding-top:8px;padding-bottom:8px;">
+          <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0;">Loading…</div>
+        </div>
+      </section>
+
       <!-- ── Upcoming Tasks ── -->
       <section class="card">
         <div class="card-header">
@@ -958,11 +969,22 @@
         </div>
       </section>
 
-      <!-- ── Friends Progress (Leaderboard) ── -->
+      <!-- ── Friends Leaderboard ── -->
       <section class="card" id="leaderboard-card">
         <div class="card-header">
-          <span class="card-label">Friends Progress</span>
+          <span class="card-label">Friends Leaderboard</span>
           <button onclick="loadLeaderboard()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <!-- Sort toggle -->
+        <div style="display:flex;gap:6px;padding:8px 14px 0;">
+          <button id="lb-sort-streak" onclick="setLeaderboardSort('streak')"
+            style="flex:1;padding:4px 0;font-size:11px;font-weight:700;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#0f0f0f;cursor:pointer;transition:all 0.12s;">
+            🔥 Streak
+          </button>
+          <button id="lb-sort-week" onclick="setLeaderboardSort('week')"
+            style="flex:1;padding:4px 0;font-size:11px;font-weight:700;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.12s;">
+            📅 This week
+          </button>
         </div>
         <div class="card-body" id="leaderboard-body" style="padding-top:10px;padding-bottom:10px;">
           <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:8px 0;">Loading…</div>
@@ -2107,7 +2129,7 @@
 
       // ── Event: task completed ──────────────────────────────────────
       // Toast is handled directly in completeTask(); socket refreshes leaderboard
-      socket.on('task_completed', () => { loadLeaderboard(); });
+      socket.on('task_completed', () => { loadLeaderboard(); loadFriendsSection(); });
 
       // ── Event: streak updated ──────────────────────────────────────
       socket.on('streak_updated', data => {
@@ -2465,53 +2487,144 @@
     }
 
     // ── Leaderboard ───────────────────────────────────────────────────
+    // ── Friends Leaderboard ───────────────────────────────────────────
+    let _lbSort = 'streak';   // 'streak' | 'week'
+    let _lbCache = null;
+
+    function setLeaderboardSort(sort) {
+      _lbSort = sort;
+      const streakBtn = document.getElementById('lb-sort-streak');
+      const weekBtn   = document.getElementById('lb-sort-week');
+      const ON  = `border:1px solid var(--accent);background:var(--accent);color:#0f0f0f;`;
+      const OFF = `border:1px solid var(--border);background:transparent;color:var(--text-muted);`;
+      if (streakBtn) streakBtn.style.cssText = streakBtn.style.cssText.replace(/border.*?;/g,'') + (sort === 'streak' ? ON : OFF);
+      if (weekBtn)   weekBtn.style.cssText   = weekBtn.style.cssText.replace(/border.*?;/g,'')   + (sort === 'week'   ? ON : OFF);
+      if (_lbCache) renderLeaderboard(_lbCache);
+    }
+
+    function renderLeaderboard(data) {
+      const body = document.getElementById('leaderboard-body');
+      if (!body) return;
+
+      // Re-sort client-side based on current toggle
+      const sorted = [...data].sort((a, b) =>
+        _lbSort === 'week'
+          ? b.tasks_this_week - a.tasks_this_week || b.current_streak - a.current_streak
+          : b.current_streak - a.current_streak   || b.tasks_this_week - a.tasks_this_week
+      );
+
+      if (!sorted.length) {
+        body.innerHTML = `
+          <div style="text-align:center;padding:14px 0 8px;">
+            <p style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;">No friends yet</p>
+            <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Invite a friend to stay<br>accountable together.</p>
+            <button onclick="trackedShare('copy')" class="btn-primary" style="padding:7px 16px;font-size:12px;">👥 Invite a Friend</button>
+          </div>`;
+        return;
+      }
+
+      const MEDALS = ['🥇', '🥈', '🥉'];
+      body.innerHTML = sorted.map((m, i) => {
+        const isMe        = !!m.is_me;
+        const medal       = MEDALS[i] || `<span style="font-size:11px;color:var(--text-muted);">${i + 1}</span>`;
+        const nameTxt     = escapeHtml(m.name) + (isMe ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(you)</span>' : '');
+        const streakColor = m.current_streak > 0 ? '#fb923c' : 'var(--text-muted)';
+        const streakTxt   = m.current_streak > 0 ? `${m.current_streak} 🔥` : '<span style="font-size:11px;">—</span>';
+        const subTxt      = _lbSort === 'week'
+          ? `${m.tasks_this_week} task${m.tasks_this_week !== 1 ? 's' : ''} this week`
+          : `${m.tasks_today} task${m.tasks_today !== 1 ? 's' : ''} today`;
+        const rowBg = isMe ? 'background:rgba(163,230,53,0.05);border-radius:8px;' : '';
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border-soft);${rowBg}">
+            <span style="font-size:15px;width:20px;text-align:center;flex-shrink:0;">${medal}</span>
+            <div style="flex:1;min-width:0;">
+              <p style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;">${nameTxt}</p>
+              <p style="font-size:11px;color:var(--text-muted);">${subTxt}</p>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:${streakColor};flex-shrink:0;">${streakTxt}</span>
+          </div>`;
+      }).join('') + `
+        <button onclick="trackedShare('copy')" class="btn-ghost" style="width:100%;margin-top:10px;font-size:11.5px;padding:6px 0;gap:5px;">
+          <span>👥</span> Invite more friends
+        </button>`;
+    }
+
     async function loadLeaderboard() {
       const body = document.getElementById('leaderboard-body');
       if (!body) return;
       try {
-        const res  = await fetch('/api/workspace/leaderboard');
+        const res = await fetch('/api/friends/leaderboard');
         if (!res.ok) { body.innerHTML = ''; return; }
-        const data = await res.json();
+        _lbCache = await res.json();
+        renderLeaderboard(_lbCache);
+      } catch {
+        body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:8px 0;">Could not load leaderboard.</p>';
+      }
+    }
+    loadLeaderboard();
 
-        if (!Array.isArray(data) || data.length <= 1) {
+    // ── Friends Section (full list with detailed stats) ────────────────
+    function _fmtRelative(iso) {
+      if (!iso) return 'Never';
+      const diff = Date.now() - new Date(iso).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 2)   return 'Just now';
+      if (mins < 60)  return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs  < 24)  return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      if (days < 7)   return `${days}d ago`;
+      return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    async function loadFriendsSection() {
+      const body = document.getElementById('friends-section-body');
+      if (!body) return;
+      try {
+        const res  = await fetch('/api/friends/leaderboard');
+        if (!res.ok) { body.innerHTML = ''; return; }
+        const list = await res.json();
+
+        // Separate me from friends
+        const friends = list.filter(f => !f.is_me);
+
+        if (!friends.length) {
           body.innerHTML = `
             <div style="text-align:center;padding:14px 0 8px;">
               <p style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;">No friends yet</p>
-              <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Invite a friend to stay<br>accountable together.</p>
-              <button onclick="showInviteModal()" class="btn-primary" style="padding:7px 16px;font-size:12px;">👥 Invite a Friend</button>
+              <p style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px;">Invite someone to get started.</p>
+              <button onclick="trackedShare('copy')" class="btn-primary" style="padding:7px 16px;font-size:12px;">👥 Invite a Friend</button>
             </div>`;
           return;
         }
 
-        const MEDALS = ['🥇', '🥈', '🥉'];
-        body.innerHTML = data.map((m, i) => {
-          const isMe  = m.user_id === _myUserId;
-          const medal = MEDALS[i] || `<span style="font-size:11px;color:var(--text-muted);">${i + 1}</span>`;
-          const nameTxt = escapeHtml(m.name) + (isMe ? ' <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(you)</span>' : '');
-          const taskTxt = m.tasks_today === 1 ? '1 task today' : `${m.tasks_today} tasks today`;
-          const streakColor = m.current_streak > 0 ? '#fb923c' : 'var(--text-muted)';
-          const streakTxt   = m.current_streak > 0
-            ? `${m.current_streak} 🔥`
-            : '<span style="font-size:11px;">—</span>';
+        body.innerHTML = friends.map(f => {
+          const initials    = (f.name || '?').charAt(0).toUpperCase();
+          const streakColor = f.current_streak > 0 ? '#fb923c' : 'var(--text-muted)';
+          const streakTxt   = f.current_streak > 0 ? `${f.current_streak} 🔥` : '—';
+          const loginTxt    = _fmtRelative(f.last_login_at || f.last_active);
+          const taskTxt     = f.tasks_today === 1 ? '1 task' : `${f.tasks_today} tasks`;
+          const weekTxt     = f.tasks_this_week;
           return `
-            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft);">
-              <span style="font-size:15px;width:20px;text-align:center;flex-shrink:0;">${medal}</span>
-              <div style="flex:1;min-width:0;">
-                <p style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;">${nameTxt}</p>
-                <p style="font-size:11px;color:var(--text-muted);">${taskTxt}</p>
+            <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--border-soft);">
+              <div style="width:34px;height:34px;border-radius:50%;background:var(--bg-card-inner);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;font-weight:700;color:var(--accent);">
+                ${initials}
               </div>
-              <span style="font-size:13px;font-weight:700;color:${streakColor};flex-shrink:0;">${streakTxt}</span>
+              <div style="flex:1;min-width:0;">
+                <p style="font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;">${escapeHtml(f.name)}</p>
+                <p style="font-size:10.5px;color:var(--text-muted);">Last seen ${loginTxt} · ${taskTxt} today</p>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <p style="font-size:13px;font-weight:700;color:${streakColor};">${streakTxt}</p>
+                <p style="font-size:10px;color:var(--text-muted);">${weekTxt} this wk</p>
+              </div>
             </div>`;
-        }).join('') + `
-          <button onclick="showInviteModal()" class="btn-ghost" style="width:100%;margin-top:10px;font-size:11.5px;padding:6px 0;gap:5px;">
-            <span>👥</span> Invite more friends
-          </button>`;
+        }).join('');
       } catch {
-        document.getElementById('leaderboard-body').innerHTML =
-          '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:8px 0;">Could not load leaderboard.</p>';
+        body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:8px 0;">Could not load friends.</p>';
       }
     }
-    loadLeaderboard();
+    loadFriendsSection();
 
     // ── Dashboard Invitations widget ──────────────────────────────────
     const _METHOD_ICONS = {

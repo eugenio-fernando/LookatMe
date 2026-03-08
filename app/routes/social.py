@@ -100,3 +100,28 @@ def list_invitations():
 @api_login_required
 def get_friends():
     return jsonify(db.get_friends(session["user_id"]))
+
+
+@social_bp.route("/api/friends/leaderboard", methods=["GET"])
+@api_login_required
+def friends_leaderboard():
+    """Top 10 friends + self, sorted by streak desc then weekly tasks desc."""
+    user_id = session["user_id"]
+
+    # Friends stats (already sorted)
+    friends = db.get_friends_with_stats(user_id)
+
+    # Build self entry so the user sees their own rank
+    me_stats = db.get_user_stats_for_leaderboard(user_id)
+    if me_stats:
+        me_stats["is_me"] = True
+        combined = friends + [me_stats]
+        combined.sort(key=lambda x: (-x["current_streak"], -x["tasks_this_week"]))
+    else:
+        combined = friends
+
+    for i, entry in enumerate(combined):
+        entry["rank"] = i + 1
+
+    logger.info("FRIENDS_LEADERBOARD user_id=%s friends=%s", user_id, len(friends))
+    return jsonify(combined[:10])
