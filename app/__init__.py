@@ -28,6 +28,7 @@ from .routes.tasks import tasks_bp
 from .routes.views import views_bp
 from .routes.ai import ai_bp
 from .routes.invites import invites_bp
+from .routes.commitment import commitment_bp
 from .routes.mission import mission_bp
 from .routes.workspaces import workspaces_bp
 
@@ -75,6 +76,7 @@ def create_app() -> Flask:
     app.register_blueprint(workspaces_bp)
     app.register_blueprint(ai_bp)
     app.register_blueprint(invites_bp)
+    app.register_blueprint(commitment_bp)
     app.register_blueprint(mission_bp)
     if os.environ.get("FLASK_ENV", "development") != "production":
         app.register_blueprint(debug_bp, url_prefix="/api/debug")

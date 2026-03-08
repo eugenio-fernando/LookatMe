@@ -362,6 +362,58 @@ def update_password(user_id: int, password_hash: str) -> None:
         client.user.update(where={"id": user_id}, data={"password_hash": password_hash})
 
 
+# ── Daily Commitment ────────────────────────────────────────────────────
+
+def get_commitment(user_id: int) -> dict:
+    """Return today's commitment, auto-resetting if it belongs to a past day."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return {"text": None, "completed": False}
+        if user.daily_commitment and user.daily_commitment_date != today:
+            client.user.update(
+                where={"id": user_id},
+                data={
+                    "daily_commitment":           None,
+                    "daily_commitment_date":      None,
+                    "daily_commitment_completed": False,
+                },
+            )
+            return {"text": None, "completed": False}
+        if user.daily_commitment_date != today:
+            return {"text": None, "completed": False}
+        return {
+            "text":      user.daily_commitment,
+            "completed": user.daily_commitment_completed,
+        }
+
+
+def set_commitment(user_id: int, text: str) -> dict:
+    """Create or replace today's commitment."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "daily_commitment":           text.strip(),
+                "daily_commitment_date":      today,
+                "daily_commitment_completed": False,
+            },
+        )
+    return {"text": text.strip(), "completed": False}
+
+
+def complete_commitment(user_id: int) -> dict:
+    """Mark the current daily commitment as completed."""
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"daily_commitment_completed": True},
+        )
+    return {"completed": True}
+
+
 # ── Token helpers (verification / magic login / password reset) ─────────
 
 def set_verification_token(user_id: int, token: str, expiry: str) -> None:

@@ -107,6 +107,11 @@ model User {
   reset_token           String?
   reset_expiry          String?
 
+  // Daily Commitment
+  daily_commitment           String?
+  daily_commitment_date      String?
+  daily_commitment_completed Boolean @default(false)
+
   // Onboarding
   has_seen_onboarding   Boolean @default(false)
   last_onboarding_seen  String  @default("")

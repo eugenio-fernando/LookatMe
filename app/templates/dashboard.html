@@ -320,6 +320,11 @@
     .mission-check.todo { background: transparent; color: transparent; border: 1.5px solid var(--border-color); }
     .mission-label      { font-size: 13px; color: var(--text-body); transition: color 0.2s; }
     .mission-label.done { color: var(--text-muted); text-decoration: line-through; }
+    @keyframes commitPulse {
+      from { opacity: 0; transform: scale(0.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
     @keyframes missionPop {
       0%   { transform: scale(0.9); opacity: 0; }
       60%  { transform: scale(1.06); }
@@ -743,6 +748,17 @@
           <span id="mission-progress" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0 / 3</span>
         </div>
         <div class="card-body" id="mission-body" style="padding-top:12px;padding-bottom:12px;">
+          <div style="color:var(--text-muted);font-size:13px;">Loading…</div>
+        </div>
+      </section>
+
+      <!-- ── Daily Commitment ── -->
+      <section class="card" id="commitment-card">
+        <div class="card-header">
+          <span class="card-label">Daily Commitment</span>
+          <span id="commitment-status-badge" style="font-size:11px;font-weight:600;color:var(--text-muted);"></span>
+        </div>
+        <div class="card-body" id="commitment-body" style="padding-top:12px;padding-bottom:14px;">
           <div style="color:var(--text-muted);font-size:13px;">Loading…</div>
         </div>
       </section>
@@ -1646,6 +1662,7 @@
     }
     loadTasks();
     loadMission();
+    loadCommitment();
 
     function toggleAddTask() {
       const form = document.getElementById('add-task-form');
@@ -2481,6 +2498,82 @@
     document.getElementById('invite-modal').addEventListener('click', function(e) {
       if (e.target === this) closeInviteModal();
     });
+
+    // ── Daily Commitment ──────────────────────────────────────────────
+    async function loadCommitment() {
+      try {
+        const r = await fetch('/api/commitment/today');
+        const data = await r.json();
+        renderCommitment(data);
+      } catch {
+        renderCommitment({ text: null, completed: false });
+      }
+    }
+
+    function renderCommitment(data) {
+      const body   = document.getElementById('commitment-body');
+      const badge  = document.getElementById('commitment-status-badge');
+      if (!body) return;
+
+      if (!data.text) {
+        if (badge) badge.textContent = '';
+        body.innerHTML = `
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;line-height:1.45;">What is the ONE thing you commit to finishing today?</p>
+          <div style="display:flex;gap:8px;">
+            <input id="commitment-input" type="text" placeholder="e.g. Finish the API integration"
+              class="field-input" style="flex:1;font-size:13px;" maxlength="200"
+              onkeydown="if(event.key==='Enter')submitCommitment()">
+            <button onclick="submitCommitment()" class="btn-primary" style="padding:7px 16px;font-size:13px;white-space:nowrap;">Commit</button>
+          </div>`;
+        setTimeout(() => document.getElementById('commitment-input')?.focus(), 50);
+        return;
+      }
+
+      if (data.completed) {
+        if (badge) { badge.textContent = 'Done'; badge.style.color = 'var(--accent)'; }
+        body.innerHTML = `
+          <div style="background:rgba(163,230,53,0.07);border:1px solid rgba(163,230,53,0.2);border-radius:10px;padding:12px 14px;animation:commitPulse 0.4s ease;">
+            <p style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.06em;margin-bottom:5px;">COMPLETED</p>
+            <p style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:8px;line-height:1.4;">${escapeHtml(data.text)}</p>
+            <p style="font-size:12px;color:var(--text-secondary);line-height:1.5;">Commitment completed today. Your streak grows.</p>
+          </div>`;
+        return;
+      }
+
+      if (badge) { badge.textContent = 'In progress'; badge.style.color = 'var(--text-muted)'; }
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--bg-card-inner);border-radius:8px;padding:10px 12px;">
+            <p style="font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:0.05em;margin-bottom:5px;">TODAY'S COMMITMENT</p>
+            <p style="font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.4;">${escapeHtml(data.text)}</p>
+          </div>
+          <button onclick="completeCommitment()" class="btn-primary" style="width:100%;padding:9px;font-size:13px;">
+            Mark completed
+          </button>
+        </div>`;
+    }
+
+    async function submitCommitment() {
+      const input = document.getElementById('commitment-input');
+      const text  = input?.value.trim();
+      if (!text) { input?.focus(); return; }
+      try {
+        const r = await fetch('/api/commitment/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await r.json();
+        if (data.text) renderCommitment(data);
+      } catch {}
+    }
+
+    async function completeCommitment() {
+      try {
+        await fetch('/api/commitment/complete', { method: 'POST' });
+        loadCommitment();
+      } catch {}
+    }
 
     // ── Share LookatMe ────────────────────────────────────────────────
     async function copyLink() {
