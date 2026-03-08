@@ -1,11 +1,27 @@
 """
 AI Productivity Assistant — OpenAI-powered insights.
+
+Set AI_TEST_MODE=true to return mock responses without calling OpenAI.
 """
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
+
+_MOCK = {
+    "summary":     "Mock AI response",
+    "suggestions": [
+        "Complete your most important task first",
+        "Maintain your habit streak",
+        "Plan tomorrow tonight",
+    ],
+}
+
+
+def _test_mode() -> bool:
+    return os.environ.get("AI_TEST_MODE", "").lower() == "true"
 
 
 def _openai_client():
@@ -37,6 +53,8 @@ def _today() -> str:
 
 
 def analyze_day(tasks: list, notes: list) -> dict:
+    if _test_mode():
+        return _MOCK
     today_tasks = [t for t in tasks if not t.get("completed")]
     done_tasks  = [t for t in tasks if t.get("completed")]
     note_texts  = [n.get("text", "") for n in notes if n.get("text")]
@@ -56,6 +74,8 @@ Respond with a JSON object with these exact keys:
 
 
 def plan_tomorrow(tasks: list, notes: list) -> dict:
+    if _test_mode():
+        return _MOCK
     upcoming   = [t for t in tasks if not t.get("completed")]
     note_texts = [n.get("text", "") for n in notes if n.get("text")]
 
@@ -73,6 +93,9 @@ Respond with a JSON object with these exact keys:
 
 
 def summarize_notes(notes: list) -> dict:
+    if _test_mode():
+        return _MOCK
+
     texts = [n.get("text", "") for n in notes if n.get("text")]
 
     if not texts:

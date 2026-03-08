@@ -103,17 +103,18 @@ def delete_todo(todo_id: int) -> None:
         client.todo.delete(where={"id": todo_id})
 
 
-def _update_user_streak(user_id: int) -> None:
-    """Increment the per-user streak fields on the User row."""
+def _update_user_streak(user_id: int) -> bool:
+    """Increment the per-user streak fields on the User row.
+    Returns True if this is the first streak update today (habit milestone)."""
     today     = datetime.now().date().isoformat()
     yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
     with Prisma() as client:
         user = client.user.find_unique(where={"id": user_id})
         if not user:
-            return
+            return False
         last = user.last_completed_date or ""
         if last == today:
-            return  # already incremented today
+            return False  # already incremented today
         current = (user.current_streak + 1) if last == yesterday else 1
         longest = max(user.longest_streak, current)
         client.user.update(
@@ -124,6 +125,7 @@ def _update_user_streak(user_id: int) -> None:
                 "last_completed_date": today,
             },
         )
+    return True  # first completion of the day = habit milestone
 
 
 def complete_todo(todo_id: int, user_id: int | None = None) -> dict:
@@ -138,9 +140,11 @@ def complete_todo(todo_id: int, user_id: int | None = None) -> dict:
         current = streak["current_streak"] + 1 if streak["last_completed_date"] == yesterday else 1
         longest = max(streak["longest_streak"], current)
         update_streak(current, today, longest)
-    # Per-user streak
+    # Per-user streak — also logs habit_completed on first completion of the day
     if user_id is not None:
-        _update_user_streak(user_id)
+        habit_milestone = _update_user_streak(user_id)
+        if habit_milestone:
+            log_activity(user_id, "habit_completed", "Kept your streak alive 🔥")
     return get_streak()
 
 
@@ -618,6 +622,76 @@ def consume_workspace_invite(token: str) -> None:
             where={"token": token},
             data={"accepted": True},
         )
+
+
+# ── Daily Mission ──────────────────────────────────────────────────────
+
+def get_mission_with_progress(user_id: int) -> dict:
+    """Get or create today's mission and compute live progress from Activity records."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        row = client.dailymission.find_first(
+            where={"user_id": user_id, "date": today}
+        )
+        if row is None:
+            row = client.dailymission.create(data={
+                "user_id":     user_id,
+                "date":        today,
+                "tasks_goal":  3,
+                "habits_goal": 1,
+                "notes_goal":  1,
+            })
+        mission_id       = row.id
+        tasks_goal       = row.tasks_goal
+        habits_goal      = row.habits_goal
+        notes_goal       = row.notes_goal
+        already_complete = row.completed
+        activities = client.activity.find_many(where={"user_id": user_id})
+
+    tasks_done  = sum(1 for a in activities if a.type == "task_completed"  and a.created_at.startswith(today))
+    habits_done = sum(1 for a in activities if a.type == "habit_completed" and a.created_at.startswith(today))
+    notes_done  = sum(1 for a in activities if a.type == "note_created"    and a.created_at.startswith(today))
+
+    all_done  = tasks_done >= tasks_goal and habits_done >= habits_goal and notes_done >= notes_goal
+    completed = already_complete or all_done
+
+    if all_done and not already_complete:
+        with Prisma() as client:
+            client.dailymission.update(where={"id": mission_id}, data={"completed": True})
+
+    return {
+        "id":          mission_id,
+        "user_id":     user_id,
+        "date":        today,
+        "tasks_goal":  tasks_goal,
+        "habits_goal": habits_goal,
+        "notes_goal":  notes_goal,
+        "completed":   completed,
+        "tasks_done":  min(tasks_done,  tasks_goal),
+        "habits_done": min(habits_done, habits_goal),
+        "notes_done":  min(notes_done,  notes_goal),
+    }
+
+
+# ── AI Usage ───────────────────────────────────────────────────────────
+
+def count_ai_usage_today(user_id: int) -> int:
+    """Return the number of successful AI requests made by user_id today."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        return client.aiusage.count(where={"user_id": user_id, "date": today})
+
+
+def log_ai_usage(user_id: int, request_type: str) -> None:
+    """Record one successful AI request. Only call this after OpenAI responds successfully."""
+    today = datetime.now().date().isoformat()
+    with Prisma() as client:
+        client.aiusage.create(data={
+            "user_id":      user_id,
+            "date":         today,
+            "request_type": request_type,
+            "created_at":   datetime.now().isoformat(),
+        })
 
 
 # ── Messages ───────────────────────────────────────────────────────────

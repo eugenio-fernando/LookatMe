@@ -17,26 +17,29 @@
 
     /* ── Theme tokens ────────────────────────────────────────────────── */
     html[data-theme="dark"] {
-      --bg-main:        #0f0f0f;
-      --bg-sidebar:     #111111;
-      --bg-card:        #1b1b1b;
-      --bg-card-inner:  #222222;
+      --bg-main:        #111111;
+      --bg-sidebar:     #131313;
+      --bg-card:        #1e1e1e;
+      --bg-card-inner:  #242424;
       --bg-hover:       #252525;
-      --bg-active:      #2e2e2e;
-      --accent:         #4f7cff;
-      --bg-input:       #171717;
-      --text-primary:   #f4f4f5;
-      --text-secondary: #71717a;
-      --text-muted:     #52525b;
-      --text-soft:      #a1a1aa;
-      --text-body:      #e4e4e7;
-      --text-dimmed:    #d4d4d8;
-      --border:         rgba(255,255,255,0.07);
-      --border-subtle:  rgba(255,255,255,0.05);
-      --border-soft:    rgba(255,255,255,0.035);
-      --border-color:   #3f3f46;
-      --scrollbar:      rgba(255,255,255,0.1);
-      --shadow:         rgba(0,0,0,0.55);
+      --bg-active:      #2a2a2a;
+      --accent:         #a3e635;
+      --accent-hover:   #84cc16;
+      --accent-glow:    rgba(163,230,53,0.18);
+      --accent-dim:     rgba(163,230,53,0.1);
+      --bg-input:       #181818;
+      --text-primary:   #f0f0f0;
+      --text-secondary: #6b6b6b;
+      --text-muted:     #4a4a4a;
+      --text-soft:      #909090;
+      --text-body:      #d8d8d8;
+      --text-dimmed:    #c0c0c0;
+      --border:         rgba(255,255,255,0.06);
+      --border-subtle:  rgba(255,255,255,0.04);
+      --border-soft:    rgba(255,255,255,0.025);
+      --border-color:   #383838;
+      --scrollbar:      rgba(255,255,255,0.08);
+      --shadow:         rgba(0,0,0,0.7);
       --streak-bg-1:    #1a1000;
       --streak-bg-2:    #1c1300;
     }
@@ -128,13 +131,15 @@
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 1px 4px var(--shadow);
-      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
     .card:hover {
-      box-shadow: 0 4px 18px var(--shadow);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--accent-glow);
+      border-color: rgba(163,230,53,0.12);
+      transform: translateY(-1px);
     }
     .card-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -155,11 +160,11 @@
     /* ── Buttons ─────────────────────────────────────────────────────── */
     .btn-primary {
       display: inline-flex; align-items: center; justify-content: center;
-      background: #3b82f6; color: #fff; border: none; border-radius: 8px;
-      padding: 5px 13px; font-size: 12px; font-weight: 600;
-      cursor: pointer; transition: background 0.12s, transform 0.1s;
+      background: var(--accent); color: #0a0a0a; border: none; border-radius: 8px;
+      padding: 5px 13px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
     }
-    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: 0 0 12px var(--accent-glow); }
     .btn-primary:active { transform: scale(0.97); }
 
     .btn-ghost {
@@ -210,7 +215,7 @@
       padding: 7px 10px; color: var(--text-primary); font-size: 13px; width: 100%;
       transition: border-color 0.15s, background 0.15s;
     }
-    .field-input:focus { outline: none; border-color: rgba(59,130,246,0.55); background: var(--bg-hover); }
+    .field-input:focus { outline: none; border-color: rgba(163,230,53,0.45); background: var(--bg-hover); }
     .field-input::placeholder { color: var(--text-muted); }
     select.field-input option { background: var(--bg-card); color: var(--text-primary); }
 
@@ -290,7 +295,7 @@
       flex-shrink: 0; margin-top: 2px;
       font-size: 9.5px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.06em; white-space: nowrap;
-      color: #3b82f6; background: rgba(59,130,246,0.1);
+      color: var(--accent); background: var(--accent-dim);
       border-radius: 4px; padding: 2px 6px;
     }
     .news-link {
@@ -336,7 +341,7 @@
     }
     .quick-action-btn:hover {
       background: var(--bg-hover);
-      border-color: rgba(79,124,255,0.4);
+      border-color: rgba(163,230,53,0.3);
     }
     .quick-action-btn:active { transform: scale(0.97); }
     .quick-action-icon { font-size: 20px; line-height: 1; }
@@ -350,7 +355,7 @@
       cursor: pointer; transition: background 0.12s, border-color 0.15s;
       text-align: left;
     }
-    .ai-btn:hover { background: var(--bg-hover); border-color: rgba(79,124,255,0.35); }
+    .ai-btn:hover { background: var(--bg-hover); border-color: rgba(163,230,53,0.3); }
     .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .ai-suggestion {
       font-size: 12.5px; color: var(--text-body); line-height: 1.65;
@@ -361,7 +366,7 @@
 
     /* ── Pills ───────────────────────────────────────────────────────── */
     .pill { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; border: none; }
-    .pill-active   { background: rgba(59,130,246,0.18); color: #60a5fa; }
+    .pill-active   { background: var(--accent-dim); color: var(--accent); }
     .pill-inactive { background: var(--bg-hover); color: var(--text-secondary); }
     .pill-inactive:hover { background: var(--bg-active); color: var(--text-body); }
 
@@ -370,6 +375,11 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 12px; padding: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-chip:hover {
+      border-color: rgba(163,230,53,0.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     }
 
     /* ── Profile elements ────────────────────────────────────────────── */
@@ -481,7 +491,7 @@
       transition: background 0.12s, border-color 0.12s, color 0.12s;
     }
     .theme-btn:hover { background: var(--bg-active); color: var(--text-secondary); }
-    .theme-btn.active { background: var(--bg-active); border-color: rgba(59,130,246,0.4); color: var(--text-primary); }
+    .theme-btn.active { background: var(--bg-active); border-color: rgba(163,230,53,0.35); color: var(--text-primary); }
 
     /* ── Mobile responsive ── */
     .mobile-header {
@@ -696,6 +706,20 @@
         </div>
       </div>
 
+      <!-- ── Trending News ── -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Trending News</span>
+          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
+        </div>
+        <div class="card-body">
+          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
+          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
+          </ul>
+        </div>
+      </section>
+
       <!-- ── Daily Mission ── -->
       <section class="card" id="mission-card">
         <div class="card-header">
@@ -704,6 +728,27 @@
         </div>
         <div class="card-body" id="mission-body" style="padding-top:12px;padding-bottom:12px;">
           <div style="color:var(--text-muted);font-size:13px;">Loading…</div>
+        </div>
+      </section>
+
+      <!-- ── AI Assistant ── -->
+      <section class="card" id="ai-card">
+        <div class="card-header">
+          <span class="card-label">AI Assistant</span>
+          <span id="ai-counter" style="font-size:11px;font-weight:600;color:var(--text-secondary);">10 left today</span>
+        </div>
+        <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <button class="ai-btn" onclick="callAI('analyze-day')">
+              <span style="font-size:15px;">🔍</span><span>Analyze my day</span>
+            </button>
+            <button class="ai-btn" onclick="callAI('plan-tomorrow')">
+              <span style="font-size:15px;">📅</span><span>Plan tomorrow</span>
+            </button>
+            <button class="ai-btn" onclick="callAI('summarize-notes')">
+              <span style="font-size:15px;">✎</span><span>Summarize my notes</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -731,41 +776,6 @@
               <span>Learning</span>
             </a>
           </div>
-        </div>
-      </section>
-
-      <!-- ── AI Assistant ── -->
-      <section class="card" id="ai-card">
-        <div class="card-header">
-          <span class="card-label">AI Assistant</span>
-          <span id="ai-counter" style="font-size:11px;font-weight:600;color:var(--text-secondary);">3 left today</span>
-        </div>
-        <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
-          <div style="display:flex;flex-direction:column;gap:7px;">
-            <button class="ai-btn" onclick="callAI('analyze-day')">
-              <span style="font-size:15px;">🔍</span><span>Analyze my day</span>
-            </button>
-            <button class="ai-btn" onclick="callAI('plan-tomorrow')">
-              <span style="font-size:15px;">📅</span><span>Plan tomorrow</span>
-            </button>
-            <button class="ai-btn" onclick="callAI('summarize-notes')">
-              <span style="font-size:15px;">✎</span><span>Summarize my notes</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Trending News ── -->
-      <section class="card">
-        <div class="card-header">
-          <span class="card-label">Trending News</span>
-          <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
-        </div>
-        <div class="card-body">
-          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
-          <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
-            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
-          </ul>
         </div>
       </section>
 
@@ -841,8 +851,8 @@
       <section class="card" id="profile-widget">
         <div class="card-header">
           <span class="card-label">Profile</span>
-          <a href="/profile" style="font-size:11.5px;font-weight:600;color:#3b82f6;text-decoration:none;transition:color 0.12s;"
-            onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='#3b82f6'">Edit →</a>
+          <a href="/profile" style="font-size:11.5px;font-weight:600;color:var(--accent);text-decoration:none;transition:color 0.12s;"
+            onmouseover="this.style.color='var(--accent-hover)'" onmouseout="this.style.color='var(--accent)'">Edit →</a>
         </div>
         <div class="card-body" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;">
           <a href="/profile" style="display:block;margin-top:2px;">
@@ -851,7 +861,7 @@
           <div>
             <a href="/profile" id="widget-name"
               style="display:block;font-size:14px;font-weight:700;color:var(--text-primary);text-decoration:none;line-height:1.3;transition:color 0.12s;"
-              onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color=''">—</a>
+              onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color=''">—</a>
             <p id="widget-email" style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">—</p>
           </div>
           <p id="widget-bio" class="widget-bio hidden"
@@ -1543,7 +1553,7 @@
       if (qsUp) qsUp.textContent = upcomingData.length;
     }
     loadTasks();
-    initMission();
+    loadMission();
 
     function toggleAddTask() {
       const form = document.getElementById('add-task-form');
@@ -1573,60 +1583,70 @@
     }
 
     // ── Daily Mission ─────────────────────────────────────────────────
-    const MISSION_TODAY = new Date().toISOString().slice(0, 10);
-    const MISSION_KEY   = `mission_${MISSION_TODAY}`;
-    let missionState    = JSON.parse(localStorage.getItem(MISSION_KEY) || '{"task":false,"habit":false,"note":false}');
-
-    function saveMission() {
-      localStorage.setItem(MISSION_KEY, JSON.stringify(missionState));
-    }
-
-    function markMission(item) {
-      if (missionState[item]) return;
-      missionState[item] = true;
-      saveMission();
-      renderMission();
-    }
-
-    function renderMission() {
+    function renderMission(data) {
       const body     = document.getElementById('mission-body');
       const progress = document.getElementById('mission-progress');
       if (!body) return;
-      const items = [
-        { key: 'task',  label: 'Complete one task'  },
-        { key: 'habit', label: 'Complete a habit'   },
-        { key: 'note',  label: 'Write a daily note' },
-      ];
-      const doneCount = items.filter(i => missionState[i.key]).length;
-      if (progress) progress.textContent = `${doneCount} / ${items.length}`;
-      if (doneCount === items.length) {
+
+      const total = data.tasks_goal + data.habits_goal + data.notes_goal;
+      const done  = data.tasks_done + data.habits_done + data.notes_done;
+      const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+      if (progress) progress.textContent = `${done} / ${total}`;
+
+      if (data.completed) {
         body.innerHTML = `
           <div class="mission-complete">
             <p style="font-size:28px;margin-bottom:6px;">🎉</p>
-            <p style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">Daily mission completed!</p>
+            <p style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">Mission Complete!</p>
             <p style="font-size:11.5px;color:var(--text-secondary);">Come back tomorrow for a new mission.</p>
           </div>`;
         return;
       }
-      body.innerHTML = items.map(i => `
-        <div class="mission-item">
-          <span class="mission-check ${missionState[i.key] ? 'done' : 'todo'}">${missionState[i.key] ? '✓' : ''}</span>
-          <span class="mission-label ${missionState[i.key] ? 'done' : ''}">${i.label}</span>
-        </div>`).join('');
+
+      const items = [
+        { label: 'Tasks',  done: data.tasks_done,  goal: data.tasks_goal },
+        { label: 'Habits', done: data.habits_done, goal: data.habits_goal },
+        { label: 'Notes',  done: data.notes_done,  goal: data.notes_goal },
+      ];
+
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          ${items.map(item => {
+            const itemPct = item.goal > 0 ? Math.min(100, Math.round((item.done / item.goal) * 100)) : 100;
+            const isDone  = item.done >= item.goal;
+            return `
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                  <span style="font-size:12.5px;font-weight:600;color:${isDone ? 'var(--accent)' : 'var(--text-body)'};">
+                    ${isDone ? '✓ ' : ''}${item.label}
+                  </span>
+                  <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">${item.done} / ${item.goal}</span>
+                </div>
+                <div class="progress-track" style="height:5px;">
+                  <div style="height:100%;width:${itemPct}%;background:${isDone ? 'var(--accent)' : 'rgba(163,230,53,0.35)'};border-radius:9999px;transition:width 0.5s ease;"></div>
+                </div>
+              </div>`;
+          }).join('')}
+          <div style="margin-top:2px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <span style="font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Overall</span>
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">${pct}%</span>
+            </div>
+            <div class="progress-track" style="height:4px;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent-hover),var(--accent));border-radius:9999px;transition:width 0.6s ease;"></div>
+            </div>
+          </div>
+        </div>`;
     }
 
-    async function initMission() {
-      // Restore note completion from today's saved notes
-      if (!missionState.note) {
-        try {
-          const notes = await fetch('/api/notes').then(r => r.json());
-          if (notes.some(n => n.timestamp && n.timestamp.startsWith(MISSION_TODAY))) {
-            missionState.note = true;
-            saveMission();
-          }
-        } catch { /* non-critical */ }
+    async function loadMission() {
+      try {
+        const data = await fetch('/api/mission/today').then(r => r.json());
+        renderMission(data);
+      } catch {
+        const body = document.getElementById('mission-body');
+        if (body) body.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Unable to load mission.</div>';
       }
-      renderMission();
     }
 
     function showMicroToast(type, title, sub) {
@@ -1661,7 +1681,7 @@
         setTimeout(loadTasks, 480);
         // Task completion toast + mission tracking
         showMicroToast('task', 'Task completed ✓', taskText);
-        markMission('task');
+        loadMission();
         // Streak increase toast, staggered so toasts stack cleanly
         const newStreak = data.streak?.current_streak ?? 0;
         if (newStreak > prevStreak) {
@@ -1795,7 +1815,7 @@
         input.value     = '';
         btn.textContent = 'Saved ✓';
         loadNotes();
-        markMission('note');
+        loadMission();
         setTimeout(() => { btn.textContent = 'Save Note'; btn.disabled = false; }, 1500);
       } catch {
         btn.textContent = 'Save Note';
@@ -1993,11 +2013,18 @@
       'plan-tomorrow':   { path: '/api/ai/plan-tomorrow',   title: "Tomorrow's Plan" },
       'summarize-notes': { path: '/api/ai/summarize-notes', title: 'Notes Summary' },
     };
-    let _aiRemaining = 3;
+    let _aiRemaining = 10;
 
     function updateAICounter() {
       const el = document.getElementById('ai-counter');
-      if (el) el.textContent = `${_aiRemaining} left today`;
+      if (!el) return;
+      if (_aiRemaining <= 0) {
+        el.textContent = 'Limit reached';
+        el.style.color = '#f87171';
+      } else {
+        el.textContent = `${_aiRemaining} left today`;
+        el.style.color = '';
+      }
     }
 
     function closeAIModal() {
@@ -2020,7 +2047,42 @@
         const res  = await fetch(endpoint.path, { method: 'POST' });
         const data = await res.json();
         if (!res.ok) {
-          content.innerHTML = `<p style="color:#f87171;font-size:13px;padding:4px 0;">${escapeHtml(data.error || 'Something went wrong.')}</p>`;
+          if (data.error === 'limit_reached') {
+            title.textContent = 'Daily Limit Reached';
+            content.innerHTML = `
+              <div style="text-align:center;padding:8px 0 4px;">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(79,124,255,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;">✨</div>
+                <p style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Daily AI limit reached</p>
+                <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:20px;line-height:1.55;">You've used all <strong>${escapeHtml(String(_aiRemaining === 0 ? 10 : _aiRemaining + 10))}</strong> AI requests for today.</p>
+                <div style="background:linear-gradient(135deg,rgba(79,124,255,0.08),rgba(139,92,246,0.08));border:1px solid rgba(79,124,255,0.2);border-radius:12px;padding:16px 18px;margin-bottom:20px;text-align:left;">
+                  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#4f7cff;margin-bottom:10px;">Upgrade to Pro to unlock</p>
+                  <div style="display:flex;flex-direction:column;gap:7px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:18px;height:18px;border-radius:5px;background:rgba(79,124,255,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">🤖</span>
+                      <span style="font-size:12.5px;color:var(--text-body);">100 AI requests per day</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:18px;height:18px;border-radius:5px;background:rgba(79,124,255,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">📊</span>
+                      <span style="font-size:12.5px;color:var(--text-body);">Advanced productivity insights</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:18px;height:18px;border-radius:5px;background:rgba(79,124,255,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">🎯</span>
+                      <span style="font-size:12.5px;color:var(--text-body);">Smart habit suggestions</span>
+                    </div>
+                  </div>
+                </div>
+                <button onclick="closeAIModal()"
+                  style="display:block;width:100%;padding:11px 0;border-radius:9px;border:none;background:linear-gradient(135deg,#4f7cff,#7c3aed);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.12s;margin-bottom:8px;"
+                  onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                  Upgrade to Pro ✨
+                </button>
+                <p style="font-size:11px;color:var(--text-muted);">Resets at midnight · <strong style="color:var(--text-secondary);">10 free requests/day</strong></p>
+              </div>`;
+            _aiRemaining = 0;
+            updateAICounter();
+          } else {
+            content.innerHTML = `<p style="color:#f87171;font-size:13px;padding:4px 0;">${escapeHtml(data.message || data.error || 'Something went wrong.')}</p>`;
+          }
           return;
         }
         _aiRemaining = data.remaining ?? _aiRemaining;

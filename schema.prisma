@@ -116,3 +116,21 @@ model User {
   longest_streak        Int    @default(0)
   last_completed_date   String @default("")
 }
+
+model DailyMission {
+  id           Int     @id @default(autoincrement())
+  user_id      Int
+  date         String
+  tasks_goal   Int     @default(3)
+  habits_goal  Int     @default(1)
+  notes_goal   Int     @default(1)
+  completed    Boolean @default(false)
+}
+
+model AIUsage {
+  id           Int    @id @default(autoincrement())
+  user_id      Int
+  date         String
+  request_type String
+  created_at   String
+}
