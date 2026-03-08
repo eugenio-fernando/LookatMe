@@ -271,6 +271,7 @@ def _user_to_dict(row) -> dict:
         "phone":        row.phone,
         "hobbies":      row.hobbies,
         "interests":    row.interests,
+        "has_seen_onboarding": row.has_seen_onboarding,
     }
 
 
@@ -405,6 +406,14 @@ def clear_reset_token(user_id: int) -> None:
         client.user.update(
             where={"id": user_id},
             data={"reset_token": None, "reset_expiry": None},
+        )
+
+
+def mark_onboarding_seen(user_id: int) -> None:
+    with Prisma() as client:
+        client.user.update(
+            where={"id": user_id},
+            data={"has_seen_onboarding": True},
         )
 
 

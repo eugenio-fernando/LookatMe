@@ -96,4 +96,7 @@ model User {
   // Password reset via email
   reset_token           String?
   reset_expiry          String?
+
+  // Onboarding
+  has_seen_onboarding   Boolean @default(false)
 }

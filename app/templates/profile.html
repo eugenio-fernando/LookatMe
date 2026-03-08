@@ -63,9 +63,45 @@
     }
     #toast.error { background: #dc2626; }
     #toast.show { opacity: 1; }
+
+    /* ── Mobile nav ── */
+    .mobile-header {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; height: 52px;
+      background: #111111; border-bottom: 1px solid #2a2a2a;
+      align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 50;
+    }
+    .mobile-hamburger {
+      display: flex; flex-direction: column; justify-content: center; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 8px;
+      width: 36px; height: 36px; flex-shrink: 0;
+    }
+    .mobile-hamburger span { display: block; width: 20px; height: 2px; background: #8a8a8a; border-radius: 2px; }
+    .nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 35; display: none; }
+    @media (max-width: 767px) {
+      .mobile-header { display: flex; }
+      aside {
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+        z-index: 40;
+      }
+      aside.open { transform: translateX(0); }
+      main { margin-left: 0 !important; padding: 68px 16px 32px !important; }
+    }
   </style>
 </head>
 <body class="text-white min-h-screen font-sans flex">
+
+  <!-- ── Mobile overlay + header ── -->
+  <div id="nav-overlay" class="nav-overlay" onclick="closeMobileNav()"></div>
+  <header class="mobile-header">
+    <button class="mobile-hamburger" onclick="toggleMobileNav()" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <span style="font-size:14px;font-weight:700;color:#f4f4f5;letter-spacing:-0.01em;">Write it Down</span>
+    <div style="width:36px;"></div>
+  </header>
 
   <!-- ── Sidebar ── -->
   <aside class="sidebar fixed top-0 left-0 h-full w-56 flex flex-col z-10 select-none">
@@ -129,7 +165,7 @@
           <div class="relative group">
             <img id="avatar-img"
               src="" alt="Avatar"
-              class="w-20 h-20 rounded-full object-cover border-2 border-[#333]"
+              class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-2 border-[#333]"
               onerror="this.src=defaultAvatar()"
             />
             <label for="avatar-input"
@@ -356,6 +392,17 @@
     tick(); setInterval(tick, 1000);
 
     loadProfile();
+
+    function toggleMobileNav() {
+      const sidebar = document.querySelector('aside');
+      const overlay = document.getElementById('nav-overlay');
+      sidebar.classList.toggle('open');
+      overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    }
+    function closeMobileNav() {
+      document.querySelector('aside').classList.remove('open');
+      document.getElementById('nav-overlay').style.display = 'none';
+    }
   </script>
 </body>
 </html>

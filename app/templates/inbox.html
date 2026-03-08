@@ -348,7 +348,21 @@
         const url = currentTab === 'inbox' ? '/api/messages/inbox' : '/api/messages/sent';
         const msgs = await fetch(url).then(r => r.json());
         if (!msgs.length) {
-          list.innerHTML = `<div class="px-5 py-10 text-center text-[#4b5563] text-sm">${currentTab === 'inbox' ? 'No messages yet.' : 'Nothing sent yet.'}</div>`;
+          const inboxEmpty = `<div style="padding:40px 20px;text-align:center;">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#333;margin:0 auto 12px;display:block;" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <p style="color:#6b7280;font-size:13px;font-weight:500;margin-bottom:4px;">Your inbox is empty</p>
+            <p style="color:#4b5563;font-size:12px;">Messages from teammates will appear here.</p>
+          </div>`;
+          const sentEmpty = `<div style="padding:40px 20px;text-align:center;">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:#333;margin:0 auto 12px;display:block;" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <p style="color:#6b7280;font-size:13px;font-weight:500;margin-bottom:4px;">Nothing sent yet</p>
+            <p style="color:#4b5563;font-size:12px;">Start a conversation with someone on the team.</p>
+          </div>`;
+          list.innerHTML = currentTab === 'inbox' ? inboxEmpty : sentEmpty;
           return;
         }
         list.innerHTML = msgs.map(m => renderRow(m)).join('');

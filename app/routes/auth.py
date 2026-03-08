@@ -210,6 +210,18 @@ def change_password():
     return jsonify({"ok": True})
 
 
+# ── Onboarding ────────────────────────────────────────────────────────────
+
+@auth_api_bp.route("/dismiss-onboarding", methods=["POST"])
+def dismiss_onboarding():
+    logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    db.mark_onboarding_seen(user_id)
+    return jsonify({"ok": True})
+
+
 # ── Resend verification ────────────────────────────────────────────────────
 
 @auth_api_bp.route("/resend-verification", methods=["POST"])
