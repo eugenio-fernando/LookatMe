@@ -62,7 +62,7 @@
       <a href="/" class="btn btn-primary" style="text-decoration:none;">Go to dashboard</a>
     </div>
 
-    <!-- Invite state -->
+    <!-- Workspace invite state -->
     <div id="state-invite" style="display:none;">
       <div style="text-align:center;margin-bottom:24px;">
         <div style="width:56px;height:56px;border-radius:14px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">👥</div>
@@ -91,36 +91,80 @@
       <p id="status"></p>
     </div>
 
+    <!-- Social / friend invite state -->
+    <div id="state-social" style="display:none;">
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="width:56px;height:56px;border-radius:14px;background:rgba(163,230,53,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;">🤝</div>
+        <h1 style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:6px;">Join as a friend!</h1>
+        <p style="font-size:14px;color:var(--muted);line-height:1.55;">
+          <strong id="sender-name" style="color:var(--text);font-size:15px;"></strong>
+          wants to be your accountability partner on LookatMe.
+        </p>
+      </div>
+
+      <div style="background:rgba(163,230,53,0.06);border:1px solid rgba(163,230,53,0.18);border-radius:10px;padding:12px 14px;margin-bottom:20px;text-align:center;">
+        <p style="font-size:12.5px;color:#a3e635;font-weight:600;margin-bottom:3px;">🔥 Stay accountable together</p>
+        <p style="font-size:12px;color:var(--soft);line-height:1.5;">Connect with your friend, track streaks side by side, and keep each other on track.</p>
+      </div>
+
+      <div id="social-accept-section">
+        <button id="social-accept-btn" class="btn btn-primary" style="background:#a3e635;color:#0f0f0f;" onclick="acceptSocialInvite()">
+          Accept &amp; connect →
+        </button>
+        <a href="/login?next={{ request.path }}" id="social-login-link" class="btn btn-secondary" style="display:none;text-decoration:none;">
+          Log in to accept →
+        </a>
+      </div>
+      <p id="social-status"></p>
+    </div>
+
   </div>
 
   <script>
     const TOKEN = {{ token | tojson }};
+    let _inviteType = 'workspace'; // 'workspace' or 'social'
 
     async function init() {
       try {
-        // Check if user is logged in
         const meRes  = await fetch('/api/auth/me');
         const isAuth = meRes.ok;
 
-        // Fetch invite details
-        const res  = await fetch(`/api/workspaces/invite-info/${TOKEN}`);
-        const data = await res.json();
+        // Try workspace invite first
+        const wsRes  = await fetch(`/api/workspaces/invite-info/${TOKEN}`);
 
         document.getElementById('state-loading').style.display = 'none';
 
-        if (!res.ok) {
-          document.getElementById('error-msg').textContent = data.error || 'Invite not found';
-          document.getElementById('state-error').style.display = 'block';
+        if (wsRes.ok) {
+          _inviteType = 'workspace';
+          const data = await wsRes.json();
+          document.getElementById('workspace-name').textContent = data.workspace_name;
+          document.getElementById('state-invite').style.display = 'block';
+          if (!isAuth) {
+            document.getElementById('accept-btn').style.display = 'none';
+            document.getElementById('login-link').style.display = 'flex';
+          }
           return;
         }
 
-        document.getElementById('workspace-name').textContent = data.workspace_name;
-        document.getElementById('state-invite').style.display = 'block';
+        // Fall back to social invite
+        const socRes  = await fetch(`/api/invitations/info/${TOKEN}`);
+        const socData = await socRes.json();
 
-        if (!isAuth) {
-          document.getElementById('accept-btn').style.display  = 'none';
-          document.getElementById('login-link').style.display  = 'flex';
+        if (socRes.ok) {
+          _inviteType = 'social';
+          document.getElementById('sender-name').textContent = socData.sender_name || 'Someone';
+          document.getElementById('state-social').style.display = 'block';
+          if (!isAuth) {
+            document.getElementById('social-accept-btn').style.display = 'none';
+            document.getElementById('social-login-link').style.display = 'flex';
+          }
+          return;
         }
+
+        // Neither type matched
+        const errData = await wsRes.json().catch(() => ({}));
+        document.getElementById('error-msg').textContent = socData.message || socData.error || 'Invite not found';
+        document.getElementById('state-error').style.display = 'block';
       } catch {
         document.getElementById('state-loading').style.display = 'none';
         document.getElementById('state-error').style.display   = 'block';
@@ -156,6 +200,38 @@
         status.textContent = 'Network error. Please try again.';
         btn.disabled    = false;
         btn.textContent = 'Accept invite →';
+      }
+    }
+
+    async function acceptSocialInvite() {
+      const btn    = document.getElementById('social-accept-btn');
+      const status = document.getElementById('social-status');
+      btn.disabled    = true;
+      btn.textContent = 'Connecting…';
+      status.className = '';
+      status.textContent = '';
+      try {
+        const res  = await fetch('/api/invitations/accept', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ token: TOKEN }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.className   = 'error';
+          status.textContent = data.message || data.error || 'Could not accept invite.';
+          btn.disabled    = false;
+          btn.textContent = 'Accept & connect →';
+          return;
+        }
+        status.className   = 'success';
+        status.textContent = 'Connected! Redirecting…';
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } catch {
+        status.className   = 'error';
+        status.textContent = 'Network error. Please try again.';
+        btn.disabled    = false;
+        btn.textContent = 'Accept & connect →';
       }
     }
 

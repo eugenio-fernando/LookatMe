@@ -68,6 +68,24 @@ model Activity {
   created_at String
 }
 
+model Invitation {
+  id                Int     @id @default(autoincrement())
+  sender_id         Int
+  token             String  @unique
+  method            String  @default("copy")
+  created_at        String
+  opened_at         String?
+  accepted_at       String?
+  recipient_user_id Int?
+}
+
+model Friendship {
+  id         Int    @id @default(autoincrement())
+  user_a     Int
+  user_b     Int
+  created_at String
+}
+
 model WorkspaceInvite {
   id           Int     @id @default(autoincrement())
   workspace_id Int

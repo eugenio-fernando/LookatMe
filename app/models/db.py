@@ -859,6 +859,136 @@ def cache_ai_response(user_id: int, cache_type: str, response: dict) -> None:
             })
 
 
+# ── Social Invitations ─────────────────────────────────────────────────
+
+def create_social_invitation(sender_id: int, method: str, token: str) -> dict:
+    now = datetime.now().isoformat()
+    with Prisma() as client:
+        row = client.invitation.create(data={
+            "sender_id":  sender_id,
+            "token":      token,
+            "method":     method,
+            "created_at": now,
+        })
+    return {"id": row.id, "token": row.token, "method": row.method}
+
+
+def get_social_invitation(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.invitation.find_unique(where={"token": token})
+    if not row:
+        return None
+    return {
+        "id":                row.id,
+        "sender_id":         row.sender_id,
+        "token":             row.token,
+        "method":            row.method,
+        "created_at":        row.created_at,
+        "opened_at":         row.opened_at,
+        "accepted_at":       row.accepted_at,
+        "recipient_user_id": row.recipient_user_id,
+    }
+
+
+def open_social_invitation(token: str) -> None:
+    """Set opened_at once (idempotent)."""
+    now = datetime.now().isoformat()
+    with Prisma() as client:
+        row = client.invitation.find_unique(where={"token": token})
+        if row and not row.opened_at:
+            client.invitation.update(
+                where={"token": token},
+                data={"opened_at": now},
+            )
+
+
+def accept_social_invitation(token: str, recipient_user_id: int) -> bool:
+    """Mark accepted and create friendship. Returns False if already used."""
+    now = datetime.now().isoformat()
+    with Prisma() as client:
+        row = client.invitation.find_unique(where={"token": token})
+        if not row or row.accepted_at or row.recipient_user_id:
+            return False
+        client.invitation.update(
+            where={"token": token},
+            data={"accepted_at": now, "recipient_user_id": recipient_user_id},
+        )
+        # Create friendship if it doesn't already exist
+        existing = client.friendship.find_first(where={
+            "OR": [
+                {"user_a": row.sender_id, "user_b": recipient_user_id},
+                {"user_a": recipient_user_id, "user_b": row.sender_id},
+            ]
+        })
+        if not existing:
+            client.friendship.create(data={
+                "user_a":     row.sender_id,
+                "user_b":     recipient_user_id,
+                "created_at": now,
+            })
+    return True
+
+
+def get_user_invitations(user_id: int) -> list[dict]:
+    """List all invitations sent by a user, with recipient name if accepted."""
+    with Prisma() as client:
+        rows = client.invitation.find_many(
+            where={"sender_id": user_id},
+            order={"created_at": "desc"},
+        )
+        recipient_ids = [r.recipient_user_id for r in rows if r.recipient_user_id]
+        recipients: dict[int, str] = {}
+        if recipient_ids:
+            users = client.user.find_many(where={"id": {"in": recipient_ids}})
+            recipients = {u.id: (u.display_name or u.email.split("@")[0]) for u in users}
+    return [
+        {
+            "id":          row.id,
+            "method":      row.method,
+            "created_at":  row.created_at,
+            "opened_at":   row.opened_at,
+            "accepted_at": row.accepted_at,
+            "recipient":   recipients.get(row.recipient_user_id),
+        }
+        for row in rows
+    ]
+
+
+# ── Friendships ─────────────────────────────────────────────────────────
+
+def get_friends(user_id: int) -> list[dict]:
+    """Return social friends (via Friendship model) with name + streak."""
+    with Prisma() as client:
+        friendships = client.friendship.find_many(where={
+            "OR": [{"user_a": user_id}, {"user_b": user_id}]
+        })
+        friend_ids = [
+            f.user_b if f.user_a == user_id else f.user_a
+            for f in friendships
+        ]
+        friendship_dates = {
+            (f.user_b if f.user_a == user_id else f.user_a): f.created_at
+            for f in friendships
+        }
+        if not friend_ids:
+            return []
+        users = client.user.find_many(where={"id": {"in": friend_ids}})
+    return [
+        {
+            "id":                u.id,
+            "name":              u.display_name or u.email.split("@")[0],
+            "display_name":      u.display_name,
+            "email":             u.email,
+            "current_streak":    u.current_streak,
+            "streak":            u.current_streak,
+            "last_active":       u.last_completed_date,
+            "linkedin_verified": u.linkedin_verified,
+            "friends_since":     friendship_dates.get(u.id),
+        }
+        for u in users
+    ]
+
+
 # ── Messages ───────────────────────────────────────────────────────────
 
 def _message_to_dict(row) -> dict:
