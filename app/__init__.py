@@ -107,8 +107,8 @@ def _ensure_icons(icons_dir: str) -> None:
     os.makedirs(icons_dir, exist_ok=True)
 
     def _png(size: int) -> bytes:
-        BG = (0x1C, 0x1C, 0x1E)
-        FG = (0x00, 0x7A, 0xFF)
+        BG = (0x1A, 0x1A, 0x1A)
+        FG = (0xA3, 0xE6, 0x35)   # lime accent #a3e635
         cx = cy = (size - 1) / 2
         radius = size * 0.38
         raw = bytearray()

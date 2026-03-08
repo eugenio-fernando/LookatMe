@@ -1,7 +1,7 @@
 {
-  "name": "Write it Down",
-  "short_name": "Write it Down",
-  "description": "Personal dashboard — countdown, tasks, news, and daily verse",
+  "name": "LookAtMe",
+  "short_name": "LookAtMe",
+  "description": "Personal productivity dashboard — tasks, habits, streaks, and daily insights",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -55,6 +55,12 @@ def invite_page(token):
     return render_template("invite.html", token=token)
 
 
+@views_bp.route("/favicon.svg")
+def favicon():
+    return send_from_directory(current_app.static_folder, "favicon.svg",
+                               mimetype="image/svg+xml")
+
+
 @views_bp.route("/manifest.json")
 def manifest():
     return send_from_directory(current_app.static_folder, "manifest.json")
