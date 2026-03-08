@@ -83,7 +83,7 @@
     <button class="mobile-hamburger" onclick="toggleMobileNav()" aria-label="Open menu">
       <span></span><span></span><span></span>
     </button>
-    <span style="font-size:14px;font-weight:700;color:#fff;">Write it Down</span>
+    <span style="font-size:14px;font-weight:700;color:#f4f4f5;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:#a3e635;">Me</span></span>
     <div style="width:36px;"></div>
   </header>
 
@@ -91,10 +91,13 @@
   <aside class="sidebar fixed top-0 left-0 h-full w-56 flex flex-col z-10 select-none">
     <div class="px-5 py-5 border-b border-[#2a2a2a]">
       <div class="flex items-center gap-2.5">
-        <div class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-          <span class="text-white font-black text-xs">W</span>
-        </div>
-        <span class="text-white font-bold text-base tracking-tight">Write it Down</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" style="flex-shrink:0;">
+          <rect width="28" height="28" rx="7" fill="#1a1a1a"/>
+          <circle cx="14" cy="14" r="11" fill="none" stroke="#a3e635" stroke-width="1.5" opacity="0.3"/>
+          <circle cx="14" cy="14" r="7" fill="none" stroke="#a3e635" stroke-width="0.75" opacity="0.18"/>
+          <circle cx="14" cy="14" r="4" fill="#a3e635"/>
+        </svg>
+        <span class="text-white font-bold text-base tracking-tight">Look<strong>At</strong><span style="color:#a3e635;">Me</span></span>
       </div>
       <p id="sidebar-date" class="text-[#5a5a5a] text-xs mt-2"></p>
     </div>
@@ -111,10 +114,6 @@
       <a href="/learning" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
         Learning
-      </a>
-      <a href="/profile" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-        Profile
       </a>
       <a href="/inbox" class="nav-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
         <span class="relative flex-shrink-0">
