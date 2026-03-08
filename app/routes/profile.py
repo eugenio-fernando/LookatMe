@@ -38,6 +38,7 @@ def update_profile():
     allowed_fields = {
         "display_name", "bio", "company",
         "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
+        "instagram_username", "favorite_topics", "favorite_news_sources", "favorite_teams",
     }
     updates = {k: v for k, v in body.items() if k in allowed_fields}
     user = db.update_profile(session["user_id"], **updates)

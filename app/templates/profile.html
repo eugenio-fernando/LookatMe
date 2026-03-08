@@ -189,6 +189,8 @@
           <div>
             <p id="profile-name" class="text-white font-semibold text-lg"></p>
             <p id="profile-email" class="text-[#6b7280] text-sm"></p>
+            <a id="profile-instagram" href="#" target="_blank" rel="noopener noreferrer"
+              class="hidden text-xs font-semibold mt-1" style="color:var(--accent);text-decoration:none;">Instagram profile</a>
             <p class="text-[#4b5563] text-xs mt-1">Click avatar to change photo</p>
           </div>
         </div>
@@ -254,6 +256,27 @@
           <div>
             <p class="field-label">Interests</p>
             <input class="field-input" id="f-interests" type="text" placeholder="AI, design, music…" />
+          </div>
+          <div>
+            <p class="field-label">Instagram Username</p>
+            <input class="field-input" id="f-instagram_username" type="text" placeholder="@yourhandle" />
+          </div>
+        </div>
+
+        <p class="section-title pt-1">News Preferences</p>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p class="field-label">Favorite Topics</p>
+            <input class="field-input" id="f-favorite_topics" type="text" placeholder="technology, sports, business" />
+          </div>
+          <div>
+            <p class="field-label">Favorite Sources</p>
+            <input class="field-input" id="f-favorite_news_sources" type="text" placeholder="bbc, reuters, ign" />
+          </div>
+          <div class="sm:col-span-2">
+            <p class="field-label">Favorite Teams</p>
+            <input class="field-input" id="f-favorite_teams" type="text" placeholder="FC Barcelona, Real Madrid" />
           </div>
         </div>
 
@@ -358,7 +381,7 @@
   <div id="toast"></div>
 
   <script>
-    const FIELDS = ['display_name','bio','company','address','city','zip_code','phone','hobbies','interests','gender'];
+    const FIELDS = ['display_name','bio','company','address','city','zip_code','phone','hobbies','interests','gender','instagram_username','favorite_topics','favorite_news_sources','favorite_teams'];
 
     function defaultAvatar() {
       // data-uri SVG silhouette
@@ -379,6 +402,14 @@
 
       document.getElementById('profile-name').textContent  = u.display_name || u.email;
       document.getElementById('profile-email').textContent = u.email;
+      const ig = (u.instagram_username || '').replace(/^@/, '');
+      const igEl = document.getElementById('profile-instagram');
+      if (ig) {
+        igEl.href = `https://instagram.com/${ig}`;
+        igEl.classList.remove('hidden');
+      } else {
+        igEl.classList.add('hidden');
+      }
 
       const img = document.getElementById('avatar-img');
       img.src = u.avatar_url || defaultAvatar();

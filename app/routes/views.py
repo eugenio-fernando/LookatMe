@@ -67,6 +67,12 @@ def invitations():
     return render_template("invitations.html")
 
 
+@views_bp.route("/friends/<int:friend_id>")
+@login_required
+def friend_profile(friend_id: int):
+    return render_template("friend_profile.html", friend_id=friend_id)
+
+
 @views_bp.route("/favicon.svg")
 def favicon():
     return send_from_directory(current_app.static_folder, "favicon.svg",

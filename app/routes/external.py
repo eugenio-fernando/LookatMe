@@ -10,6 +10,8 @@ from openai import OpenAI
 
 from ..extensions import socketio
 from ..models import db
+from ..services.news_service import fetch_news_by_topic, fetch_sports_news_by_team
+from ..services.gaming_news_service import fetch_gaming_news
 
 external_bp = Blueprint("external", __name__)
 
@@ -85,6 +87,56 @@ def news():
 
     random.shuffle(items)
     return jsonify(items[:10])
+
+
+@external_bp.route("/api/news/personalized")
+def personalized_news():
+    """Return personalized news feed based on user's profile preferences."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # Fallback for unauthenticated requests.
+        payload = fetch_news_by_topic("technology", limit=10)
+        return jsonify(payload)
+
+    user = db.get_user_by_id(user_id) or {}
+    topics_raw = (user.get("favorite_topics") or "technology").split(",")
+    teams_raw = (user.get("favorite_teams") or "").split(",")
+
+    topics = [t.strip().lower() for t in topics_raw if t.strip()]
+    teams = [t.strip() for t in teams_raw if t.strip()]
+
+    if not topics:
+        topics = ["technology"]
+
+    feed: list[dict] = []
+    for topic in topics[:2]:
+        for item in fetch_news_by_topic(topic, limit=5):
+            feed.append({
+                "headline": item.get("headline"),
+                "image": item.get("image", ""),
+                "source": item.get("source", "News"),
+                "link": item.get("link", "#"),
+                "topic": topic,
+            })
+
+    for team in teams[:1]:
+        for item in fetch_sports_news_by_team(team, limit=4):
+            feed.append({
+                "headline": item.get("headline"),
+                "image": item.get("image", ""),
+                "source": item.get("source", "Sports"),
+                "link": item.get("link", "#"),
+                "topic": "sports",
+                "team": team,
+            })
+
+    return jsonify(feed[:12])
+
+
+@external_bp.route("/api/news/gaming")
+def gaming_news():
+    """Gaming-specific headlines from Steam and gaming publications."""
+    return jsonify(fetch_gaming_news(limit=10))
 
 
 @external_bp.route("/api/summarize", methods=["POST"])

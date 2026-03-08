@@ -8,6 +8,8 @@ import os
 from datetime import datetime, timedelta
 
 from prisma import Prisma
+
+from ..services.nickname_service import generate_nickname
 from ..services.welcome_service import build_fun_welcome
 
 # Project root (two levels up from app/models/)
@@ -293,6 +295,7 @@ def _user_to_dict(row) -> dict:
         "verified":     row.verified,
         "created_at":   row.created_at,
         "display_name": row.display_name,
+        "nickname":     row.nickname,
         "avatar_url":   row.avatar_url,
         "bio":          row.bio,
         "company":      row.company,
@@ -303,6 +306,10 @@ def _user_to_dict(row) -> dict:
         "hobbies":      row.hobbies,
         "interests":    row.interests,
         "gender":       row.gender,
+        "instagram_username": row.instagram_username,
+        "favorite_topics": row.favorite_topics,
+        "favorite_news_sources": row.favorite_news_sources,
+        "favorite_teams": row.favorite_teams,
         "has_seen_onboarding":  row.has_seen_onboarding,
         "last_onboarding_seen": row.last_onboarding_seen,
         "current_streak":       row.current_streak,
@@ -319,6 +326,8 @@ def create_user(email: str, password_hash: str, created_at: str) -> dict:
             "email":         email,
             "password_hash": password_hash,
             "created_at":    created_at,
+            # Assign a default nickname at signup.
+            "nickname":      generate_nickname(),
         })
     return _user_to_dict(row)
 
@@ -342,14 +351,21 @@ def get_user_by_id(user_id: int) -> dict | None:
     """Returns public user dict without password_hash."""
     with Prisma() as client:
         row = client.user.find_unique(where={"id": user_id})
-    if row is None:
-        return None
+        if row is None:
+            return None
+        # Backfill nickname for legacy users created before this field existed.
+        if not (row.nickname or "").strip():
+            row = client.user.update(
+                where={"id": user_id},
+                data={"nickname": generate_nickname()},
+            )
     return _user_to_dict(row)
 
 
 _PROFILE_FIELDS = {
     "display_name", "avatar_url", "bio", "company",
     "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
+    "instagram_username", "favorite_topics", "favorite_news_sources", "favorite_teams",
 }
 
 
@@ -996,8 +1012,10 @@ def get_friends(user_id: int) -> list[dict]:
         {
             "id":                u.id,
             "name":              u.display_name or u.email.split("@")[0],
+            "username":          u.display_name or u.email.split("@")[0],
             "display_name":      u.display_name,
             "email":             u.email,
+            "avatar_url":        u.avatar_url,
             "current_streak":    u.current_streak,
             "streak":            u.current_streak,
             "last_active":       u.last_completed_date,
@@ -1006,6 +1024,53 @@ def get_friends(user_id: int) -> list[dict]:
         }
         for u in users
     ]
+
+
+def get_friend_streaks(user_id: int) -> list[dict]:
+    """Return friend streak payload sorted by highest streak for social circles/leaderboard."""
+    friends = get_friends(user_id)
+    payload = [
+        {
+            "id": f["id"],
+            "username": f["username"],
+            "profile_image": f.get("avatar_url", ""),
+            "current_streak": f.get("current_streak", 0) or 0,
+            "last_activity": f.get("last_active", ""),
+        }
+        for f in friends
+    ]
+    return sorted(payload, key=lambda x: (-x["current_streak"], x["username"].lower()))
+
+
+def get_friend_public_profile(viewer_user_id: int, friend_id: int) -> dict | None:
+    """Return limited friend profile only if the users are connected as friends."""
+    with Prisma() as client:
+        friendship = client.friendship.find_first(where={
+            "OR": [
+                {"user_a": viewer_user_id, "user_b": friend_id},
+                {"user_a": friend_id, "user_b": viewer_user_id},
+            ]
+        })
+        if not friendship:
+            return None
+        user = client.user.find_unique(where={"id": friend_id})
+        if not user:
+            return None
+    return {
+        "id": user.id,
+        "display_name": user.display_name or user.email.split("@")[0],
+        "nickname": user.nickname or "",
+        "avatar_url": user.avatar_url or "",
+        "bio": user.bio or "",
+        "city": user.city or "",
+        "company": user.company or "",
+        "current_streak": user.current_streak or 0,
+        "longest_streak": user.longest_streak or 0,
+        "last_activity": user.last_completed_date or "",
+        "instagram_username": user.instagram_username or "",
+        "linkedin_url": user.linkedin_url or "",
+        "linkedin_verified": bool(user.linkedin_verified),
+    }
 
 
 def get_friends_with_stats(user_id: int) -> list[dict]:

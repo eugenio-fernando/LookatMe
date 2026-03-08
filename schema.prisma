@@ -104,6 +104,7 @@ model User {
   password_hash String
   created_at    String
   display_name  String @default("")
+  nickname      String @default("")
   avatar_url    String @default("")
   bio           String @default("")
   company       String @default("")
@@ -114,6 +115,10 @@ model User {
   hobbies       String @default("")
   interests     String @default("")
   gender        String @default("prefer_not_to_say")
+  instagram_username String @default("")
+  favorite_topics     String @default("")
+  favorite_news_sources String @default("")
+  favorite_teams      String @default("")
 
   // Email verification
   verified              Boolean @default(false)
