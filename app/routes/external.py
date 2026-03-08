@@ -83,10 +83,11 @@ def timer():
         secs = rem % 60
 
         return jsonify({
-            "progress":  round(progress, 2),
-            "remaining": f"{days:03d}d {hours:02d}h {minutes:02d}m {secs:02d}s",
-            "days_left": days,
-            "end_date":  end.strftime("%B %d, %Y"),
+            "progress":          round(progress, 2),
+            "remaining":         f"{days:03d}d {hours:02d}h {minutes:02d}m {secs:02d}s",
+            "remaining_seconds": int(remaining_seconds),
+            "days_left":         days,
+            "end_date":          end.strftime("%B %d, %Y"),
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

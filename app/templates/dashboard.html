@@ -1578,17 +1578,50 @@
     updateClock();
 
     // ── Countdown Timer ───────────────────────────────────────────────
-    async function loadTimer() {
+    // Counts down client-side; syncs with server every 30 s to stay accurate.
+    let _timerEndAt = null;   // ms epoch when the 180-day period ends
+    let _timerTotalSec = null; // total duration in seconds (for progress)
+    let _timerTickId  = null;
+    let _timerSyncId  = null;
+
+    function _fmtTimer(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const d = Math.floor(sec / 86400);
+      const h = Math.floor((sec % 86400) / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${String(d).padStart(3,'0')}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+    }
+
+    function _tickTimer() {
+      if (_timerEndAt === null) return;
+      const remSec = (_timerEndAt - Date.now()) / 1000;
+      document.getElementById('timer-remaining').textContent = _fmtTimer(remSec);
+      if (_timerTotalSec) {
+        const elapsed = _timerTotalSec - Math.max(0, remSec);
+        const pct = Math.min(100, (elapsed / _timerTotalSec) * 100);
+        document.getElementById('progress-bar').style.width = pct + '%';
+      }
+    }
+
+    async function syncTimer() {
       try {
         const data = await fetch('/api/timer').then(r => r.json());
-        document.getElementById('timer-remaining').textContent = data.remaining;
-        document.getElementById('timer-percent').textContent   = data.progress.toFixed(1) + '% elapsed';
-        document.getElementById('end-date').textContent        = data.end_date;
-        document.getElementById('progress-bar').style.width   = data.progress + '%';
-      } catch { /* keep last value */ }
+        if (data.remaining_seconds !== undefined) {
+          _timerEndAt    = Date.now() + data.remaining_seconds * 1000;
+          _timerTotalSec = data.remaining_seconds / (1 - data.progress / 100);
+        }
+        document.getElementById('timer-percent').textContent = data.progress.toFixed(1) + '% elapsed';
+        document.getElementById('end-date').textContent      = data.end_date;
+      } catch { /* keep current client-side countdown */ }
     }
-    setInterval(loadTimer, 1000);
-    loadTimer();
+
+    // Initial load, then tick every second (pure JS — no network) and sync every 30 s
+    syncTimer().then(() => {
+      _tickTimer();
+      _timerTickId = setInterval(_tickTimer, 1000);
+      _timerSyncId = setInterval(syncTimer, 30000);
+    });
 
     // ── Streak ────────────────────────────────────────────────────────
     const MILESTONES = [3, 7, 14, 21, 30, 60, 90, 180];
