@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# Resolve database path: use Fly.io persistent volume if mounted, else local fallback
+if [ -d /data ]; then
+  export DATABASE_URL="file:/data/lookatme.db"
+else
+  export DATABASE_URL="file:./lookatme.db"
+fi
+echo "DB: DATABASE_URL=$DATABASE_URL"
+
 echo "Running prisma db push..."
 prisma db push --skip-generate
 

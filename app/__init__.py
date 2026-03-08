@@ -30,6 +30,18 @@ from .routes.workspaces import workspaces_bp
 
 
 def create_app() -> Flask:
+    # Resolve DATABASE_URL if not already set (local dev fallback).
+    # Production: entrypoint.sh exports this before gunicorn starts.
+    if not os.environ.get("DATABASE_URL"):
+        if os.path.isdir("/data"):
+            os.environ["DATABASE_URL"] = "file:/data/lookatme.db"
+        else:
+            _db_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "lookatme.db",
+            )
+            os.environ["DATABASE_URL"] = f"file:{_db_path}"
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
