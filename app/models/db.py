@@ -624,6 +624,26 @@ def consume_workspace_invite(token: str) -> None:
         )
 
 
+# ── Weekly Activity ────────────────────────────────────────────────────
+
+def get_weekly_activity(user_id: int) -> dict:
+    """Return task/habit/note counts for the past 7 days (today inclusive)."""
+    today      = datetime.now().date()
+    week_start = (today - timedelta(days=6)).isoformat()
+    with Prisma() as client:
+        activities = client.activity.find_many(where={"user_id": user_id})
+    tasks  = sum(1 for a in activities if a.type == "task_completed"  and a.created_at[:10] >= week_start)
+    habits = sum(1 for a in activities if a.type == "habit_completed" and a.created_at[:10] >= week_start)
+    notes  = sum(1 for a in activities if a.type == "note_created"    and a.created_at[:10] >= week_start)
+    return {
+        "tasks_completed":  tasks,
+        "habits_completed": habits,
+        "notes_written":    notes,
+        "week_start":       week_start,
+        "week_end":         today.isoformat(),
+    }
+
+
 # ── Daily Mission ──────────────────────────────────────────────────────
 
 def get_mission_with_progress(user_id: int) -> dict:
@@ -692,6 +712,47 @@ def log_ai_usage(user_id: int, request_type: str) -> None:
             "request_type": request_type,
             "created_at":   datetime.now().isoformat(),
         })
+
+
+# ── AI Response Cache ──────────────────────────────────────────────────
+
+def get_cached_ai_response(user_id: int, cache_type: str) -> dict | None:
+    """Return cached AI response if one exists for today and is within 6 hours."""
+    today  = datetime.now().date().isoformat()
+    cutoff = (datetime.now() - timedelta(hours=6)).isoformat()
+    with Prisma() as client:
+        row = client.airesponsecache.find_first(
+            where={"user_id": user_id, "type": cache_type, "date": today}
+        )
+    if row is None or row.created_at < cutoff:
+        return None
+    try:
+        return json.loads(row.response)
+    except Exception:
+        return None
+
+
+def cache_ai_response(user_id: int, cache_type: str, response: dict) -> None:
+    """Upsert an AI response into the cache for today."""
+    today = datetime.now().date().isoformat()
+    now   = datetime.now().isoformat()
+    with Prisma() as client:
+        existing = client.airesponsecache.find_first(
+            where={"user_id": user_id, "type": cache_type, "date": today}
+        )
+        if existing:
+            client.airesponsecache.update(
+                where={"id": existing.id},
+                data={"response": json.dumps(response), "created_at": now},
+            )
+        else:
+            client.airesponsecache.create(data={
+                "user_id":    user_id,
+                "type":       cache_type,
+                "date":       today,
+                "response":   json.dumps(response),
+                "created_at": now,
+            })
 
 
 # ── Messages ───────────────────────────────────────────────────────────

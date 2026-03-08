@@ -764,6 +764,9 @@
             <button class="ai-btn" onclick="callAI('summarize-notes')">
               <span style="font-size:15px;">✎</span><span>Summarize my notes</span>
             </button>
+            <button class="ai-btn" onclick="loadWeeklyInsights()">
+              <span style="font-size:15px;">📊</span><span>Weekly insights</span>
+            </button>
           </div>
         </div>
       </section>
@@ -944,6 +947,17 @@
             </div>
             <span style="font-size:9.5px;color:var(--text-muted);">more</span>
           </div>
+        </div>
+      </section>
+
+      <!-- ── Weekly Insights ── -->
+      <section class="card" id="weekly-insights-card">
+        <div class="card-header">
+          <span class="card-label">Weekly Insights</span>
+          <button onclick="loadWeeklyInsights()" id="weekly-insights-btn" class="btn-ghost" style="padding:3px 8px;font-size:12px;">Generate</button>
+        </div>
+        <div class="card-body" id="weekly-insights-body" style="padding-top:12px;">
+          <p style="font-size:12.5px;color:var(--text-muted);text-align:center;padding:10px 0 4px;line-height:1.6;">Get AI-powered insights<br>on your week.</p>
         </div>
       </section>
 
@@ -2204,6 +2218,82 @@
     document.getElementById('ai-modal').addEventListener('click', function(e) {
       if (e.target === this) closeAIModal();
     });
+
+    // ── Weekly Insights ───────────────────────────────────────────────
+    async function loadWeeklyInsights() {
+      const body = document.getElementById('weekly-insights-body');
+      const btn  = document.getElementById('weekly-insights-btn');
+      if (!body) return;
+
+      if (_aiRemaining <= 0) {
+        body.innerHTML = '<p style="color:#f87171;font-size:12.5px;text-align:center;padding:8px 0;">Daily AI limit reached. Try tomorrow.</p>';
+        return;
+      }
+
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      body.innerHTML = '<p style="font-size:12.5px;color:var(--text-muted);text-align:center;padding:14px 0;">Generating insights…</p>';
+
+      try {
+        const res  = await fetch('/api/ai/weekly-report', { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (data.error === 'limit_reached') {
+            _aiRemaining = 0;
+            updateAICounter();
+            body.innerHTML = '<p style="color:#f87171;font-size:12.5px;text-align:center;padding:8px 0;">Daily limit reached. Try tomorrow.</p>';
+          } else {
+            body.innerHTML = `<p style="color:#f87171;font-size:12.5px;">${escapeHtml(data.error || 'Error generating report.')}</p>`;
+          }
+          return;
+        }
+
+        _aiRemaining = data.remaining ?? _aiRemaining;
+        updateAICounter();
+        const r = data.result || {};
+
+        const numBadge = (n) =>
+          `<span style="flex-shrink:0;width:18px;height:18px;border-radius:5px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--accent);margin-top:1px;">${n}</span>`;
+        const dot =
+          `<span style="flex-shrink:0;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;"></span>`;
+
+        body.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            ${r.summary ? `
+              <div>
+                <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin-bottom:5px;">Summary</p>
+                <p style="font-size:12.5px;color:var(--text-body);line-height:1.65;">${escapeHtml(r.summary)}</p>
+              </div>` : ''}
+            ${r.insights?.length ? `
+              <div>
+                <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin-bottom:7px;">Insights</p>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                  ${r.insights.map((s, i) => `
+                    <div style="display:flex;gap:8px;align-items:flex-start;">
+                      ${numBadge(i + 1)}
+                      <p style="font-size:12.5px;color:var(--text-body);line-height:1.55;flex:1;margin:0;">${escapeHtml(s)}</p>
+                    </div>`).join('')}
+                </div>
+              </div>` : ''}
+            ${r.suggestions?.length ? `
+              <div>
+                <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);margin-bottom:7px;">Suggestions</p>
+                <div style="display:flex;flex-direction:column;gap:7px;">
+                  ${r.suggestions.map(s => `
+                    <div style="display:flex;gap:9px;align-items:flex-start;">
+                      ${dot}
+                      <p style="font-size:12.5px;color:var(--text-body);line-height:1.55;flex:1;margin:0;">${escapeHtml(s)}</p>
+                    </div>`).join('')}
+                </div>
+              </div>` : ''}
+            <button onclick="loadWeeklyInsights()" class="btn-ghost" style="width:100%;font-size:11.5px;padding:6px 0;">↻ Regenerate</button>
+          </div>`;
+      } catch {
+        body.innerHTML = '<p style="color:#f87171;font-size:12.5px;text-align:center;padding:8px 0;">Network error. Please try again.</p>';
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Generate'; }
+      }
+    }
 
     // ── Leaderboard ───────────────────────────────────────────────────
     async function loadLeaderboard() {

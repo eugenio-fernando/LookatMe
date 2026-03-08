@@ -19,6 +19,20 @@ _MOCK = {
     ],
 }
 
+_MOCK_WEEKLY = {
+    "summary": "Strong week overall. You completed tasks consistently and maintained your daily habits.",
+    "insights": [
+        "You completed the most tasks on weekday mornings",
+        "Note-taking correlated with higher task completion on the same days",
+        "Your habit streak is building solid momentum",
+    ],
+    "suggestions": [
+        "Plan your top 3 tasks the night before to hit the ground running",
+        "Write a brief end-of-day note to close loops and reflect",
+        "Aim to complete at least 3 tasks before noon for peak output",
+    ],
+}
+
 
 def _test_mode() -> bool:
     return os.environ.get("AI_TEST_MODE", "").lower() == "true"
@@ -53,22 +67,27 @@ def _today() -> str:
 
 
 def analyze_day(tasks: list, notes: list) -> dict:
+    """Single combined call: day summary + 3 suggestions + focus sentence."""
     if _test_mode():
         return _MOCK
-    today_tasks = [t for t in tasks if not t.get("completed")]
-    done_tasks  = [t for t in tasks if t.get("completed")]
-    note_texts  = [n.get("text", "") for n in notes if n.get("text")]
+    done_count    = sum(1 for t in tasks if t.get("completed"))
+    pending_count = sum(1 for t in tasks if not t.get("completed"))
+    notes_count   = sum(1 for n in notes if n.get("text"))
+    high_pri      = [t.get("text", "") for t in tasks
+                     if not t.get("completed") and t.get("priority") == "high"][:3]
 
-    prompt = f"""Today is {_today()}.
+    prompt = f"""You are a productivity coach. Today is {_today()}.
 
-Tasks pending: {[t.get('text', '') for t in today_tasks]}
-Tasks completed: {[t.get('text', '') for t in done_tasks]}
-Notes written today: {note_texts[:5]}
+User summary:
+Tasks completed: {done_count}
+Tasks remaining: {pending_count}
+Notes written: {notes_count}
+High-priority pending: {high_pri if high_pri else 'none'}
 
 Respond with a JSON object with these exact keys:
-- "summary": 1-2 sentence summary of the day so far
-- "focus_areas": list of 2-3 things to focus on next
-- "momentum": a short motivational sentence based on progress"""
+- "summary": 1-2 sentence overview of the day so far
+- "suggestions": list of exactly 3 actionable next steps
+- "focus": one short motivational sentence"""
 
     return _chat(prompt)
 
@@ -76,13 +95,17 @@ Respond with a JSON object with these exact keys:
 def plan_tomorrow(tasks: list, notes: list) -> dict:
     if _test_mode():
         return _MOCK
-    upcoming   = [t for t in tasks if not t.get("completed")]
-    note_texts = [n.get("text", "") for n in notes if n.get("text")]
+    pending_count = sum(1 for t in tasks if not t.get("completed"))
+    high_pri      = [t.get("text", "") for t in tasks
+                     if not t.get("completed") and t.get("priority") == "high"][:3]
+    notes_count   = sum(1 for n in notes if n.get("text"))
 
-    prompt = f"""Today is {_today()}.
+    prompt = f"""You are a productivity coach. Today is {_today()}.
 
-Upcoming tasks: {[t.get('text', '') for t in upcoming[:10]]}
-Recent notes: {note_texts[:3]}
+User summary:
+Tasks remaining: {pending_count}
+High-priority pending: {high_pri if high_pri else 'none'}
+Notes written today: {notes_count}
 
 Respond with a JSON object with these exact keys:
 - "top_3_priorities": list of 3 task suggestions for tomorrow
@@ -92,18 +115,38 @@ Respond with a JSON object with these exact keys:
     return _chat(prompt)
 
 
+def weekly_report(stats: dict) -> dict:
+    if _test_mode():
+        return _MOCK_WEEKLY
+
+    prompt = f"""You are a productivity coach analyzing a user's weekly performance.
+
+Week: {stats['week_start']} to {stats['week_end']}
+Tasks completed: {stats['tasks_completed']}
+Habits completed: {stats['habits_completed']}
+Notes written: {stats['notes_written']}
+
+Respond with a JSON object with these exact keys:
+- "summary": 2-3 sentence overview of the week's performance
+- "insights": list of exactly 3 specific observations about the user's patterns
+- "suggestions": list of exactly 3 concrete improvement suggestions for next week"""
+
+    return _chat(prompt)
+
+
 def summarize_notes(notes: list) -> dict:
     if _test_mode():
         return _MOCK
 
-    texts = [n.get("text", "") for n in notes if n.get("text")]
+    # Truncate each note to 120 chars to keep the prompt compact
+    texts = [n.get("text", "")[:120] for n in notes if n.get("text")]
 
     if not texts:
         return {"summary": "No notes found.", "key_themes": [], "action_items": []}
 
-    prompt = f"""Here are recent notes:
+    prompt = f"""You are a productivity coach. Here are {len(texts[:5])} recent notes:
 
-{chr(10).join(f'- {t}' for t in texts[:10])}
+{chr(10).join(f'- {t}' for t in texts[:5])}
 
 Respond with a JSON object with these exact keys:
 - "summary": 2-3 sentence synthesis of the notes

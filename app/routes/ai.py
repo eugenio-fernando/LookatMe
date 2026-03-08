@@ -40,12 +40,37 @@ def _limit_response():
     }), 429
 
 
+def _get_cache(user_id: int, cache_type: str) -> dict | None:
+    """Return a cached AI result or None if absent/expired."""
+    try:
+        return db.get_cached_ai_response(user_id, cache_type)
+    except Exception:
+        return None
+
+
+def _set_cache(user_id: int, cache_type: str, result: dict) -> None:
+    """Persist AI result to cache. Non-critical — errors are swallowed."""
+    try:
+        db.cache_ai_response(user_id, cache_type, result)
+    except Exception:
+        pass
+
+
+def _remaining_count(user_id: int) -> int:
+    return max(0, MAX_CALLS_PER_DAY - db.count_ai_usage_today(user_id))
+
+
 @ai_bp.route("/api/ai/analyze-day", methods=["POST"])
 @api_login_required
 def analyze_day():
     user_id      = session["user_id"]
     workspace_id = session.get("workspace_id")
     logger.info("AI_REQUEST_STARTED user_id=%s type=analyze-day", user_id)
+
+    cached = _get_cache(user_id, "analyze-day")
+    if cached:
+        logger.info("AI_CACHE_HIT user_id=%s type=analyze-day", user_id)
+        return jsonify({"ok": True, "result": cached, "remaining": _remaining_count(user_id), "cached": True})
 
     allowed, remaining = _check_limit(user_id)
     if not allowed:
@@ -56,6 +81,7 @@ def analyze_day():
         notes  = _read_notes()
         result = ai_service.analyze_day(tasks, notes)
         db.log_ai_usage(user_id, "analyze-day")
+        _set_cache(user_id, "analyze-day", result)
         logger.info("AI_REQUEST_SUCCESS user_id=%s type=analyze-day", user_id)
         return jsonify({"ok": True, "result": result, "remaining": remaining - 1})
     except RuntimeError as e:
@@ -73,6 +99,11 @@ def plan_tomorrow():
     workspace_id = session.get("workspace_id")
     logger.info("AI_REQUEST_STARTED user_id=%s type=plan-tomorrow", user_id)
 
+    cached = _get_cache(user_id, "plan-tomorrow")
+    if cached:
+        logger.info("AI_CACHE_HIT user_id=%s type=plan-tomorrow", user_id)
+        return jsonify({"ok": True, "result": cached, "remaining": _remaining_count(user_id), "cached": True})
+
     allowed, remaining = _check_limit(user_id)
     if not allowed:
         return _limit_response()
@@ -82,6 +113,7 @@ def plan_tomorrow():
         notes  = _read_notes()
         result = ai_service.plan_tomorrow(tasks, notes)
         db.log_ai_usage(user_id, "plan-tomorrow")
+        _set_cache(user_id, "plan-tomorrow", result)
         logger.info("AI_REQUEST_SUCCESS user_id=%s type=plan-tomorrow", user_id)
         return jsonify({"ok": True, "result": result, "remaining": remaining - 1})
     except RuntimeError as e:
@@ -98,6 +130,11 @@ def summarize_notes():
     user_id = session["user_id"]
     logger.info("AI_REQUEST_STARTED user_id=%s type=summarize-notes", user_id)
 
+    cached = _get_cache(user_id, "summarize-notes")
+    if cached:
+        logger.info("AI_CACHE_HIT user_id=%s type=summarize-notes", user_id)
+        return jsonify({"ok": True, "result": cached, "remaining": _remaining_count(user_id), "cached": True})
+
     allowed, remaining = _check_limit(user_id)
     if not allowed:
         return _limit_response()
@@ -106,6 +143,7 @@ def summarize_notes():
         notes  = _read_notes()
         result = ai_service.summarize_notes(notes)
         db.log_ai_usage(user_id, "summarize-notes")
+        _set_cache(user_id, "summarize-notes", result)
         logger.info("AI_REQUEST_SUCCESS user_id=%s type=summarize-notes", user_id)
         return jsonify({"ok": True, "result": result, "remaining": remaining - 1})
     except RuntimeError as e:
@@ -113,4 +151,34 @@ def summarize_notes():
         return jsonify({"error": str(e)}), 503
     except Exception as e:
         logger.info("AI_REQUEST_FAILED user_id=%s type=summarize-notes reason=%s", user_id, e)
+        return jsonify({"error": "AI service unavailable."}), 500
+
+
+@ai_bp.route("/api/ai/weekly-report", methods=["POST"])
+@api_login_required
+def weekly_report():
+    user_id = session["user_id"]
+    logger.info("AI_REQUEST_STARTED user_id=%s type=weekly-report", user_id)
+
+    cached = _get_cache(user_id, "weekly-report")
+    if cached:
+        logger.info("AI_CACHE_HIT user_id=%s type=weekly-report", user_id)
+        return jsonify({"ok": True, "result": cached, "remaining": _remaining_count(user_id), "cached": True})
+
+    allowed, remaining = _check_limit(user_id)
+    if not allowed:
+        return _limit_response()
+
+    try:
+        stats  = db.get_weekly_activity(user_id)
+        result = ai_service.weekly_report(stats)
+        db.log_ai_usage(user_id, "weekly-report")
+        _set_cache(user_id, "weekly-report", result)
+        logger.info("AI_REQUEST_SUCCESS user_id=%s type=weekly-report", user_id)
+        return jsonify({"ok": True, "result": result, "remaining": remaining - 1})
+    except RuntimeError as e:
+        logger.info("AI_REQUEST_FAILED user_id=%s type=weekly-report reason=%s", user_id, e)
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        logger.info("AI_REQUEST_FAILED user_id=%s type=weekly-report reason=%s", user_id, e)
         return jsonify({"error": "AI service unavailable."}), 500

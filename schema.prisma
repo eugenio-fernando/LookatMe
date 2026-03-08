@@ -134,3 +134,12 @@ model AIUsage {
   request_type String
   created_at   String
 }
+
+model AIResponseCache {
+  id         Int    @id @default(autoincrement())
+  user_id    Int
+  type       String
+  date       String
+  response   String
+  created_at String
+}
