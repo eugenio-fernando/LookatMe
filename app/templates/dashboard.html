@@ -341,6 +341,24 @@
     .quick-action-btn:active { transform: scale(0.97); }
     .quick-action-icon { font-size: 20px; line-height: 1; }
 
+    /* ── AI Assistant ─────────────────────────────────────────────── */
+    .ai-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 9px 12px; border-radius: 8px;
+      background: var(--bg-card-inner); border: 1px solid var(--border);
+      color: var(--text-body); font-size: 12.5px; font-weight: 600;
+      cursor: pointer; transition: background 0.12s, border-color 0.15s;
+      text-align: left;
+    }
+    .ai-btn:hover { background: var(--bg-hover); border-color: rgba(79,124,255,0.35); }
+    .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ai-suggestion {
+      font-size: 12.5px; color: var(--text-body); line-height: 1.65;
+      white-space: pre-wrap; padding: 12px 14px;
+      background: var(--bg-card-inner); border: 1px solid var(--border-subtle);
+      border-radius: 9px;
+    }
+
     /* ── Pills ───────────────────────────────────────────────────────── */
     .pill { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s; border: none; }
     .pill-active   { background: rgba(59,130,246,0.18); color: #60a5fa; }
@@ -715,6 +733,27 @@
         </div>
       </section>
 
+      <!-- ── AI Assistant ── -->
+      <section class="card" id="ai-card">
+        <div class="card-header">
+          <span class="card-label">AI Assistant</span>
+          <span id="ai-counter" style="font-size:11px;font-weight:600;color:var(--text-secondary);">3 left today</span>
+        </div>
+        <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <button class="ai-btn" onclick="callAI('analyze-day')">
+              <span style="font-size:15px;">🔍</span><span>Analyze my day</span>
+            </button>
+            <button class="ai-btn" onclick="callAI('plan-tomorrow')">
+              <span style="font-size:15px;">📅</span><span>Plan tomorrow</span>
+            </button>
+            <button class="ai-btn" onclick="callAI('summarize-notes')">
+              <span style="font-size:15px;">✎</span><span>Summarize my notes</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- ── Trending News ── -->
       <section class="card">
         <div class="card-header">
@@ -982,6 +1021,19 @@
         </div>
       </section>
 
+    </div>
+  </div>
+
+  <!-- ── AI Modal ── -->
+  <div id="ai-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:250;align-items:center;justify-content:center;padding:16px;">
+    <div class="card" style="width:100%;max-width:460px;max-height:80vh;display:flex;flex-direction:column;">
+      <div class="card-header">
+        <span id="ai-modal-title" class="card-label">AI Assistant</span>
+        <button onclick="closeAIModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:18px;line-height:1;padding:0;transition:color 0.12s;" onmouseover="this.style.color='var(--text-body)'" onmouseout="this.style.color='var(--text-muted)'">✕</button>
+      </div>
+      <div class="card-body" style="overflow-y:auto;flex:1;" id="ai-modal-content">
+        <div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Thinking…</div>
+      </div>
     </div>
   </div>
 
@@ -1851,6 +1903,66 @@
           `+1 focus point · Total: ${_focusPoints}`);
       }
     }
+
+    // ── AI Assistant ──────────────────────────────────────────────────
+    const _aiEndpoints = {
+      'analyze-day':     { path: '/api/ai/analyze-day',     title: 'Day Analysis' },
+      'plan-tomorrow':   { path: '/api/ai/plan-tomorrow',   title: "Tomorrow's Plan" },
+      'summarize-notes': { path: '/api/ai/summarize-notes', title: 'Notes Summary' },
+    };
+    let _aiRemaining = 3;
+
+    function updateAICounter() {
+      const el = document.getElementById('ai-counter');
+      if (el) el.textContent = `${_aiRemaining} left today`;
+    }
+
+    function closeAIModal() {
+      const modal = document.getElementById('ai-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function callAI(type) {
+      const endpoint = _aiEndpoints[type];
+      if (!endpoint) return;
+      const modal   = document.getElementById('ai-modal');
+      const title   = document.getElementById('ai-modal-title');
+      const content = document.getElementById('ai-modal-content');
+      if (!modal) return;
+      title.textContent   = endpoint.title;
+      content.innerHTML   = '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Thinking…</div>';
+      modal.style.display = 'flex';
+      document.querySelectorAll('.ai-btn').forEach(b => b.disabled = true);
+      try {
+        const res  = await fetch(endpoint.path, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          content.innerHTML = `<p style="color:#f87171;font-size:13px;padding:4px 0;">${escapeHtml(data.error || 'Something went wrong.')}</p>`;
+          return;
+        }
+        _aiRemaining = data.remaining ?? _aiRemaining;
+        updateAICounter();
+        const payload = data.result || {};
+        let html = '';
+        for (const [key, val] of Object.entries(payload)) {
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          const isArr = Array.isArray(val);
+          const value = isArr ? val.map(v => escapeHtml(String(v))).join('<br>• ') : escapeHtml(String(val ?? ''));
+          html += `<div style="margin-bottom:14px;">
+            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:5px;">${escapeHtml(label)}</p>
+            <div class="ai-suggestion">${isArr ? '• ' + value : value}</div>
+          </div>`;
+        }
+        content.innerHTML = html || '<p style="color:var(--text-muted);font-size:13px;">No insights available.</p>';
+      } catch {
+        content.innerHTML = '<p style="color:#f87171;font-size:13px;padding:4px 0;">Network error. Please try again.</p>';
+      } finally {
+        document.querySelectorAll('.ai-btn').forEach(b => b.disabled = false);
+      }
+    }
+    document.getElementById('ai-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeAIModal();
+    });
 
     // ── Share LookatMe ────────────────────────────────────────────────
     async function copyLink() {
