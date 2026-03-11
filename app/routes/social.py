@@ -142,3 +142,10 @@ def friend_profile(friend_id: int):
     if not profile:
         return jsonify({"error": "Friend not found"}), 404
     return jsonify(profile)
+
+
+@social_bp.route("/api/friends/focus-status", methods=["GET"])
+@api_login_required
+def friends_focus_status():
+    """Live-ish friend focus presence, fetched on demand by the dashboard."""
+    return jsonify(db.get_friends_focus_status(session["user_id"]))

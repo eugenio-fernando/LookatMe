@@ -160,7 +160,10 @@ Visit `http://localhost:8080`.
 | `OPENAI_API_KEY` | For AI features | OpenAI API key |
 | `AI_TEST_MODE` | No | Set `true` to skip OpenAI and return mock responses |
 | `RESEND_API_KEY` | For email | Resend API key |
-| `EMAIL_FROM` | No | Sender address (default: `LookatMe <verify@aitoptutor.com>`) |
+| `VERIFY_EMAIL_FROM` | Recommended | Sender for verification emails (e.g. `LookatMe <verify@mail.yourdomain.com>`) |
+| `SUPPORT_EMAIL_FROM` | Recommended | Sender for magic-link and reset emails |
+| `REPLY_TO_EMAIL` | No | Optional reply-to address for transactional emails |
+| `EMAIL_FROM` | Backward-compatible | Fallback sender if specific sender vars are not set |
 | `APP_BASE_URL` | No | Public URL used in email links (default: `https://lookatme.fly.dev`) |
 | `FLASK_ENV` | No | Set `production` to disable debug endpoints |
 

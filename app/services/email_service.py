@@ -4,7 +4,9 @@ Email service — wraps Resend SDK for all transactional emails.
 Required Fly secrets (set with `fly secrets set KEY=value -a lookatme`):
     RESEND_API_KEY   — API key from resend.com       (e.g. re_xxxxxxxxxxxx)
     APP_BASE_URL     — public app URL                 (e.g. https://lookatme.fly.dev)
-    EMAIL_FROM       — verified sender address        (e.g. LookatMe <hello@yourdomain.com>)
+    VERIFY_EMAIL_FROM — sender for verification emails
+    SUPPORT_EMAIL_FROM — sender for support/reset/magic-link emails
+    REPLY_TO_EMAIL   — optional reply-to address for all transactional emails
 
 ⚠ Sender address rules:
   • onboarding@resend.dev  — Resend shared test sender.
@@ -24,7 +26,32 @@ import resend
 logger = logging.getLogger(__name__)
 
 
-def _send(to: str, subject: str, html: str) -> bool:
+def _sender_for(email_type: str, explicit_from: str | None = None) -> str:
+    if explicit_from and explicit_from.strip():
+        return explicit_from.strip()
+    if email_type == "verification":
+        return (
+            os.environ.get("VERIFY_EMAIL_FROM", "").strip()
+            or os.environ.get("EMAIL_FROM", "").strip()
+            or "LookatMe <verify@aitoptutor.com>"
+        )
+    if email_type in ("magic_login", "password_reset", "support"):
+        return (
+            os.environ.get("SUPPORT_EMAIL_FROM", "").strip()
+            or os.environ.get("EMAIL_FROM", "").strip()
+            or "LookatMe <verify@aitoptutor.com>"
+        )
+    return os.environ.get("EMAIL_FROM", "").strip() or "LookatMe <verify@aitoptutor.com>"
+
+
+def _send(
+    to: str,
+    subject: str,
+    html: str,
+    *,
+    email_type: str,
+    from_address: str | None = None,
+) -> bool:
     """
     Send an email via Resend.
 
@@ -32,8 +59,9 @@ def _send(to: str, subject: str, html: str) -> bool:
     Never raises — email is always treated as best-effort.
     All failures are logged with enough detail to diagnose in fly logs.
     """
-    api_key     = os.environ.get("RESEND_API_KEY", "").strip()
-    from_address = os.environ.get("EMAIL_FROM", "LookatMe <verify@aitoptutor.com>")
+    api_key = os.environ.get("RESEND_API_KEY", "").strip()
+    sender = _sender_for(email_type, from_address)
+    reply_to = os.environ.get("REPLY_TO_EMAIL", "").strip()
 
     # ── Guard: key missing ───────────────────────────────────────────────
     if not api_key:
@@ -52,31 +80,34 @@ def _send(to: str, subject: str, html: str) -> bool:
         return False
 
     # ── Warn if using the shared test sender ─────────────────────────────
-    if "onboarding@resend.dev" in from_address:
+    if "onboarding@resend.dev" in sender:
         logger.warning(
             "EMAIL_WARN: using Resend test sender (%s) — email will be delivered "
             "to the Resend account owner, NOT to to=%s",
-            from_address, to,
+            sender, to,
         )
 
     key_preview = api_key[:6] + "..." if len(api_key) > 6 else "???"
     logger.info(
-        "EMAIL_ATTEMPT: to=%s subject=%r from=%s key_prefix=%s",
-        to, subject, from_address, key_preview,
+        "EMAIL_SEND_ATTEMPT event=EMAIL_SEND_ATTEMPT type=%s to=%s subject=%r from=%s reply_to=%s key_prefix=%s",
+        email_type, to, subject, sender, reply_to or "-", key_preview,
     )
 
     # ── Send ─────────────────────────────────────────────────────────────
     try:
         resend.api_key = api_key
-        response = resend.Emails.send({
-            "from":    from_address,
+        payload = {
+            "from":    sender,
             "to":      [to],
             "subject": subject,
             "html":    html,
-        })
+        }
+        if reply_to:
+            payload["reply_to"] = reply_to
+        response = resend.Emails.send(payload)
         logger.info(
-            "EMAIL_SENT_SUCCESS sender=%s to=%s subject=%r id=%s",
-            from_address, to, subject, getattr(response, "id", response),
+            "EMAIL_SEND_SUCCESS event=EMAIL_SEND_SUCCESS type=%s sender=%s to=%s subject=%r id=%s response=%r",
+            email_type, sender, to, subject, getattr(response, "id", None), response,
         )
         return True
 
@@ -87,9 +118,9 @@ def _send(to: str, subject: str, html: str) -> bool:
         #   429 rate_limit_*     → too many requests
         #   500 application_error → Resend-side problem
         logger.error(
-            "EMAIL_FAIL [ResendError]: to=%s subject=%r "
+            "EMAIL_SEND_FAIL event=EMAIL_SEND_FAIL type=%s [ResendError]: to=%s subject=%r "
             "http_code=%s error_type=%s message=%s key_prefix=%s",
-            to, subject,
+            email_type, to, subject,
             getattr(exc, "code", "?"),
             getattr(exc, "error_type", "?"),
             exc.message if hasattr(exc, "message") else str(exc),
@@ -99,22 +130,22 @@ def _send(to: str, subject: str, html: str) -> bool:
 
     except Exception as exc:
         logger.error(
-            "EMAIL_FAIL [%s]: to=%s subject=%r error=%s",
-            type(exc).__name__, to, subject, exc,
+            "EMAIL_SEND_FAIL event=EMAIL_SEND_FAIL type=%s [%s]: to=%s subject=%r error=%s",
+            email_type, type(exc).__name__, to, subject, exc,
         )
         return False
 
 
 # ── Public senders ───────────────────────────────────────────────────────────
 
-def send_verification_email(to_email: str, token: str) -> bool:
+def send_verification_email(to_email: str, token: str, *, from_address: str | None = None) -> bool:
     """Send account verification email with a one-click link."""
     base_url = os.environ.get("APP_BASE_URL", "https://lookatme.fly.dev")
     link = f"{base_url}/verify/{token}"
     html = f"""
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2 style="color:#3b82f6">Verify your LookatMe account</h2>
-      <p>Click the button below to verify your email address. The link expires in 24 hours.</p>
+      <p>Click the button below to verify your email address. The link expires in 15 minutes.</p>
       <a href="{link}"
          style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;
                 border-radius:8px;text-decoration:none;font-weight:600">
@@ -125,7 +156,13 @@ def send_verification_email(to_email: str, token: str) -> bool:
       </p>
     </div>
     """
-    return _send(to_email, "Verify your LookatMe account", html)
+    return _send(
+        to_email,
+        "Verify your LookatMe account",
+        html,
+        email_type="verification",
+        from_address=from_address,
+    )
 
 
 def send_magic_login_link(to_email: str, token: str) -> bool:
@@ -146,7 +183,12 @@ def send_magic_login_link(to_email: str, token: str) -> bool:
       </p>
     </div>
     """
-    return _send(to_email, "Your LookatMe sign-in link", html)
+    return _send(
+        to_email,
+        "Your LookatMe sign-in link",
+        html,
+        email_type="magic_login",
+    )
 
 
 def send_password_reset_email(to_email: str, token: str) -> bool:
@@ -167,4 +209,9 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
       </p>
     </div>
     """
-    return _send(to_email, "Reset your LookatMe password", html)
+    return _send(
+        to_email,
+        "Reset your LookatMe password",
+        html,
+        email_type="password_reset",
+    )

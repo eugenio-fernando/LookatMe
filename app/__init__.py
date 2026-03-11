@@ -33,6 +33,8 @@ from .routes.social import social_bp
 from .routes.linkedin import linkedin_bp
 from .routes.mission import mission_bp
 from .routes.workspaces import workspaces_bp
+from .routes.focus import focus_bp
+from .routes.webhooks import webhooks_bp
 
 
 def create_app() -> Flask:
@@ -82,6 +84,8 @@ def create_app() -> Flask:
     app.register_blueprint(social_bp)
     app.register_blueprint(linkedin_bp)
     app.register_blueprint(mission_bp)
+    app.register_blueprint(focus_bp)
+    app.register_blueprint(webhooks_bp)
     if os.environ.get("FLASK_ENV", "development") != "production":
         app.register_blueprint(debug_bp, url_prefix="/api/debug")
 

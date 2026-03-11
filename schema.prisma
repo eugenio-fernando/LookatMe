@@ -157,6 +157,32 @@ model User {
   last_login_at         String @default("")
   welcome_day_key       String @default("")
   welcome_count_today   Int    @default(0)
+  focus_sessions_today  Int    @default(0)
+  focus_sessions_total  Int    @default(0)
+  focus_streak          Int    @default(0)
+  longest_focus_streak  Int    @default(0)
+  focus_day_key         String @default("")
+}
+
+model FocusSession {
+  id           Int    @id @default(autoincrement())
+  user_id      Int
+  task         String @default("")
+  status       String @default("active")
+  phase        String @default("focus")
+  started_at   String
+  ends_at      String
+  completed_at String?
+  duration_sec Int    @default(1500)
+}
+
+model VipContact {
+  id          Int    @id @default(autoincrement())
+  user_id     Int
+  vip_user_id Int
+  created_at  String
+
+  @@unique([user_id, vip_user_id])
 }
 
 model DailyMission {
@@ -183,5 +209,22 @@ model AIResponseCache {
   type       String
   date       String
   response   String
+  created_at String
+}
+
+model VerificationEmailAttempt {
+  id         Int    @id @default(autoincrement())
+  user_id    Int
+  email      String
+  created_at String
+}
+
+model EmailWebhookEvent {
+  id         Int    @id @default(autoincrement())
+  provider   String
+  event_type String
+  email      String?
+  message_id String?
+  payload    String
   created_at String
 }

@@ -5,282 +5,261 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>Focus — LookAtMe</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
-            mono: ['SF Mono', 'Fira Code', 'Consolas', 'monospace'],
-          },
-        },
-      },
-    }
-  </script>
   <style>
-    html[data-theme="dark"]  { --bg:#161616; --panel:#111111; --card:#1e1e1e; --card-hover:#252525; --border:#2a2a2a; --text:#ffffff; --muted:#8a8a8a; --soft:#6b7280; --input:#1a1a1a; --input-border:#333; --input-text:#e5e7eb; --accent:#a3e635; --accent-strong:#65a30d; --accent-soft:#1f2a14; }
-    html[data-theme="light"] { --bg:#f5f5f7; --panel:#ffffff; --card:#ffffff; --card-hover:#f3f4f6; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --soft:#6b7280; --input:#f9fafb; --input-border:#d1d5db; --input-text:#111827; --accent:#2563eb; --accent-strong:#1d4ed8; --accent-soft:#eaf1ff; }
-    html[data-theme="sepia"] { --bg:#f4ecd8; --panel:#ede4cf; --card:#fbf6e7; --card-hover:#f0e8d4; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --soft:#8a7060; --input:#f0e8d4; --input-border:#c8b697; --input-text:#3c2a1a; --accent:#b45309; --accent-strong:#92400e; --accent-soft:#efe3cf; }
-
-    body { background: var(--bg); color: var(--text); transition: background-color .2s, color .2s; }
-    .top-panel { background: var(--panel); border-bottom: 1px solid var(--border); }
-    .top-label { color: var(--soft); }
-    .nav-btn {
-      display: inline-flex; align-items: center; background-color: var(--card);
-      color: var(--muted); font-size: 0.75rem; font-weight: 600;
-      padding: 0.3rem 0.85rem; border-radius: 0.5rem; border: 1px solid var(--border);
-      transition: background 0.15s, color 0.15s, transform 0.1s;
-    }
-    .nav-btn:hover { background-color: var(--card-hover); color: var(--text); }
-    .nav-btn:active { transform: scale(0.97); }
-
-    .card { background-color: var(--card); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.24), 0 1px 4px rgba(0,0,0,0.15); overflow: hidden; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem 0.875rem; border-bottom: 1px solid var(--border); }
-    .card-title { font-size: 0.7rem; font-weight: 700; color: var(--soft); text-transform: uppercase; letter-spacing: 0.08em; }
-    .card-body { padding: 1.1rem 1.25rem 1.25rem; }
-
-    .timer-status, .all-done { color: var(--soft); }
-    .timer-display, .task-text { color: var(--text); }
-    .timer-input {
-      width: 5rem; text-align: center; background: var(--input); border: 1px solid var(--input-border);
-      color: var(--input-text); border-radius: 0.625rem; padding: 0.5rem; font-size: 0.875rem;
-    }
-    .timer-input:focus { outline: none; border-color: var(--accent); }
-    .timer-unit { color: var(--soft); }
-
-    .btn-primary, .btn-muted {
-      padding: 0.5rem 1rem; border-radius: 0.625rem; font-size: 0.875rem; font-weight: 600;
-      transition: background-color 0.15s, color 0.15s;
-    }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--accent-strong); }
-    .btn-muted { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
-    .btn-muted:hover { background: var(--card-hover); color: var(--text); }
-
-    .task-row { transition: opacity 0.4s ease, transform 0.4s ease, background-color 0.15s; }
-    .task-item { background: var(--panel); border: 1px solid var(--border); }
-    .task-row:hover { background: var(--card-hover); }
-    .task-row.completing { opacity: 0.35; transform: translateX(6px); }
-    .task-row.completing .task-text { text-decoration: line-through; }
-    .task-row.done { opacity: 0; transform: translateX(16px); }
-
-    .task-meta, .task-due { color: var(--soft); }
-    .complete-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      background-color: var(--accent-soft); color: var(--accent);
-      font-size: 0.7rem; font-weight: 600;
-      padding: 0.2rem 0.65rem; border-radius: 9999px;
-      transition: background 0.15s, color 0.15s, transform 0.1s;
-      flex-shrink: 0; white-space: nowrap;
-    }
-    .task-row:hover .complete-btn { background-color: var(--accent); color: #fff; transform: scale(1.03); }
-    .task-row:active .complete-btn { transform: scale(0.97); }
-
-    .streak-text { color: var(--accent); }
-    .due-urgent { color: #f87171; }
-    .due-soon { color: #f59e0b; }
-
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 4px; }
+    html[data-theme="dark"]  { --bg:#111111; --card:#1d1d1d; --border:#2a2a2a; --text:#f2f2f2; --muted:#8f8f8f; --accent:#a3e635; }
+    html[data-theme="light"] { --bg:#f5f5f7; --card:#ffffff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --accent:#2563eb; }
+    html[data-theme="sepia"] { --bg:#f4ecd8; --card:#fbf6e7; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --accent:#b45309; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+    .btn { border-radius: 10px; font-size: 13px; font-weight: 700; padding: 9px 12px; }
+    .btn-primary { background: var(--accent); color: #0a0a0a; }
+    .btn-muted { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .goal-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+    .goal-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#22c55e,#f59e0b); transition: width 0.3s ease; }
   </style>
 </head>
-<body class="min-h-screen font-sans flex flex-col">
-
-  <div class="top-panel flex items-center justify-between px-4 sm:px-8 pt-5 pb-3 gap-2 flex-wrap">
-    <span class="top-label text-xs font-semibold uppercase tracking-widest">Focus Mode</span>
-    <div class="flex items-center gap-2 flex-wrap justify-end">
-      <a href="/learning" class="nav-btn">Learning</a>
-      <a href="/" class="nav-btn">Dashboard &rarr;</a>
+<body class="min-h-screen">
+  <header class="max-w-4xl mx-auto px-5 pt-6 pb-3 flex items-center justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color:var(--muted);">Focus Mode</p>
+      <p class="text-sm" style="color:var(--muted);">Pomodoro 25/5 with long breaks every 4 sessions</p>
     </div>
-  </div>
+    <a href="/" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Back to Dashboard</a>
+  </header>
 
-  <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 gap-6">
-    <section class="card w-full max-w-xl">
-      <div class="card-header">
-        <h2 class="card-title">Countdown Timer</h2>
-        <span id="focus-timer-status" class="timer-status text-xs">local only</span>
-      </div>
-      <div class="card-body text-center">
-        <div id="timer" class="timer-display font-mono text-4xl sm:text-5xl font-bold tracking-tight tabular-nums mb-4">00:00:00</div>
-        <div class="flex items-center justify-center gap-3 mt-2">
-          <input id="focus-timer-input" type="number" min="1" max="1440" value="25" class="timer-input" />
-          <span class="timer-unit text-sm">min</span>
-          <button onclick="startFocusTimer()" id="focus-timer-start-btn" class="btn-primary">Start</button>
-          <button onclick="stopFocusTimer()" class="btn-muted">Stop</button>
+  <main class="max-w-4xl mx-auto px-5 pb-10 grid md:grid-cols-3 gap-5">
+    <section class="card md:col-span-2 p-6 text-center">
+      <p id="phase-label" class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">Focus mode</p>
+      <p id="focus-task" class="text-sm mb-4" style="color:var(--muted);">Task: Deep work</p>
+
+      <div id="timer-ring" style="width:220px;height:220px;margin:0 auto 14px;border-radius:999px;padding:10px;background:conic-gradient(#22c55e 0%, rgba(255,255,255,0.1) 0%);">
+        <div style="width:100%;height:100%;border-radius:999px;background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+          <p id="timer" style="font-size:46px;font-weight:800;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;">25:00</p>
+          <p class="text-xs" style="color:var(--muted);margin-top:6px;">remaining</p>
         </div>
-        <p id="streak-text" class="streak-text text-xs font-semibold mt-3"></p>
+      </div>
+
+      <p id="motivation" class="text-sm mb-2" style="color:var(--muted);">Stay sharp. You're building momentum.</p>
+      <p id="processing-msg" class="text-xs mb-4" style="color:var(--muted);">Preparing your strategy...</p>
+
+      <div class="flex gap-2 justify-center">
+        <button class="btn btn-primary" onclick="startFocus()">Start Focus</button>
+        <button class="btn btn-muted" onclick="stopFocus(false)">End</button>
       </div>
     </section>
 
-    <section class="card w-full max-w-xl">
-      <div class="card-header">
-        <h2 class="card-title">Your Tasks</h2>
+    <section class="card p-5">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">Daily Focus Goal</p>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm" style="color:var(--muted);">Goal</span>
+        <span id="goal-text" class="text-sm" style="color:var(--muted);">0 / 4 sessions</span>
       </div>
-      <div class="card-body">
-        <ul id="task-list" class="space-y-3">
-          <li class="task-meta text-sm">Loading tasks…</li>
-        </ul>
-        <p id="all-done-msg" class="all-done hidden mt-6 text-center text-sm">All done for today. Rest well.</p>
+      <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
+      <div class="mt-5 space-y-2 text-sm" style="color:var(--muted);">
+        <p>Drink water during breaks.</p>
+        <p>Stand up and stretch every cycle.</p>
+        <p>Silence non-VIP notifications while focusing.</p>
+      </div>
+      <div id="completion-box" class="mt-5 hidden" style="border:1px solid var(--border);border-radius:12px;padding:10px;">
+        <p class="text-sm font-semibold mb-2">Session Complete</p>
+        <p id="completion-stats" class="text-xs" style="color:var(--muted);"></p>
+        <p class="text-xs mt-3 mb-2" style="color:var(--muted);">Did you complete the task?</p>
+        <div class="flex gap-2">
+          <button class="btn btn-primary" style="flex:1;" onclick="showTaskDone('yes')">Yes</button>
+          <button class="btn btn-muted" style="flex:1;" onclick="showTaskDone('no')">No</button>
+        </div>
+        <p id="completion-reply" class="text-xs mt-2" style="color:var(--muted);"></p>
       </div>
     </section>
   </main>
 
   <script>
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const FOCUS_SECONDS = 25 * 60;
+    const PROCESSING = [
+      'Thinking deeply...',
+      'Crunching the problem...',
+      'Brewing ideas...',
+      'Sharpening focus...',
+      'Preparing your strategy...',
+      'Generating insight...',
+    ];
+    const MOTIVATION = [
+      '5 minutes down — keep going.',
+      'Halfway there.',
+      'Final push.',
+      'Almost done.',
+    ];
+
+    let timerRef = null;
+    let remaining = FOCUS_SECONDS;
+    let duration = FOCUS_SECONDS;
+    let phase = 'focus';
+    let tickCount = 0;
+
+    function fmt(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const m = String(Math.floor(s / 60)).padStart(2, '0');
+      const rs = String(s % 60).padStart(2, '0');
+      return `${m}:${rs}`;
     }
 
-    let _focusCountdown = null;
-    let _focusRemaining = 0;
-
-    function _fmtFocusTimer(sec) {
-      sec = Math.max(0, Math.floor(sec));
-      const h = Math.floor(sec / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    function phaseColor() {
+      if (phase !== 'focus') return '#60a5fa';
+      const elapsed = (duration - remaining) / 60;
+      if (elapsed < 10) return '#22c55e';
+      if (elapsed < 20) return '#facc15';
+      return '#fb923c';
     }
 
-    function startFocusTimer() {
-      const minutes = parseInt(document.getElementById('focus-timer-input').value, 10) || 25;
-      clearInterval(_focusCountdown);
-      _focusRemaining = minutes * 60;
-      document.getElementById('timer').textContent = _fmtFocusTimer(_focusRemaining);
-      document.getElementById('focus-timer-status').textContent = 'running';
-      document.getElementById('focus-timer-start-btn').textContent = 'Restart';
+    function renderTimer() {
+      document.getElementById('timer').textContent = fmt(remaining);
+      const pct = duration ? Math.min(100, Math.max(0, ((duration - remaining) / duration) * 100)) : 0;
+      document.getElementById('timer-ring').style.background = `conic-gradient(${phaseColor()} ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+      document.getElementById('phase-label').textContent = phase === 'focus' ? 'Focus mode' : 'Break time';
+    }
 
-      _focusCountdown = setInterval(() => {
-        _focusRemaining--;
-        document.getElementById('timer').textContent = _fmtFocusTimer(_focusRemaining);
-        if (_focusRemaining <= 0) {
-          clearInterval(_focusCountdown);
-          _focusCountdown = null;
-          document.getElementById('focus-timer-status').textContent = 'done';
-          document.getElementById('focus-timer-start-btn').textContent = 'Start';
-          if (Notification.permission === 'granted') {
-            new Notification('LookatMe', { body: 'Focus session complete!', icon: '/favicon.svg' });
+    function pulseText() {
+      const msg = PROCESSING[Math.floor(Math.random() * PROCESSING.length)];
+      document.getElementById('processing-msg').textContent = msg;
+    }
+
+    function setGoal(stats) {
+      const sessions = stats?.sessions_today || 0;
+      const goal = stats?.today_goal || 4;
+      document.getElementById('goal-text').textContent = `${sessions} / ${goal} sessions`;
+      document.getElementById('goal-fill').style.width = `${stats?.goal_progress || 0}%`;
+    }
+
+    async function refreshGoal() {
+      try {
+        const res = await fetch('/api/focus/stats');
+        if (!res.ok) return;
+        setGoal(await res.json());
+      } catch {}
+    }
+
+    function runClock() {
+      clearInterval(timerRef);
+      timerRef = setInterval(async () => {
+        remaining -= 1;
+        tickCount += 1;
+        renderTimer();
+        if (tickCount % 7 === 0) pulseText();
+        if (phase === 'focus' && tickCount % 300 === 0 && remaining > 0) {
+          document.getElementById('motivation').textContent = MOTIVATION[Math.floor(Math.random() * MOTIVATION.length)];
+        }
+        if (remaining <= 0) {
+          clearInterval(timerRef);
+          if (phase === 'focus') {
+            await completeFocus();
+          } else {
+            phase = 'focus';
+            duration = FOCUS_SECONDS;
+            remaining = FOCUS_SECONDS;
+            tickCount = 0;
+            renderTimer();
           }
         }
       }, 1000);
     }
 
-    function stopFocusTimer() {
-      clearInterval(_focusCountdown);
-      _focusCountdown = null;
-      _focusRemaining = 0;
-      document.getElementById('timer').textContent = '00:00:00';
-      document.getElementById('focus-timer-status').textContent = 'local only';
-      document.getElementById('focus-timer-start-btn').textContent = 'Start';
-    }
-
-    function renderStreak(data) {
-      const el = document.getElementById('streak-text');
-      if (!data || data.current_streak === 0) {
-        el.textContent = 'Complete a task to start your streak';
+    async function startFocus(restored = null) {
+      if (restored) {
+        phase = 'focus';
+        duration = restored.duration_sec || FOCUS_SECONDS;
+        remaining = restored.remaining_seconds || FOCUS_SECONDS;
+        renderTimer();
+        runClock();
         return;
       }
-      const day = data.current_streak === 1 ? 'day' : 'days';
-      let text = `Streak: ${data.current_streak} ${day}`;
-      if (data.longest_streak > data.current_streak) {
-        text += `  \u2014  Best: ${data.longest_streak} days`;
-      }
-      el.textContent = text;
-    }
-
-    async function loadStreak() {
-      const data = await fetch('/api/streak').then(r => r.json());
-      renderStreak(data);
-    }
-    loadStreak();
-
-    const PRIORITY = {
-      high:   { dot: 'bg-red-500',    label: 'High',  labelCls: 'text-red-500'    },
-      medium: { dot: 'bg-amber-500',  label: 'Med',   labelCls: 'text-amber-500'  },
-      low:    { dot: 'bg-emerald-500',label: 'Low',   labelCls: 'text-emerald-500'},
-    };
-
-    function dueBadge(due_date) {
-      if (!due_date) return '';
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const due   = new Date(due_date + 'T00:00:00');
-      const days  = Math.round((due - today) / 86_400_000);
-      let label, cls;
-      if      (days < 0)   { label = `Overdue ${Math.abs(days)}d`; cls = 'due-urgent'; }
-      else if (days === 0) { label = 'Due today';                  cls = 'due-urgent'; }
-      else if (days <= 3)  { label = `Due in ${days}d`;            cls = 'due-soon'; }
-      else {
-        label = `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        cls = 'task-due';
-      }
-      return `<span class="${cls} text-xs">${label}</span>`;
-    }
-
-    async function loadTasks() {
-      const list = document.getElementById('task-list');
-      const data = await fetch('/api/todos').then(r => r.json()).catch(() => []);
-
-      if (!data.length) {
-        list.innerHTML = '';
-        document.getElementById('all-done-msg').classList.remove('hidden');
-        return;
-      }
-
-      list.innerHTML = data.map(item => {
-        const p = PRIORITY[item.priority] || PRIORITY.medium;
-        return `
-          <li class="task-row task-item group flex items-start gap-4 rounded-xl px-5 py-4 cursor-pointer" data-id="${item.id}" onclick="completeTask(this, ${item.id})">
-            <span class="mt-1 w-2.5 h-2.5 rounded-full ${p.dot} flex-shrink-0"></span>
-            <div class="flex-1 min-w-0">
-              <p class="task-text text-base leading-snug">${escapeHtml(item.text.replace(/^•\s*/, ''))}</p>
-              <div class="flex items-center gap-3 mt-1.5">
-                <span class="${p.labelCls} text-xs font-medium">${p.label}</span>
-                ${dueBadge(item.due_date)}
-              </div>
-            </div>
-            <span class="complete-btn select-none">✓ Complete</span>
-          </li>
-        `;
-      }).join('');
-    }
-    loadTasks();
-
-    async function completeTask(el, todoId) {
-      if (el.classList.contains('completing') || el.classList.contains('done')) return;
-
-      el.classList.add('completing');
-      el.style.pointerEvents = 'none';
-
       try {
-        const res  = await fetch(`/api/todos/${todoId}/complete`, { method: 'POST' });
+        const res = await fetch('/api/focus/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: '' }),
+        });
         const data = await res.json();
-        renderStreak(data.streak);
+        if (!res.ok) return;
+        duration = data.session?.duration_sec || FOCUS_SECONDS;
+        remaining = duration;
+        phase = 'focus';
+        tickCount = 0;
+        setGoal(data.stats);
+        renderTimer();
+        runClock();
       } catch {}
-
-      setTimeout(() => {
-        el.classList.add('done');
-        setTimeout(() => {
-          el.remove();
-          if (!document.querySelector('#task-list li')) {
-            document.getElementById('task-list').innerHTML = '';
-            document.getElementById('all-done-msg').classList.remove('hidden');
-          }
-        }, 420);
-      }, 550);
     }
 
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    async function completeFocus() {
+      try {
+        const res = await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true }),
+        });
+        const data = await res.json();
+        setGoal(data.stats || {});
+        const box = document.getElementById('completion-box');
+        box.classList.remove('hidden');
+        document.getElementById('completion-reply').textContent = '';
+        document.getElementById('completion-stats').textContent = `Focus time: 25 min · Sessions today: ${data?.stats?.sessions_today || 0} · Current streak: ${data?.stats?.focus_streak || 0}`;
+        const breakSeconds = data?.next_break?.seconds || 300;
+        phase = 'break';
+        duration = breakSeconds;
+        remaining = breakSeconds;
+        tickCount = 0;
+        document.getElementById('motivation').textContent = 'Break Time: Drink water, stretch, look away from the screen.';
+        renderTimer();
+        runClock();
+      } catch {}
     }
+
+    function showTaskDone(answer) {
+      const el = document.getElementById('completion-reply');
+      if (!el) return;
+      el.textContent = answer === 'yes'
+        ? 'Great work. Momentum is building.'
+        : 'No problem. Reset and ship the next session.';
+    }
+
+    async function stopFocus(completed) {
+      clearInterval(timerRef);
+      timerRef = null;
+      try {
+        await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: !!completed }),
+        });
+      } catch {}
+      remaining = FOCUS_SECONDS;
+      duration = FOCUS_SECONDS;
+      phase = 'focus';
+      tickCount = 0;
+      renderTimer();
+      refreshGoal();
+    }
+
+    async function restoreIfActive() {
+      try {
+        const res = await fetch('/api/focus/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        setGoal(data.stats || {});
+        if (data.active && data.session) {
+          startFocus(data.session);
+        }
+      } catch {}
+    }
+
+    renderTimer();
+    pulseText();
+    refreshGoal();
+    restoreIfActive();
   </script>
 </body>
 </html>

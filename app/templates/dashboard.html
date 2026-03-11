@@ -801,10 +801,10 @@
   {% endif %}
 
   <!-- ════════════════ MAIN LAYOUT ════════════════ -->
-  <div id="main-layout" style="margin-left:232px;flex:1;display:grid;grid-template-columns:1fr 288px;gap:24px;padding:40px 36px;align-items:start;min-height:100vh;">
+  <div id="main-layout" style="margin-left:232px;flex:1;display:grid;grid-template-columns:1fr 340px;gap:24px;padding:40px 36px;align-items:start;min-height:100vh;">
 
     <!-- ──────────── CENTER COLUMN ──────────── -->
-    <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+    <div style="display:flex;flex-direction:column;gap:24px;min-width:0;">
 
       <!-- Page header -->
       <div style="margin-bottom:2px;position:relative;overflow:hidden;">
@@ -947,6 +947,15 @@
               <span>Learning</span>
             </a>
           </div>
+          <div id="focus-goal-widget" style="margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Today's focus goal</span>
+              <span id="focus-goal-text" style="font-size:11px;color:var(--text-muted);">0 / 4 sessions</span>
+            </div>
+            <div class="progress-track" style="height:7px;">
+              <div id="focus-goal-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#f59e0b);border-radius:9999px;transition:width 0.3s ease;"></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1001,6 +1010,16 @@
         </div>
       </section>
 
+      <section class="card" id="friend-focus-card">
+        <div class="card-header">
+          <span class="card-label">Friends Focusing</span>
+          <button onclick="loadFriendsFocusStatus()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <div class="card-body" id="friends-focus-body" style="padding-top:10px;padding-bottom:10px;">
+          <p style="color:var(--text-muted);font-size:12px;">Loading focus status…</p>
+        </div>
+      </section>
+
       <!-- ── Friends ── -->
       <section class="card" id="friends-card">
         <div class="card-header">
@@ -1041,7 +1060,7 @@
     </div>
 
     <!-- ──────────── RIGHT COLUMN ──────────── -->
-    <div id="right-col" style="display:flex;flex-direction:column;gap:20px;position:sticky;top:40px;">
+    <div id="right-col" style="display:flex;flex-direction:column;gap:24px;position:sticky;top:40px;">
 
       <!-- ── Profile Widget ── -->
       <section class="card" id="profile-widget">
@@ -2353,63 +2372,265 @@
 
     // ── Focus Mode ────────────────────────────────────────────────────
     let _focusInterval = null;
-    let _focusSeconds  = 0;
-    let _focusPoints   = parseInt(localStorage.getItem('focus_points') || '0', 10);
+    let _focusRemaining = 0;
+    let _focusDuration = 0;
+    let _focusPhase = 'focus';
+    let _focusTickCount = 0;
+    let _focusTask = '';
+    const _focusLoadingMessages = [
+      'Thinking deeply...',
+      'Crunching the problem...',
+      'Brewing ideas...',
+      'Sharpening focus...',
+      'Preparing your strategy...',
+      'Generating insight...',
+    ];
+    const _focusMotivation = [
+      '5 minutes down — keep going.',
+      'Halfway there.',
+      'Final push.',
+      'Almost done.',
+    ];
+    const _focusDistractingIds = [
+      'news-list', 'gaming-news-list', 'leaderboard-card', 'friends-card',
+      'friend-circles-card', 'weekly-insights-card', 'activity-list',
+      'progress-widget', 'inv-dash-body',
+    ];
 
-    function startFocusSession() {
-      if (document.getElementById('focus-overlay')) return;
-      _focusSeconds = 25 * 60;
+    function _fmtMMSS(seconds) {
+      const s = Math.max(0, Math.floor(seconds));
+      const m = String(Math.floor(s / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${m}:${sec}`;
+    }
 
-      const overlay = document.createElement('div');
-      overlay.id = 'focus-overlay';
-      overlay.style.cssText =
-        'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;' +
-        'display:flex;align-items:center;justify-content:center;padding:16px;';
-      overlay.innerHTML = `
-        <div class="card" style="width:100%;max-width:340px;text-align:center;">
-          <div class="card-header" style="justify-content:center;">
-            <span class="card-label">Focus Session</span>
+    function _setFocusDistractionMode(active) {
+      _focusDistractingIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.opacity = active ? '0.15' : '';
+        el.style.pointerEvents = active ? 'none' : '';
+        el.style.filter = active ? 'grayscale(0.4)' : '';
+      });
+    }
+
+    function _focusPhaseColor() {
+      if (_focusPhase !== 'focus') return '#60a5fa';
+      const elapsedMinutes = (_focusDuration - _focusRemaining) / 60;
+      if (elapsedMinutes < 10) return '#22c55e';
+      if (elapsedMinutes < 20) return '#facc15';
+      return '#fb923c';
+    }
+
+    function _randomFocusLoading() {
+      return _focusLoadingMessages[Math.floor(Math.random() * _focusLoadingMessages.length)];
+    }
+
+    function _renderFocusOverlay() {
+      let overlay = document.getElementById('focus-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'focus-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;';
+        overlay.innerHTML = `
+          <div class="card" style="width:100%;max-width:380px;text-align:center;">
+            <div class="card-header" style="justify-content:center;">
+              <span id="focus-phase-label" class="card-label">Focus Mode</span>
+            </div>
+            <div id="focus-overlay-body" class="card-body" style="padding:22px 24px 24px;"></div>
+          </div>`;
+        document.body.appendChild(overlay);
+      }
+      const body = document.getElementById('focus-overlay-body');
+      if (!body) return;
+      const color = _focusPhaseColor();
+      const pct = _focusDuration ? Math.min(100, Math.max(0, ((_focusDuration - _focusRemaining) / _focusDuration) * 100)) : 0;
+      body.innerHTML = `
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Task: ${escapeHtml(_focusTask || 'Deep work')}</p>
+        <div id="focus-circle" style="width:196px;height:196px;border-radius:50%;margin:10px auto 14px;padding:10px;background:conic-gradient(${color} ${pct}%, rgba(255,255,255,0.08) ${pct}%);display:flex;align-items:center;justify-content:center;transition:background 0.2s ease;">
+          <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+            <p id="focus-display" style="font-size:42px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:var(--text-primary);font-variant-numeric:tabular-nums;">${_fmtMMSS(_focusRemaining)}</p>
+            <p style="font-size:10.5px;color:var(--text-muted);margin-top:6px;">remaining</p>
           </div>
-          <div class="card-body" style="padding:28px 24px 24px;">
-            <p id="focus-display"
-               style="font-size:58px;font-weight:800;color:var(--text-primary);
-                      font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
-                      line-height:1;margin-bottom:16px;">25:00</p>
-            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-              Stay focused. You got this. 💪
-            </p>
-            <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:22px;">
-              🎯 Focus points: <strong id="focus-pts-display"
-              style="color:#fb923c;">${_focusPoints}</strong>
-            </p>
-            <button onclick="endFocusSession(false)" class="btn-ghost"
-                    style="width:100%;padding:9px;">End Session</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
+        </div>
+        <p id="focus-msg" style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Stay sharp. You are building momentum.</p>
+        <p style="font-size:10.5px;color:var(--text-muted);margin-bottom:16px;" id="focus-loading-msg">${_randomFocusLoading()}</p>
+        <button onclick="endFocusSession(false)" class="btn-ghost" style="width:100%;padding:8px;">End Session</button>
+      `;
+      const phaseLabel = document.getElementById('focus-phase-label');
+      if (phaseLabel) phaseLabel.textContent = _focusPhase === 'focus' ? 'Focus Mode' : 'Break Time';
+    }
 
+    function _updateFocusGoalWidget(stats) {
+      if (!stats) return;
+      const fill = document.getElementById('focus-goal-fill');
+      const text = document.getElementById('focus-goal-text');
+      if (fill) fill.style.width = `${stats.goal_progress || 0}%`;
+      if (text) text.textContent = `${stats.sessions_today || 0} / ${stats.today_goal || 4} sessions`;
+    }
+
+    async function refreshFocusStats() {
+      try {
+        const res = await fetch('/api/focus/stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+        _updateFocusGoalWidget(stats);
+      } catch {}
+    }
+
+    function _runFocusClock() {
+      clearInterval(_focusInterval);
+      _focusTickCount = 0;
       _focusInterval = setInterval(() => {
-        _focusSeconds--;
-        const m = String(Math.floor(_focusSeconds / 60)).padStart(2, '0');
-        const s = String(_focusSeconds % 60).padStart(2, '0');
-        const el = document.getElementById('focus-display');
-        if (el) el.textContent = `${m}:${s}`;
-        if (_focusSeconds <= 0) endFocusSession(true);
+        _focusRemaining -= 1;
+        _focusTickCount += 1;
+        const display = document.getElementById('focus-display');
+        if (display) display.textContent = _fmtMMSS(_focusRemaining);
+        const circle = document.getElementById('focus-circle');
+        if (circle) {
+          const color = _focusPhaseColor();
+          const pct = _focusDuration ? Math.min(100, Math.max(0, ((_focusDuration - _focusRemaining) / _focusDuration) * 100)) : 0;
+          circle.style.background = `conic-gradient(${color} ${pct}%, rgba(255,255,255,0.08) ${pct}%)`;
+        }
+        if (_focusPhase === 'focus' && _focusTickCount % 300 === 0 && _focusRemaining > 0) {
+          const msg = _focusMotivation[Math.floor(Math.random() * _focusMotivation.length)];
+          showMicroToast('task', 'Focus Mode', msg);
+        }
+        if (_focusRemaining <= 0) {
+          clearInterval(_focusInterval);
+          if (_focusPhase === 'focus') {
+            finishFocusSession();
+          } else {
+            _setFocusDistractionMode(false);
+            const overlay = document.getElementById('focus-overlay');
+            if (overlay) overlay.remove();
+          }
+        }
       }, 1000);
     }
 
-    function endFocusSession(completed = false) {
-      clearInterval(_focusInterval);
-      _focusInterval = null;
-      const overlay = document.getElementById('focus-overlay');
-      if (overlay) overlay.remove();
-      if (completed) {
-        _focusPoints++;
-        localStorage.setItem('focus_points', _focusPoints);
-        showMicroToast('task', 'Focus session completed ✔',
-          `+1 focus point · Total: ${_focusPoints}`);
+    async function startFocusSession(resume = false, restored = null) {
+      if (document.getElementById('focus-overlay')) return;
+      _setFocusDistractionMode(true);
+      if (resume && restored) {
+        _focusPhase = 'focus';
+        _focusDuration = restored.duration_sec || 1500;
+        _focusRemaining = restored.remaining_seconds || 0;
+        _focusTask = restored.task || '';
+        _renderFocusOverlay();
+        _runFocusClock();
+        return;
+      }
+      try {
+        const res = await fetch('/api/focus/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: _focusTask || '' }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not start focus mode');
+        _focusPhase = 'focus';
+        _focusDuration = data.session?.duration_sec || 1500;
+        _focusRemaining = _focusDuration;
+        _focusTask = data.session?.task || '';
+        _updateFocusGoalWidget(data.stats);
+        _renderFocusOverlay();
+        _runFocusClock();
+      } catch {
+        _setFocusDistractionMode(false);
+        showMicroToast('task', 'Focus Mode', 'Could not start focus mode right now.');
       }
     }
+
+    async function finishFocusSession() {
+      let payload = null;
+      try {
+        const res = await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true }),
+        });
+        payload = await res.json();
+      } catch {}
+      const body = document.getElementById('focus-overlay-body');
+      if (!body) return;
+      const sessionsToday = payload?.stats?.sessions_today ?? 0;
+      const streak = payload?.stats?.focus_streak ?? 0;
+      const breakSec = payload?.next_break?.seconds ?? 300;
+      body.innerHTML = `
+        <p style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;">Session Complete</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Focus time: 25 minutes</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <div style="padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Sessions today</p>
+            <p style="font-size:20px;font-weight:800;color:var(--text-primary);">${sessionsToday}</p>
+          </div>
+          <div style="padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Current streak</p>
+            <p style="font-size:20px;font-weight:800;color:#fb923c;">${streak}</p>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Did you complete the task?</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button onclick="showMicroToast('task','Great work','Momentum locked in.')" class="btn-primary" style="flex:1;padding:8px 0;">Yes</button>
+          <button onclick="showMicroToast('task','No worries','Take the break and retry.')" class="btn-ghost" style="flex:1;padding:8px 0;">No</button>
+        </div>
+      `;
+      _updateFocusGoalWidget(payload?.stats);
+      showMicroToast('task', 'Focus session completed ✔', `Starting ${payload?.next_break?.type || 'short'} break.`);
+      startBreakScreen(breakSec);
+    }
+
+    function startBreakScreen(seconds) {
+      _focusPhase = 'break';
+      _focusDuration = seconds;
+      _focusRemaining = seconds;
+      _renderFocusOverlay();
+      const body = document.getElementById('focus-overlay-body');
+      if (body) {
+        body.innerHTML = `
+          <p style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">Break Time</p>
+          <p id="focus-display" style="font-size:44px;font-weight:800;line-height:1;margin-bottom:12px;font-variant-numeric:tabular-nums;">${_fmtMMSS(_focusRemaining)}</p>
+          <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+            Drink water<br/>Stretch<br/>Look away from the screen
+          </div>
+          <p style="font-size:10.5px;color:var(--text-muted);">${_randomFocusLoading()}</p>
+        `;
+      }
+      _runFocusClock();
+    }
+
+    async function endFocusSession(completed = false) {
+      clearInterval(_focusInterval);
+      _focusInterval = null;
+      _setFocusDistractionMode(false);
+      if (!completed) {
+        try {
+          await fetch('/api/focus/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: false }),
+          });
+        } catch {}
+      }
+      const overlay = document.getElementById('focus-overlay');
+      if (overlay) overlay.remove();
+      refreshFocusStats();
+    }
+
+    async function restoreFocusIfNeeded() {
+      try {
+        const res = await fetch('/api/focus/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        _updateFocusGoalWidget(data.stats);
+        if (data.active && data.session) {
+          startFocusSession(true, data.session);
+        }
+      } catch {}
+    }
+    refreshFocusStats();
+    restoreFocusIfNeeded();
 
     // ── AI Assistant ──────────────────────────────────────────────────
     const _aiEndpoints = {
@@ -2430,7 +2651,7 @@
       'You have one wish today. Describe it clearly.',
       'What challenge are you facing today?',
       'Tell me your biggest obstacle.',
-      'Describe your situation and I\\'ll propose a plan.',
+      "Describe your situation and I'll propose a plan.",
       'What would you like to improve today?',
       'What problem would you like solved?',
     ];
@@ -2765,6 +2986,34 @@
       }
     }
     loadFriendCircles();
+
+    async function loadFriendsFocusStatus() {
+      const body = document.getElementById('friends-focus-body');
+      if (!body) return;
+      try {
+        const res = await fetch('/api/friends/focus-status');
+        const list = await res.json();
+        if (!res.ok || !Array.isArray(list) || !list.length) {
+          body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No friends in focus mode right now.</p>';
+          return;
+        }
+        body.innerHTML = list.map(item => {
+          const dot = item.focus_status === 'focusing' ? '🟢' : '⚪';
+          const minsLeft = Math.max(0, Math.ceil((item.remaining_focus_time || 0) / 60));
+          const status = item.focus_status === 'focusing'
+            ? `${minsLeft} min left`
+            : 'just finished';
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-soft);">
+              <span style="font-size:12px;color:var(--text-body);">${dot} ${escapeHtml(item.username)}</span>
+              <span style="font-size:11px;color:var(--text-muted);">${status}</span>
+            </div>`;
+        }).join('');
+      } catch {
+        body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Could not load focus status.</p>';
+      }
+    }
+    loadFriendsFocusStatus();
 
     // ── Friends Section (full list with detailed stats) ────────────────
     function _fmtRelative(iso) {

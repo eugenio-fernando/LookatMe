@@ -62,11 +62,15 @@ def send_message():
     )
     activity = db.log_activity(session["user_id"], "message_sent", f"Sent: {subject}")
     uid = session["user_id"]
-    socketio.emit(
-        "new_message",
-        {"id": msg["id"], "sender_id": uid, "subject": msg["subject"], "preview": msg["content"][:80]},
-        to=f"user_{recipient_id}",
-    )
+    # During active focus sessions, only VIP senders trigger real-time notifications.
+    recipient_in_focus = db.is_user_in_active_focus(recipient_id)
+    sender_is_vip = db.is_vip_contact(recipient_id, uid)
+    if not recipient_in_focus or sender_is_vip:
+        socketio.emit(
+            "new_message",
+            {"id": msg["id"], "sender_id": uid, "subject": msg["subject"], "preview": msg["content"][:80]},
+            to=f"user_{recipient_id}",
+        )
     socketio.emit("activity_created", {"activity": activity}, to=f"user_{uid}")
     return jsonify(msg), 201
 

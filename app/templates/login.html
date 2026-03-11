@@ -267,6 +267,37 @@
       background: var(--bg-hover);
     }
     .input::placeholder { color: var(--text-muted); }
+    .password-wrap {
+      position: relative;
+    }
+    .password-wrap .input {
+      padding-right: 2.7rem;
+    }
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 0.45rem;
+      transform: translateY(-50%);
+      width: 2rem;
+      height: 2rem;
+      border: 0;
+      border-radius: 0.5rem;
+      background: transparent;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .password-toggle:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    .password-toggle svg {
+      width: 1rem;
+      height: 1rem;
+    }
 
     .btn-primary, .btn-secondary {
       width: 100%;
@@ -382,23 +413,41 @@
 
         <form id="form-login" onsubmit="return false" class="space-y-3">
           <input id="login-email" type="email" class="input" placeholder="Email address" autocomplete="email" required />
-          <input id="login-password" type="password" class="input" placeholder="Password" autocomplete="current-password" required />
+          <div class="password-wrap">
+            <input id="login-password" type="password" class="input" placeholder="Password" autocomplete="current-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="login-password" aria-label="Show password" aria-pressed="false"></button>
+          </div>
           <button id="btn-login" class="btn-primary mt-1" onclick="submitLogin()">Sign in</button>
           <div class="divider">or</div>
           <button id="btn-magic" class="btn-secondary" onclick="submitMagicLogin()">Send sign-in link to my email</button>
+          <p class="auth-note" style="margin-top:0.75rem;">
+            No account? <button type="button" onclick="showTab('register')" style="background:none;border:0;padding:0;color:var(--accent);font-weight:700;cursor:pointer;">Register here</button>
+          </p>
         </form>
 
         <form id="form-register" onsubmit="return false" class="space-y-3 hidden">
           <input id="reg-email" type="email" class="input" placeholder="Email address" autocomplete="email" required />
-          <input id="reg-password" type="password" class="input" placeholder="Password (min. 8 characters)" autocomplete="new-password" required />
-          <input id="reg-confirm" type="password" class="input" placeholder="Confirm password" autocomplete="new-password" required />
+          <div class="password-wrap">
+            <input id="reg-password" type="password" class="input" placeholder="Password (min. 8 characters)" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reg-password" aria-label="Show password" aria-pressed="false"></button>
+          </div>
+          <div class="password-wrap">
+            <input id="reg-confirm" type="password" class="input" placeholder="Confirm password" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reg-confirm" aria-label="Show password" aria-pressed="false"></button>
+          </div>
           <button id="btn-register" class="btn-primary mt-1" onclick="submitRegister()">Create account</button>
         </form>
 
         <form id="form-reset" onsubmit="return false" class="space-y-3 hidden">
           <input id="reset-email" type="email" class="input" placeholder="Email address" autocomplete="email" required />
-          <input id="reset-password" type="password" class="input" placeholder="New password (min. 8 characters)" autocomplete="new-password" required />
-          <input id="reset-confirm" type="password" class="input" placeholder="Confirm new password" autocomplete="new-password" required />
+          <div class="password-wrap">
+            <input id="reset-password" type="password" class="input" placeholder="New password (min. 8 characters)" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reset-password" aria-label="Show password" aria-pressed="false"></button>
+          </div>
+          <div class="password-wrap">
+            <input id="reset-confirm" type="password" class="input" placeholder="Confirm new password" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reset-confirm" aria-label="Show password" aria-pressed="false"></button>
+          </div>
           <button id="btn-reset" class="btn-primary mt-1" onclick="submitReset()">Reset password</button>
           <div class="divider">or</div>
           <button id="btn-request-reset" class="btn-secondary" onclick="submitRequestReset()">Send reset link to my email</button>
@@ -406,8 +455,14 @@
 
         <form id="form-reset-token" onsubmit="return false" class="space-y-3 hidden">
           <p class="text-sm" style="color:var(--text-secondary);">Enter your new password below.</p>
-          <input id="reset-token-password" type="password" class="input" placeholder="New password (min. 8 characters)" autocomplete="new-password" required />
-          <input id="reset-token-confirm" type="password" class="input" placeholder="Confirm new password" autocomplete="new-password" required />
+          <div class="password-wrap">
+            <input id="reset-token-password" type="password" class="input" placeholder="New password (min. 8 characters)" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reset-token-password" aria-label="Show password" aria-pressed="false"></button>
+          </div>
+          <div class="password-wrap">
+            <input id="reset-token-confirm" type="password" class="input" placeholder="Confirm new password" autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-pw-toggle="reset-token-confirm" aria-label="Show password" aria-pressed="false"></button>
+          </div>
           <button id="btn-reset-token" class="btn-primary mt-1" onclick="submitResetWithToken()">Set new password</button>
         </form>
       </section>
@@ -438,8 +493,32 @@
       });
     }
 
+    function _passwordIcon(isVisible) {
+      if (isVisible) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58"/><path d="M9.88 5.09A10.94 10.94 0 0112 5c5.5 0 9.5 7 9.5 7a17.67 17.67 0 01-3.27 3.95"/><path d="M6.64 6.64C3.75 8.14 2.5 12 2.5 12a17.72 17.72 0 003.27 3.95A10.94 10.94 0 0012 19c1.17 0 2.28-.18 3.31-.51"/></svg>';
+      }
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+
+    function initPasswordToggles() {
+      document.querySelectorAll('[data-pw-toggle]').forEach(btn => {
+        const targetId = btn.getAttribute('data-pw-toggle');
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        btn.innerHTML = _passwordIcon(false);
+        btn.addEventListener('click', () => {
+          const nextVisible = input.type === 'password';
+          input.type = nextVisible ? 'text' : 'password';
+          btn.setAttribute('aria-pressed', String(nextVisible));
+          btn.setAttribute('aria-label', nextVisible ? 'Hide password' : 'Show password');
+          btn.innerHTML = _passwordIcon(nextVisible);
+        });
+      });
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       syncThemeUi();
+      initPasswordToggles();
 
       if (!new URLSearchParams(window.location.search).has('reset_token')) {
         fetch('/api/auth/me').then(res => {

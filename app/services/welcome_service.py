@@ -2,50 +2,29 @@ import random
 import re
 
 
-_MALE_NICKS = [
-    "captain chaos",
-    "handsome silly monkey",
-    "legend in training",
-    "mister sparkle-brain",
-]
-
-_FEMALE_NICKS = [
-    "queen chaos",
-    "crazy lady",
-    "sunshine tornado",
-    "boss butterfly",
-]
-
-_NEUTRAL_NICKS = [
-    "chaos comet",
-    "focus wizard",
-    "sparkle gremlin",
-    "productivity ninja",
-]
-
 _OPENERS_1 = [
     "Welcome back, {name}!",
-    "Hey {name}, you made it back.",
-    "Good to see you again, {name}.",
+    "Hey {name}, you survived the internet.",
+    "Good to see you, {name}. Coffee secured?",
 ]
 
 _OPENERS_2 = [
-    "Round two today, {name}.",
-    "Back again, {name}. I respect it.",
-    "{name}, this comeback energy is elite.",
+    "Round two today, {name}. Respect.",
+    "{name} is back for another lap.",
+    "Back again, {name}. The streak committee approves.",
 ]
 
 _OPENERS_3 = [
-    "Third login today, {name}. Certified commitment.",
-    "{name}, hat trick login achieved.",
-    "You again, {name}. I like your discipline.",
+    "Third login today, {name}. Quiet dedication.",
+    "{name}, hat trick achieved.",
+    "You again, {name}. This is getting productive.",
 ]
 
 _FUN_TAILS = [
-    "Now go make Future You proud.",
-    "Let's collect another win today.",
-    "Time to turn effort into streaks.",
-    "Try not to overthink it. Just start.",
+    "Let's ship one useful thing.",
+    "Tiny progress still counts as progress.",
+    "Start messy, fix later.",
+    "Less scrolling, more finishing.",
 ]
 
 
@@ -55,19 +34,10 @@ def _clean_name(name: str) -> str:
     return raw[:40] if raw else "there"
 
 
-def _pick_nickname(gender: str) -> str:
-    g = (gender or "").strip().lower()
-    if g == "male":
-        return random.choice(_MALE_NICKS)
-    if g == "female":
-        return random.choice(_FEMALE_NICKS)
-    return random.choice(_NEUTRAL_NICKS)
-
-
 def build_fun_welcome(display_name: str, gender: str, login_count_today: int) -> str:
     """Generate a playful welcome text for first 3 logins in a day."""
     name = _clean_name(display_name)
-    nick = _pick_nickname(gender)
+    _ = gender  # keep signature stable; tone is not gendered now
 
     if login_count_today <= 1:
         opener = random.choice(_OPENERS_1)
@@ -77,4 +47,4 @@ def build_fun_welcome(display_name: str, gender: str, login_count_today: int) ->
         opener = random.choice(_OPENERS_3)
 
     tail = random.choice(_FUN_TAILS)
-    return f"{opener.format(name=name)} Hello {nick}. {tail}"
+    return f"{opener.format(name=name)} {tail}"

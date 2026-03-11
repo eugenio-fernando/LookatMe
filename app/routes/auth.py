@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta
 
@@ -37,18 +38,22 @@ def login_page():
 @auth_bp.route("/verify/<token>")
 def verify_email(token):
     logger.info("AUTH_ENDPOINT: %s %s", request.method, request.path)
-    user = db.get_user_by_verification_token(token)
+    token_hash = db.hash_verification_token(token)
+    user = db.get_user_by_verification_token_hash(token_hash, legacy_token=token)
     if not user:
         logger.warning("VERIFY_TOKEN_INVALID: token_prefix=%s", token[:8])
         return render_template("verify_error.html", reason="invalid"), 400
 
     expiry = user.get("verification_expiry", "")
     if expiry and datetime.fromisoformat(expiry) < datetime.now():
-        logger.warning("VERIFY_TOKEN_EXPIRED: user_id=%s", user["id"])
+        logger.warning(
+            "TOKEN_EXPIRED event=TOKEN_EXPIRED token_type=verification user_id=%s",
+            user["id"],
+        )
         return render_template("verify_error.html", reason="expired"), 400
 
     db.mark_user_verified(user["id"])
-    logger.info("VERIFY_SUCCESS: user_id=%s", user["id"])
+    logger.info("USER_VERIFIED event=USER_VERIFIED user_id=%s", user["id"])
     session["user_id"] = user["id"]
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
@@ -129,10 +134,20 @@ def register():
                            invite_token[:8], exc)
 
     ver_token = secrets.token_urlsafe(32)
-    expiry = (datetime.now() + timedelta(minutes=30)).isoformat()
+    expiry = (datetime.now() + timedelta(minutes=15)).isoformat()
     db.set_verification_token(user["id"], ver_token, expiry)
+    attempts = db.count_verification_email_attempts_last_hour(user["id"])
+    if attempts >= 3:
+        logger.warning(
+            "EMAIL_VERIFICATION_RATE_LIMIT event=EMAIL_SEND_FAIL reason=rate_limit user_id=%s attempts_last_hour=%s",
+            user["id"], attempts,
+        )
+        return jsonify({"message": "Account created. Verification email temporarily rate-limited. Try again soon."}), 201
     logger.info("EMAIL_FUNCTION_CALLED: send_verification_email to=%s", email)
-    send_verification_email(email, ver_token)
+    verify_from = (os.environ.get("VERIFY_EMAIL_FROM", "") or "").strip() or None
+    ok = send_verification_email(email, ver_token, from_address=verify_from)
+    if ok:
+        db.log_verification_email_attempt(user["id"], email)
     return jsonify({"message": "Account created. Check your email to verify your account."}), 201
 
 
@@ -253,11 +268,21 @@ def resend_verification():
 
     user = db.get_user_by_email(email)
     if user and not user.get("verified"):
+        attempts = db.count_verification_email_attempts_last_hour(user["id"])
+        if attempts >= 3:
+            logger.warning(
+                "EMAIL_VERIFICATION_RATE_LIMIT event=EMAIL_SEND_FAIL reason=rate_limit user_id=%s attempts_last_hour=%s",
+                user["id"], attempts,
+            )
+            return jsonify({"ok": True})
         token = secrets.token_urlsafe(32)
-        expiry = (datetime.now() + timedelta(minutes=30)).isoformat()
+        expiry = (datetime.now() + timedelta(minutes=15)).isoformat()
         db.set_verification_token(user["id"], token, expiry)
         logger.info("EMAIL_FUNCTION_CALLED: send_verification_email to=%s", email)
-        send_verification_email(email, token)
+        verify_from = (os.environ.get("VERIFY_EMAIL_FROM", "") or "").strip() or None
+        ok = send_verification_email(email, token, from_address=verify_from)
+        if ok:
+            db.log_verification_email_attempt(user["id"], email)
     else:
         logger.info(
             "RESEND_VERIFICATION_SKIP: email=%s user_found=%s already_verified=%s",
