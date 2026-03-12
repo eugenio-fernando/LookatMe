@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>LookAtMe — Dashboard</title>
+  <title>{{ _('LookAtMe — Dashboard') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
@@ -695,21 +695,21 @@
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
-        Dashboard
+        {{ _('Dashboard') }}
       </a>
 
       <a href="/focus" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
         </svg>
-        Focus
+        {{ _('Focus') }}
       </a>
 
       <a href="/activity-feed" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
         </svg>
-        Activity Feed
+        {{ _('Activity Feed') }}
       </a>
 
       <a href="/invitations" class="nav-item">
@@ -717,7 +717,7 @@
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-        Friends
+        {{ _('Friends') }}
       </a>
 
       <a href="/inbox" class="nav-item" style="justify-content:space-between;">
@@ -725,7 +725,7 @@
           <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
           </svg>
-          Messages
+          {{ _('Messages') }}
         </span>
         <span id="inbox-badge" class="hidden" style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;line-height:1.7;"></span>
       </a>
@@ -734,13 +734,13 @@
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 12h6m-6 4h6M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/>
         </svg>
-        Notes
+        {{ _('Notes') }}
       </a>
       <a href="/profile" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
         </svg>
-        Profile
+        {{ _('Profile') }}
       </a>
 
     </nav>
@@ -759,7 +759,7 @@
         <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️</button>
         <button class="theme-btn" data-theme="sepia" onclick="setTheme('sepia')">📜</button>
       </div>
-      <button onclick="logout()" class="btn-outline">Sign out</button>
+      <button onclick="logout()" class="btn-outline">{{ _('Sign out') }}</button>
       <button id="install-btn" class="hidden btn-primary" style="width:100%;margin-top:6px;padding:7px 0;font-size:12px;">
         Install App
       </button>
@@ -838,7 +838,7 @@
         {% endif %}
       </div>
 
-      <p class="section-heading">Activity Feed</p>
+      <p class="section-heading">{{ _('Activity Feed') }}</p>
       <section class="card">
         <div class="card-header">
           <span class="card-label">Activity</span>

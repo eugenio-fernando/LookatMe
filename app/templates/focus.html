@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#09090b" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>Focus — LookAtMe</title>
+  <title>{{ _('Focus — LookAtMe') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html[data-theme="dark"]  { --bg:#111111; --card:#1d1d1d; --border:#2a2a2a; --text:#f2f2f2; --muted:#8f8f8f; --accent:#a3e635; }
@@ -25,23 +25,23 @@
 <body class="min-h-screen">
   <header class="max-w-4xl mx-auto px-5 pt-6 pb-3 flex items-center justify-between gap-3">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-widest" style="color:var(--muted);">Focus Mode</p>
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color:var(--muted);">{{ _('Focus Mode') }}</p>
       <p class="text-sm" style="color:var(--muted);">Pomodoro 25/5 with long breaks every 4 sessions</p>
     </div>
     <div class="flex items-center gap-2">
-      <a href="/" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Dashboard</a>
-      <span class="btn btn-primary" style="display:inline-flex;align-items:center;">Focus</span>
-      <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Activity Feed</a>
-      <a href="/invitations" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Friends</a>
-      <a href="/inbox" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Messages</a>
-      <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Notes</a>
-      <a href="/profile" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">Profile</a>
+      <a href="/" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Dashboard') }}</a>
+      <span class="btn btn-primary" style="display:inline-flex;align-items:center;">{{ _('Focus') }}</span>
+      <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Activity Feed') }}</a>
+      <a href="/invitations" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Friends') }}</a>
+      <a href="/inbox" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Messages') }}</a>
+      <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Notes') }}</a>
+      <a href="/profile" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Profile') }}</a>
     </div>
   </header>
 
   <main class="max-w-4xl mx-auto px-5 pb-10 grid md:grid-cols-3 gap-5">
     <section class="card md:col-span-2 p-6 text-center">
-      <p id="phase-label" class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">Focus mode</p>
+      <p id="phase-label" class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">{{ _('Focus mode') }}</p>
       <p id="focus-task" class="text-sm mb-4" style="color:var(--muted);">Task: Deep work</p>
 
       <div id="timer-ring" style="width:220px;height:220px;margin:0 auto 14px;border-radius:999px;padding:10px;background:conic-gradient(#22c55e 0%, rgba(255,255,255,0.1) 0%);">
@@ -55,7 +55,7 @@
       <p id="processing-msg" class="text-xs mb-4" style="color:var(--muted);">Preparing your strategy...</p>
 
       <div class="flex gap-2 justify-center">
-        <button class="btn btn-primary" onclick="startFocus()">Start Focus</button>
+        <button class="btn btn-primary" onclick="startFocus()">{{ _('Start Focus') }}</button>
         <button class="btn btn-muted" onclick="stopFocus(false)">End</button>
       </div>
     </section>

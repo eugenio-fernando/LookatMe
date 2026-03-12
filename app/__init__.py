@@ -9,15 +9,15 @@ import struct
 import zlib
 
 from dotenv import load_dotenv
-from flask import Flask, session # type: ignore
+from flask import Flask, request, session # type: ignore
 
 load_dotenv()  # no-op if .env is absent or vars are already set
 
 from flask_socketio import join_room, leave_room # type: ignore
 
-from .extensions import socketio
+from .extensions import babel, socketio
+from .features.activity.routes import activity_bp
 from .models.db import migrate_from_json_if_needed
-from .routes.activity import activity_bp
 from .routes.auth import auth_api_bp, auth_bp
 from .routes.debug import debug_bp
 from .routes.external import external_bp
@@ -58,6 +58,17 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
+    app.config["BABEL_DEFAULT_LOCALE"] = "en"
+    app.config["BABEL_SUPPORTED_LOCALES"] = ["en", "es"]
+    app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "translations",
+    )
+
+    def _select_locale() -> str:
+        return request.accept_languages.best_match(["en", "es"]) or "en"
+
+    babel.init_app(app, locale_selector=_select_locale)
 
     # Initialise SocketIO with threading async mode (no extra dependencies)
     socketio.init_app(
