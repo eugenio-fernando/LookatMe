@@ -698,6 +698,28 @@
         Dashboard
       </a>
 
+      <a href="/focus" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        Focus
+      </a>
+
+      <a href="/activity-feed" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+        </svg>
+        Activity Feed
+      </a>
+
+      <a href="/invitations" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Friends
+      </a>
+
       <a href="/inbox" class="nav-item" style="justify-content:space-between;">
         <span style="display:flex;align-items:center;gap:9px;">
           <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -708,32 +730,17 @@
         <span id="inbox-badge" class="hidden" style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;line-height:1.7;"></span>
       </a>
 
-      <a href="/focus" class="nav-item">
-        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
-        </svg>
-        Focus
-      </a>
-
-      <a href="/learning" class="nav-item" style="display:none;">
-        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-        </svg>
-        Learning
-      </a>
-
-      <a href="/invitations" class="nav-item">
-        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        Friends
-      </a>
       <a href="/#notes-section" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 12h6m-6 4h6M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/>
         </svg>
         Notes
+      </a>
+      <a href="/profile" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        Profile
       </a>
 
     </nav>
@@ -830,6 +837,19 @@
         </div>
         {% endif %}
       </div>
+
+      <p class="section-heading">Activity Feed</p>
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Activity</span>
+          <span id="activity-live-dot" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
+        </div>
+        <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
+          <ul id="activity-list" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:360px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:12px;padding:8px 4px;" class="activity-empty">Loading…</li>
+          </ul>
+        </div>
+      </section>
 
       <!-- Quick stat row -->
       <p class="section-heading">Top Section</p>
@@ -1222,13 +1242,13 @@
       </section>
 
       <!-- ── Activity Feed ── -->
-      <section class="card">
+      <section class="card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Activity</span>
-          <span id="activity-live-dot" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
+          <span id="activity-live-dot-secondary" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
         </div>
         <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
-          <ul id="activity-list" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;">
+          <ul id="activity-list-secondary" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;">
             <li style="color:var(--text-muted);font-size:12px;padding:8px 4px;" class="activity-empty">Loading…</li>
           </ul>
         </div>
