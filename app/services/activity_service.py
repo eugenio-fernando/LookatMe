@@ -5,6 +5,7 @@ Activity feed service.
 import logging
 
 from ..models import db
+from .event_service import record_event as record_activity_event
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def record_event(user_id: int, event_type: str, description: str, metadata: dict
         return None
 
     try:
-        return db.create_activity_event(
+        return record_activity_event(
             user_id=user_id,
             event_type=event_type,
             description=description,
@@ -69,8 +70,19 @@ def get_feed_for_user(user_id: int, limit: int = 20) -> list[dict]:
         ]
 
     users = db.get_users_public_by_ids(list({e["user_id"] for e in events}))
+    reaction_counts = db.get_reaction_counts_for_event_ids([e["id"] for e in events])
+    result = []
     for item in events:
         u = users.get(item["user_id"]) or {}
-        item["user_display_name"] = u.get("display_name") or "User"
-        item["user_avatar_url"] = u.get("avatar_url") or ""
-    return events
+        event = {
+            **item,
+            "user_display_name": u.get("display_name") or "User",
+            "user_avatar_url": u.get("avatar_url") or "",
+        }
+        result.append({
+            "event": event,
+            "reactions": reaction_counts.get(
+                item["id"], {"like": 0, "love": 0, "fire": 0, "clap": 0}
+            ),
+        })
+    return result

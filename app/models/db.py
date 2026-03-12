@@ -336,6 +336,62 @@ def get_activity_event_feed_for_user(user_id: int, limit: int = 20) -> list[dict
     return [_activity_event_to_dict(r) for r in rows]
 
 
+def get_activity_event_by_id(event_id: int) -> dict | None:
+    with Prisma() as client:
+        row = client.activityevent.find_unique(where={"id": event_id})
+    return _activity_event_to_dict(row) if row else None
+
+
+def has_activity_reaction(event_id: int, user_id: int, reaction_type: str) -> bool:
+    with Prisma() as client:
+        row = client.activityreaction.find_first(
+            where={
+                "event_id": event_id,
+                "user_id": user_id,
+                "reaction_type": reaction_type,
+            }
+        )
+    return row is not None
+
+
+def create_activity_reaction(event_id: int, user_id: int, reaction_type: str) -> dict:
+    with Prisma() as client:
+        row = client.activityreaction.create(
+            data={
+                "event_id": event_id,
+                "user_id": user_id,
+                "reaction_type": reaction_type,
+            }
+        )
+    created = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "event_id": row.event_id,
+        "user_id": row.user_id,
+        "reaction_type": row.reaction_type,
+        "created_at": created,
+    }
+
+
+def get_reaction_counts_for_event_ids(event_ids: list[int]) -> dict[int, dict]:
+    """
+    Return reaction counts grouped by event id.
+    Shape: {event_id: {"like": n, "love": n, "fire": n, "clap": n}}
+    """
+    if not event_ids:
+        return {}
+    counts = {eid: {"like": 0, "love": 0, "fire": 0, "clap": 0} for eid in event_ids}
+    with Prisma() as client:
+        rows = client.activityreaction.find_many(where={"event_id": {"in": event_ids}})
+    for r in rows:
+        bucket = counts.setdefault(
+            r.event_id, {"like": 0, "love": 0, "fire": 0, "clap": 0}
+        )
+        if r.reaction_type in bucket:
+            bucket[r.reaction_type] += 1
+    return counts
+
+
 def get_recent_activity_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:
     where = {}
     if event_types:

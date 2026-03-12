@@ -1564,17 +1564,22 @@
     }
 
     function renderActivityItem(a) {
-      const type = a.event_type || a.type || 'event';
-      const text = a.description || a.content || '';
-      const avatar = a.user_avatar_url || defaultAvatarSvg();
-      const actor = a.user_display_name || 'You';
+      const payload = a?.event ? a.event : a;
+      const reactions = a?.reactions || { like: 0, love: 0, fire: 0, clap: 0 };
+      const type = payload.event_type || payload.type || 'event';
+      const text = payload.description || payload.content || '';
+      const avatar = payload.user_avatar_url || defaultAvatarSvg();
+      const actor = payload.user_display_name || 'You';
       const icon = ACTIVITY_ICONS[type] || '·';
+      const createdAt = payload.created_at;
+      const eventId = payload.id || 0;
       return `<li class="activity-item">
         <img src="${avatar}" alt="${actor}" style="width:24px;height:24px;border-radius:9999px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.src=defaultAvatarSvg()" />
         <span class="activity-dot ${type}">${icon}</span>
-        <div class="activity-content">
+        <div class="activity-content" data-event-id="${eventId}">
           <p class="activity-text" title="${text}">${text}</p>
-          <p class="activity-time">${_relTime(a.created_at)}</p>
+          <p class="activity-time">${_relTime(createdAt)}</p>
+          <p class="activity-time" style="margin-top:2px;">👍 ${reactions.like || 0} · ❤️ ${reactions.love || 0} · 🔥 ${reactions.fire || 0} · 👏 ${reactions.clap || 0}</p>
         </div>
       </li>`;
     }
@@ -1678,6 +1683,12 @@
       list.insertAdjacentHTML('afterbegin', renderActivityItem(activity));
       // Keep list trimmed to 20 items
       while (list.children.length > 20) list.lastElementChild.remove();
+    }
+
+    function applyReactionUpdate(eventId, reactions) {
+      const target = document.querySelector(`[data-event-id="${eventId}"] .activity-time:last-child`);
+      if (!target || !reactions) return;
+      target.textContent = `👍 ${reactions.like || 0} · ❤️ ${reactions.love || 0} · 🔥 ${reactions.fire || 0} · 👏 ${reactions.clap || 0}`;
     }
 
     // ── Workspaces ────────────────────────────────────────────────────
@@ -2282,6 +2293,12 @@
       socket.on('disconnect', () => { if (activityDot) activityDot.style.background = 'var(--border-color)'; });
       socket.on('activity_created', data => {
         if (data.activity) prependActivity(data.activity);
+      });
+      socket.on('activity:new', payload => {
+        if (payload) prependActivity(payload);
+      });
+      socket.on('reaction:new', payload => {
+        if (payload?.event_id) applyReactionUpdate(payload.event_id, payload.reactions);
       });
     })();
 

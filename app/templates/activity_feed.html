@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Activity Feed</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
   <main class="max-w-3xl mx-auto px-4 py-8">
@@ -16,18 +17,24 @@
     <section class="space-y-3">
       {% if feed_items %}
         {% for item in feed_items %}
-        <article class="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex gap-3 items-start">
+        <article class="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex gap-3 items-start" data-event-id="{{ item.event.id }}">
           <img
-            src="{{ item.user_avatar_url or '/static/logo.svg' }}"
-            alt="{{ item.user_display_name }}"
+            src="{{ item.event.user_avatar_url or '/static/logo.svg' }}"
+            alt="{{ item.event.user_display_name }}"
             class="w-10 h-10 rounded-full object-cover border border-zinc-700"
           />
           <div class="min-w-0">
             <p class="text-sm">
-              <span class="font-semibold">{{ item.user_display_name }}</span>
-              <span class="text-zinc-300">{{ item.content or item.description }}</span>
+              <span class="font-semibold">{{ item.event.user_display_name }}</span>
+              <span class="text-zinc-300">{{ item.event.content or item.event.description }}</span>
             </p>
-            <p class="text-xs text-zinc-500 mt-1">{{ item.created_at }}</p>
+            <p class="text-xs text-zinc-500 mt-1">{{ item.event.created_at }}</p>
+            <div class="mt-2 flex items-center gap-2 text-xs">
+              <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="like">👍 <span data-count="like">{{ item.reactions.like or 0 }}</span></button>
+              <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="love">❤️ <span data-count="love">{{ item.reactions.love or 0 }}</span></button>
+              <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="fire">🔥 <span data-count="fire">{{ item.reactions.fire or 0 }}</span></button>
+              <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="clap">👏 <span data-count="clap">{{ item.reactions.clap or 0 }}</span></button>
+            </div>
           </div>
         </article>
         {% endfor %}
@@ -36,5 +43,48 @@
       {% endif %}
     </section>
   </main>
+  <script>
+    async function postReaction(eventId, reactionType) {
+      const res = await fetch('/api/activity/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, reaction_type: reactionType }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    }
+
+    function applyReactionCounts(eventId, reactions) {
+      const card = document.querySelector(`[data-event-id="${eventId}"]`);
+      if (!card || !reactions) return;
+      ['like', 'love', 'fire', 'clap'].forEach(type => {
+        const el = card.querySelector(`[data-count="${type}"]`);
+        if (el) el.textContent = reactions[type] || 0;
+      });
+    }
+
+    document.querySelectorAll('.reaction-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const card = btn.closest('[data-event-id]');
+        if (!card) return;
+        const eventId = parseInt(card.getAttribute('data-event-id'), 10);
+        const reactionType = btn.getAttribute('data-reaction');
+        const data = await postReaction(eventId, reactionType);
+        if (data?.reactions) applyReactionCounts(eventId, data.reactions);
+      });
+    });
+
+    try {
+      const socket = io();
+      socket.on('activity:new', (payload) => {
+        if (!payload?.event) return;
+        window.location.reload();
+      });
+      socket.on('reaction:new', (payload) => {
+        if (!payload?.event_id) return;
+        applyReactionCounts(payload.event_id, payload.reactions);
+      });
+    } catch (_) {}
+  </script>
 </body>
 </html>

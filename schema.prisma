@@ -77,6 +77,16 @@ model ActivityEvent {
   metadata_json String @default("")
 }
 
+model ActivityReaction {
+  id            Int      @id @default(autoincrement())
+  event_id      Int
+  user_id       Int
+  reaction_type String
+  created_at    DateTime @default(now())
+
+  @@index([event_id])
+}
+
 model Invitation {
   id                Int     @id @default(autoincrement())
   sender_id         Int
