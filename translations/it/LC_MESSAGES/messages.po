@@ -1,4 +1,4 @@
-# Spanish translations for PROJECT.
+# Italian translations for PROJECT.
 # Copyright (C) 2026 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
@@ -8,10 +8,10 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-12 09:58+0100\n"
-"PO-Revision-Date: 2026-03-12 07:32+0100\n"
+"PO-Revision-Date: 2026-03-12 09:58+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: es\n"
-"Language-Team: es <LL@li.org>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
@@ -23,17 +23,15 @@ msgstr ""
 #: app/templates/focus.html:35 app/templates/inbox.html:138
 #: app/templates/profile.html:141 app/templates/spaces.html:32
 msgid "Activity Feed"
-msgstr "Actividad"
+msgstr ""
 
 #: app/templates/activity_feed.html:28
-#, fuzzy
 msgid "Back to dashboard"
-msgstr "Panel"
+msgstr ""
 
 #: app/templates/activity_feed.html:61
-#, fuzzy
 msgid "No activity yet."
-msgstr "Actividad"
+msgstr ""
 
 #: app/templates/activity_feed.html:85 app/templates/activity_feed.html:106
 msgid "User"
@@ -41,49 +39,49 @@ msgstr ""
 
 #: app/templates/dashboard.html:13
 msgid "LookAtMe — Dashboard"
-msgstr "LookAtMe — Panel"
+msgstr ""
 
 #: app/templates/dashboard.html:704 app/templates/dashboard.html:1124
 #: app/templates/focus.html:32 app/templates/inbox.html:126
 #: app/templates/profile.html:129 app/templates/profile.html:178
 #: app/templates/spaces.html:29
 msgid "Profile"
-msgstr "Perfil"
+msgstr ""
 
 #: app/templates/dashboard.html:712 app/templates/focus.html:33
 #: app/templates/inbox.html:130 app/templates/invitations.html:113
 #: app/templates/profile.html:133 app/templates/spaces.html:30
 msgid "Dashboard"
-msgstr "Panel"
+msgstr ""
 
 #: app/templates/dashboard.html:719 app/templates/focus.html:34
 #: app/templates/inbox.html:134 app/templates/profile.html:137
 #: app/templates/spaces.html:31
 msgid "Focus"
-msgstr "Enfoque"
+msgstr ""
 
 #: app/templates/dashboard.html:734 app/templates/focus.html:36
 #: app/templates/inbox.html:142 app/templates/invitations.html:168
 #: app/templates/profile.html:145 app/templates/spaces.html:33
 msgid "Friends"
-msgstr "Amigos"
+msgstr ""
 
 #: app/templates/dashboard.html:742 app/templates/focus.html:37
 #: app/templates/inbox.html:149 app/templates/profile.html:149
 #: app/templates/spaces.html:34
 msgid "Messages"
-msgstr "Mensajes"
+msgstr ""
 
 #: app/templates/dashboard.html:751 app/templates/focus.html:38
 #: app/templates/inbox.html:153 app/templates/profile.html:153
 #: app/templates/spaces.html:35
 msgid "Notes"
-msgstr "Notas"
+msgstr ""
 
 #: app/templates/dashboard.html:770 app/templates/inbox.html:160
 #: app/templates/invitations.html:131 app/templates/profile.html:167
 msgid "Sign out"
-msgstr "Cerrar sesion"
+msgstr ""
 
 #: app/templates/dashboard.html:1104 app/templates/dashboard.html:1633
 msgid "No active session"
@@ -94,49 +92,48 @@ msgid "Switch language"
 msgstr ""
 
 #: app/templates/dashboard.html:1630
-#, fuzzy
 msgid "Active"
-msgstr "Actividad"
+msgstr ""
 
 #: app/templates/focus.html:10
 msgid "Focus — LookAtMe"
-msgstr "Enfoque — LookAtMe"
+msgstr ""
 
 #: app/templates/focus.html:28 app/templates/invitations.html:117
 msgid "Focus Mode"
-msgstr "Modo enfoque"
+msgstr ""
 
 #: app/templates/focus.html:44
 msgid "Focus mode"
-msgstr "modo enfoque"
+msgstr ""
 
 #: app/templates/focus.html:58
 msgid "Start Focus"
-msgstr "Iniciar enfoque"
+msgstr ""
 
 #: app/templates/inbox.html:8
 msgid "LookAtMe — Inbox"
-msgstr "LookAtMe — Bandeja"
+msgstr ""
 
 #: app/templates/inbox.html:168 app/templates/inbox.html:178
 msgid "Inbox"
-msgstr "Bandeja"
+msgstr ""
 
 #: app/templates/inbox.html:169
 msgid "Your messages"
-msgstr "Tus mensajes"
+msgstr ""
 
 #: app/templates/inbox.html:173
 msgid "Compose"
-msgstr "Redactar"
+msgstr ""
 
 #: app/templates/inbox.html:179
 msgid "Sent"
-msgstr "Enviados"
+msgstr ""
 
 #: app/templates/invitations.html:8
 msgid "LookAtMe — Invitations"
-msgstr "LookAtMe — Invitaciones"
+msgstr ""
 
 #: app/templates/invitations.html:121
 msgid "Learning"
@@ -144,19 +141,19 @@ msgstr ""
 
 #: app/templates/invitations.html:125 app/templates/invitations.html:137
 msgid "Invitations"
-msgstr "Invitaciones"
+msgstr ""
 
 #: app/templates/invitations.html:138
 msgid "Track your friend invitations and see who joined."
-msgstr "Sigue tus invitaciones y ve quien se unio."
+msgstr ""
 
 #: app/templates/invitations.html:158
 msgid "Your Invites"
-msgstr "Tus invitaciones"
+msgstr ""
 
 #: app/templates/profile.html:8
 msgid "LookAtMe — Profile"
-msgstr "LookAtMe — Perfil"
+msgstr ""
 
 #: app/templates/spaces.html:7 app/templates/spaces.html:25
 msgid "Spaces"
@@ -237,217 +234,4 @@ msgstr ""
 #: app/templates/spaces.html:140
 msgid "Update"
 msgstr ""
-
-#~ msgid "{editor}: Editing failed"
-#~ msgstr ""
-
-#~ msgid "{editor}: Editing failed: {e}"
-#~ msgstr ""
-
-#~ msgid "{text} {deprecated_message}"
-#~ msgstr ""
-
-#~ msgid "Options"
-#~ msgstr ""
-
-#~ msgid "Got unexpected extra argument ({args})"
-#~ msgid_plural "Got unexpected extra arguments ({args})"
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
-#~ msgstr ""
-
-#~ msgid "Aborted!"
-#~ msgstr ""
-
-#~ msgid "Commands"
-#~ msgstr ""
-
-#~ msgid "Missing command."
-#~ msgstr ""
-
-#~ msgid "No such command {name!r}."
-#~ msgstr ""
-
-#~ msgid "Value must be an iterable."
-#~ msgstr ""
-
-#~ msgid "Takes {nargs} values but 1 was given."
-#~ msgid_plural "Takes {nargs} values but {len} were given."
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid ""
-#~ "DeprecationWarning: The {param_type} {name!r} "
-#~ "is deprecated.{extra_message}"
-#~ msgstr ""
-
-#~ msgid "env var: {var}"
-#~ msgstr ""
-
-#~ msgid "default: {default}"
-#~ msgstr ""
-
-#~ msgid "required"
-#~ msgstr ""
-
-#~ msgid "(dynamic)"
-#~ msgstr ""
-
-#~ msgid "%(prog)s, version %(version)s"
-#~ msgstr ""
-
-#~ msgid "Show the version and exit."
-#~ msgstr ""
-
-#~ msgid "Show this message and exit."
-#~ msgstr ""
-
-#~ msgid "Error: {message}"
-#~ msgstr ""
-
-#~ msgid "Try '{command} {option}' for help."
-#~ msgstr ""
-
-#~ msgid "Invalid value: {message}"
-#~ msgstr ""
-
-#~ msgid "Invalid value for {param_hint}: {message}"
-#~ msgstr ""
-
-#~ msgid "Missing argument"
-#~ msgstr ""
-
-#~ msgid "Missing option"
-#~ msgstr ""
-
-#~ msgid "Missing parameter"
-#~ msgstr ""
-
-#~ msgid "Missing {param_type}"
-#~ msgstr ""
-
-#~ msgid "Missing parameter: {param_name}"
-#~ msgstr ""
-
-#~ msgid "No such option: {name}"
-#~ msgstr ""
-
-#~ msgid "Did you mean {possibility}?"
-#~ msgid_plural "(Possible options: {possibilities})"
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "unknown error"
-#~ msgstr ""
-
-#~ msgid "Could not open file {filename!r}: {message}"
-#~ msgstr ""
-
-#~ msgid "Usage:"
-#~ msgstr ""
-
-#~ msgid "Argument {name!r} takes {nargs} values."
-#~ msgstr ""
-
-#~ msgid "Option {name!r} does not take a value."
-#~ msgstr ""
-
-#~ msgid "Option {name!r} requires an argument."
-#~ msgid_plural "Option {name!r} requires {nargs} arguments."
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
-#~ msgstr ""
-
-#~ msgid "Couldn't detect Bash version, shell completion is not supported."
-#~ msgstr ""
-
-#~ msgid "Repeat for confirmation"
-#~ msgstr ""
-
-#~ msgid "Error: The value you entered was invalid."
-#~ msgstr ""
-
-#~ msgid "Error: {e.message}"
-#~ msgstr ""
-
-#~ msgid "Error: The two entered values do not match."
-#~ msgstr ""
-
-#~ msgid "Error: invalid input"
-#~ msgstr ""
-
-#~ msgid "Press any key to continue..."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Choose from:\n"
-#~ "\t{choices}"
-#~ msgstr ""
-
-#~ msgid "{value!r} is not {choice}."
-#~ msgid_plural "{value!r} is not one of {choices}."
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "{value!r} does not match the format {format}."
-#~ msgid_plural "{value!r} does not match the formats {formats}."
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "{value!r} is not a valid {number_type}."
-#~ msgstr ""
-
-#~ msgid "{value} is not in the range {range}."
-#~ msgstr ""
-
-#~ msgid "{value!r} is not a valid boolean. Recognized values: {states}"
-#~ msgstr ""
-
-#~ msgid "{value!r} is not a valid UUID."
-#~ msgstr ""
-
-#~ msgid "file"
-#~ msgstr ""
-
-#~ msgid "directory"
-#~ msgstr ""
-
-#~ msgid "path"
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} does not exist."
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} is a file."
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} is a directory."
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} is not readable."
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} is not writable."
-#~ msgstr ""
-
-#~ msgid "{name} {filename!r} is not executable."
-#~ msgstr ""
-
-#~ msgid "{len_type} values are required, but {len_value} was given."
-#~ msgid_plural "{len_type} values are required, but {len_value} were given."
-#~ msgstr[0] ""
-#~ msgstr[1] ""
-
-#~ msgid "Attempting to connect to qpid with SASL mechanism %s"
-#~ msgstr ""
-
-#~ msgid "Connected to qpid with SASL mechanism %s"
-#~ msgstr ""
-
-#~ msgid "Unable to connect to qpid with SASL mechanism %s"
-#~ msgstr ""
 

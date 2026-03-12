@@ -39,6 +39,8 @@ from .routes.webhooks import webhooks_bp
 from .routes.spaces import spaces_bp
 from .routes.challenges import challenges_bp
 
+SUPPORTED_LOCALES = ("en", "es", "it")
+
 
 def create_app() -> Flask:
     # Resolve DATABASE_URL if not already set (local dev fallback).
@@ -62,29 +64,28 @@ def create_app() -> Flask:
 
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
     app.config["BABEL_DEFAULT_LOCALE"] = "en"
-    app.config["BABEL_SUPPORTED_LOCALES"] = ["en", "es", "it"]
+    app.config["BABEL_SUPPORTED_LOCALES"] = list(SUPPORTED_LOCALES)
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "translations",
     )
 
-    def _select_locale() -> str:
-        supported = {"en", "es", "it"}
-        preferred = (session.get("lang") or "").strip().lower()
-        if preferred in supported:
+    def get_locale() -> str:
+        preferred = (session.get("lang") or "").strip().casefold()
+        if preferred in SUPPORTED_LOCALES:
             return preferred
 
         user_id = session.get("user_id")
         if user_id:
             user = db.get_user_by_id(int(user_id))
-            user_lang = ((user or {}).get("language") or "").strip().lower()
-            if user_lang in supported:
+            user_lang = ((user or {}).get("language") or "").strip().casefold()
+            if user_lang in SUPPORTED_LOCALES:
                 session["lang"] = user_lang
                 return user_lang
 
-        return request.accept_languages.best_match(["en", "es", "it"]) or "en"
+        return request.accept_languages.best_match(SUPPORTED_LOCALES) or "en"
 
-    babel.init_app(app, locale_selector=_select_locale)
+    babel.init_app(app, locale_selector=get_locale)
 
     # Initialise SocketIO with threading async mode (no extra dependencies)
     socketio.init_app(

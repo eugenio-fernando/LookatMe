@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Activity Feed</title>
+  <title>{{ _('Activity Feed') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
@@ -24,8 +24,8 @@
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
   <main class="max-w-3xl mx-auto px-4 py-8">
     <header class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">Activity Feed</h1>
-      <a href="/" class="text-sm text-lime-300 hover:text-lime-200">Back to dashboard</a>
+      <h1 class="text-2xl font-semibold">{{ _('Activity Feed') }}</h1>
+      <a href="/" class="text-sm text-lime-300 hover:text-lime-200">{{ _('Back to dashboard') }}</a>
     </header>
 
     <section id="feed-list" class="space-y-3">
@@ -58,7 +58,7 @@
         </article>
         {% endfor %}
       {% else %}
-        <p class="text-sm text-zinc-500">No activity yet.</p>
+        <p class="text-sm text-zinc-500">{{ _('No activity yet.') }}</p>
       {% endif %}
     </section>
   </main>
@@ -82,7 +82,7 @@
     function renderAvatarStack(users) {
       return (users || []).map(u => {
         const avatar = u.avatar_url || defaultAvatar();
-        const name = u.display_name || 'User';
+        const name = u.display_name || '{{ _("User") }}';
         return `<img src="${avatar}" alt="${name}" title="${name}" onerror="this.src='${defaultAvatar()}'" />`;
       }).join('');
     }
@@ -103,7 +103,7 @@
       const reactions = payload?.reactions || { like: 0, love: 0, fire: 0, clap: 0 };
       const reactionUsers = payload?.reaction_users || { like: [], love: [], fire: [], clap: [] };
       const avatar = event.user_avatar_url || defaultAvatar();
-      const actor = event.user_display_name || 'User';
+      const actor = event.user_display_name || '{{ _("User") }}';
       const message = event.message || event.description || event.content || '';
       const createdAt = event.created_at || '';
       return `

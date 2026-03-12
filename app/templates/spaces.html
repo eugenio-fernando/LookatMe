@@ -4,7 +4,7 @@
   <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spaces</title>
+  <title>{{ _('Spaces') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html[data-theme="dark"]  { --bg:#111111; --card:#1c1c1c; --border:#2a2a2a; --input:#171717; --input-border:#333333; --text:#eeeeee; --muted:#a1a1aa; --accent:#a3e635; }
@@ -22,58 +22,58 @@
   <main class="max-w-5xl mx-auto px-4 py-8 space-y-5">
     <header class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-bold">Spaces</h1>
-        <p class="text-sm text-zinc-400">Group hubs for challenges and shared activity.</p>
+        <h1 class="text-2xl font-bold">{{ _('Spaces') }}</h1>
+        <p class="text-sm text-zinc-400">{{ _('Group hubs for challenges and shared activity.') }}</p>
       </div>
       <div class="flex flex-wrap gap-2 text-sm">
-        <a href="/profile" class="btn btn-muted" style="text-decoration:none;">Profile</a>
-        <a href="/" class="btn btn-muted" style="text-decoration:none;">Dashboard</a>
-        <a href="/focus" class="btn btn-muted" style="text-decoration:none;">Focus</a>
-        <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;">Activity Feed</a>
-        <a href="/invitations" class="btn btn-muted" style="text-decoration:none;">Friends</a>
-        <a href="/inbox" class="btn btn-muted" style="text-decoration:none;">Messages</a>
-        <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;">Notes</a>
+        <a href="/profile" class="btn btn-muted" style="text-decoration:none;">{{ _('Profile') }}</a>
+        <a href="/" class="btn btn-muted" style="text-decoration:none;">{{ _('Dashboard') }}</a>
+        <a href="/focus" class="btn btn-muted" style="text-decoration:none;">{{ _('Focus') }}</a>
+        <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;">{{ _('Activity Feed') }}</a>
+        <a href="/invitations" class="btn btn-muted" style="text-decoration:none;">{{ _('Friends') }}</a>
+        <a href="/inbox" class="btn btn-muted" style="text-decoration:none;">{{ _('Messages') }}</a>
+        <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;">{{ _('Notes') }}</a>
       </div>
     </header>
 
     <section class="grid md:grid-cols-2 gap-5">
       <div class="card p-4">
-        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">Create Space</h2>
+        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">{{ _('Create Space') }}</h2>
         <form id="space-create-form" class="space-y-3">
-          <input id="space-name" class="field" placeholder="Space name" />
-          <button class="btn btn-primary" type="submit">Create Space</button>
+          <input id="space-name" class="field" placeholder="{{ _('Space name') }}" />
+          <button class="btn btn-primary" type="submit">{{ _('Create Space') }}</button>
         </form>
       </div>
 
       <div class="card p-4">
-        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">Join Space</h2>
+        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">{{ _('Join Space') }}</h2>
         <form id="space-join-form" class="space-y-3">
-          <input id="space-invite" class="field" placeholder="Invite code" />
-          <button class="btn btn-muted" type="submit">Join Space</button>
+          <input id="space-invite" class="field" placeholder="{{ _('Invite code') }}" />
+          <button class="btn btn-muted" type="submit">{{ _('Join Space') }}</button>
         </form>
       </div>
     </section>
 
     <section class="card p-4">
-      <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">My Spaces</h2>
+      <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">{{ _('My Spaces') }}</h2>
       <div id="spaces-list" class="grid md:grid-cols-2 gap-3 text-sm text-zinc-300">
-        <p class="text-zinc-500">Loading…</p>
+        <p class="text-zinc-500">{{ _('Loading...') }}</p>
       </div>
     </section>
 
     <section class="card p-4 space-y-4">
-      <h2 class="text-sm uppercase tracking-widest text-zinc-400">Challenges</h2>
+      <h2 class="text-sm uppercase tracking-widest text-zinc-400">{{ _('Challenges') }}</h2>
       <form id="challenge-create-form" class="grid md:grid-cols-4 gap-3 items-end">
         <div>
-          <label class="text-xs text-zinc-400">Title</label>
-          <input id="challenge-title" class="field" placeholder="30 mins daily focus" />
+          <label class="text-xs text-zinc-400">{{ _('Title') }}</label>
+          <input id="challenge-title" class="field" placeholder="{{ _('30 mins daily focus') }}" />
         </div>
         <div>
-          <label class="text-xs text-zinc-400">Goal</label>
+          <label class="text-xs text-zinc-400">{{ _('Goal') }}</label>
           <input id="challenge-goal" class="field" type="number" min="1" value="30" />
         </div>
         <div>
-          <label class="text-xs text-zinc-400">Metric</label>
+          <label class="text-xs text-zinc-400">{{ _('Metric') }}</label>
           <select id="challenge-metric" class="field">
             <option value="focus_minutes">focus_minutes</option>
             <option value="tasks_completed">tasks_completed</option>
@@ -82,11 +82,11 @@
           </select>
         </div>
         <div>
-          <label class="text-xs text-zinc-400">Space</label>
+          <label class="text-xs text-zinc-400">{{ _('Space') }}</label>
           <select id="challenge-space" class="field"></select>
         </div>
         <div class="md:col-span-4">
-          <button type="submit" class="btn btn-primary">Create Challenge</button>
+          <button type="submit" class="btn btn-primary">{{ _('Create Challenge') }}</button>
         </div>
       </form>
       <div id="challenges-list" class="space-y-2 text-sm text-zinc-300"></div>
@@ -111,8 +111,8 @@
       const list = document.getElementById('spaces-list');
       const sel = document.getElementById('challenge-space');
       if (!spaces.length) {
-        list.innerHTML = '<p class="text-zinc-500">You are not in any spaces yet.</p>';
-        sel.innerHTML = '<option value="">No spaces</option>';
+        list.innerHTML = '<p class="text-zinc-500">{{ _("You are not in any spaces yet.") }}</p>';
+        sel.innerHTML = '<option value="">{{ _("No spaces") }}</option>';
         return;
       }
       list.innerHTML = spaces.map(s => `
@@ -128,16 +128,16 @@
       const rows = await getJSON('/api/challenges');
       const root = document.getElementById('challenges-list');
       if (!rows.length) {
-        root.innerHTML = '<p class="text-zinc-500">No challenges yet.</p>';
+        root.innerHTML = '<p class="text-zinc-500">{{ _("No challenges yet.") }}</p>';
         return;
       }
       root.innerHTML = rows.map(c => `
         <div class="border border-zinc-700 rounded-lg p-3">
           <p class="font-semibold">${c.title} <span class="text-xs text-zinc-500">(${c.metric})</span></p>
-          <p class="text-xs text-zinc-400">Progress: ${c.my_progress}/${c.goal}</p>
+          <p class="text-xs text-zinc-400">{{ _("Progress") }}: ${c.my_progress}/${c.goal}</p>
           <div class="mt-2 flex gap-2">
             <input class="field" style="max-width:100px" type="number" min="0" value="${c.my_progress}" data-progress="${c.id}" />
-            <button class="btn btn-muted" data-save-progress="${c.id}">Update</button>
+            <button class="btn btn-muted" data-save-progress="${c.id}">{{ _("Update") }}</button>
           </div>
         </div>
       `).join('');

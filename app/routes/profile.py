@@ -14,6 +14,7 @@ UPLOAD_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "static", "uploads", "avatars"
 )
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+SUPPORTED_LANGUAGES = {"en", "es", "it"}
 
 
 def _allowed(filename: str) -> bool:
@@ -96,8 +97,8 @@ def get_language():
 @api_login_required
 def set_language():
     body = request.get_json(silent=True) or {}
-    language = str(body.get("language", "en")).strip().lower()
-    if language not in {"en", "es", "it"}:
+    language = str(body.get("language", "en")).strip().casefold()
+    if language not in SUPPORTED_LANGUAGES:
         return jsonify({"error": "invalid language"}), 400
 
     user = db.update_user_language(session["user_id"], language)
@@ -109,8 +110,8 @@ def set_language():
 @api_login_required
 def set_user_language():
     body = request.get_json(silent=True) or {}
-    language = str(body.get("language", "en")).strip().lower()
-    if language not in {"en", "es", "it"}:
+    language = str(body.get("language", "en")).strip().casefold()
+    if language not in SUPPORTED_LANGUAGES:
         return jsonify({"error": "invalid language"}), 400
     user = db.update_user_language(session["user_id"], language)
     session["lang"] = language

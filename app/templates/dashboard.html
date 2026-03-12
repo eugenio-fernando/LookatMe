@@ -1101,13 +1101,13 @@
         </div>
         <div class="card-body" style="padding-top:10px;padding-bottom:12px;">
           <p id="global-focus-timer" style="font-family:'SF Mono','Fira Code',monospace;font-size:22px;font-weight:800;color:var(--text-primary);">00:00</p>
-          <p id="global-focus-state" style="font-size:11px;color:var(--text-secondary);">No active session</p>
+          <p id="global-focus-state" style="font-size:11px;color:var(--text-secondary);">{{ _('No active session') }}</p>
         </div>
       </section>
 
       <section class="card">
         <div class="card-header">
-          <span class="card-label">Switch language</span>
+          <span class="card-label">{{ _('Switch language') }}</span>
         </div>
         <div class="card-body" style="padding-top:10px;padding-bottom:12px;">
           <select id="lang-select" class="field-input" style="font-size:12px;padding:8px 10px;" onchange="setLanguage(this.value)">
@@ -1121,7 +1121,7 @@
       <!-- ── Profile Widget ── -->
       <section class="card" id="profile-widget">
         <div class="card-header">
-          <span class="card-label">Profile</span>
+          <span class="card-label">{{ _('Profile') }}</span>
           <a href="/profile" style="font-size:11.5px;font-weight:600;color:var(--accent);text-decoration:none;transition:color 0.12s;"
             onmouseover="this.style.color='var(--accent-hover)'" onmouseout="this.style.color='var(--accent)'">Edit →</a>
         </div>
@@ -1627,10 +1627,10 @@
         if (!timer || !state) return;
         if (data?.active && data?.session) {
           timer.textContent = _fmtFocusMMSS(data.session.remaining_seconds || 0);
-          state.textContent = 'Active';
+          state.textContent = '{{ _("Active") }}';
         } else {
           timer.textContent = '00:00';
-          state.textContent = 'No active session';
+          state.textContent = '{{ _("No active session") }}';
         }
       } catch { /* non-critical */ }
     }

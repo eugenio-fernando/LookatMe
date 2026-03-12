@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-12 07:35+0100\n"
+"POT-Creation-Date: 2026-03-12 09:58+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,57 +17,88 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: app/templates/activity_feed.html:6 app/templates/activity_feed.html:27
+#: app/templates/dashboard.html:726 app/templates/dashboard.html:849
+#: app/templates/focus.html:35 app/templates/inbox.html:138
+#: app/templates/profile.html:141 app/templates/spaces.html:32
+msgid "Activity Feed"
+msgstr ""
+
+#: app/templates/activity_feed.html:28
+msgid "Back to dashboard"
+msgstr ""
+
+#: app/templates/activity_feed.html:61
+msgid "No activity yet."
+msgstr ""
+
+#: app/templates/activity_feed.html:85 app/templates/activity_feed.html:106
+msgid "User"
+msgstr ""
+
 #: app/templates/dashboard.html:13
 msgid "LookAtMe — Dashboard"
 msgstr ""
 
-#: app/templates/dashboard.html:698 app/templates/focus.html:32
-#: app/templates/inbox.html:126 app/templates/invitations.html:113
-#: app/templates/profile.html:129
-msgid "Dashboard"
-msgstr ""
-
-#: app/templates/dashboard.html:705 app/templates/focus.html:33
-#: app/templates/profile.html:133
-msgid "Focus"
-msgstr ""
-
-#: app/templates/dashboard.html:712 app/templates/dashboard.html:841
-#: app/templates/focus.html:34 app/templates/profile.html:137
-msgid "Activity Feed"
-msgstr ""
-
-#: app/templates/dashboard.html:720 app/templates/focus.html:35
-#: app/templates/invitations.html:168 app/templates/profile.html:141
-msgid "Friends"
-msgstr ""
-
-#: app/templates/dashboard.html:728 app/templates/focus.html:36
-#: app/templates/profile.html:145
-msgid "Messages"
-msgstr ""
-
-#: app/templates/dashboard.html:737 app/templates/focus.html:37
-#: app/templates/profile.html:149
-msgid "Notes"
-msgstr ""
-
-#: app/templates/dashboard.html:743 app/templates/focus.html:38
-#: app/templates/profile.html:153 app/templates/profile.html:178
+#: app/templates/dashboard.html:704 app/templates/dashboard.html:1124
+#: app/templates/focus.html:32 app/templates/inbox.html:126
+#: app/templates/profile.html:129 app/templates/profile.html:178
+#: app/templates/spaces.html:29
 msgid "Profile"
 msgstr ""
 
-#: app/templates/dashboard.html:762 app/templates/inbox.html:148
+#: app/templates/dashboard.html:712 app/templates/focus.html:33
+#: app/templates/inbox.html:130 app/templates/invitations.html:113
+#: app/templates/profile.html:133 app/templates/spaces.html:30
+msgid "Dashboard"
+msgstr ""
+
+#: app/templates/dashboard.html:719 app/templates/focus.html:34
+#: app/templates/inbox.html:134 app/templates/profile.html:137
+#: app/templates/spaces.html:31
+msgid "Focus"
+msgstr ""
+
+#: app/templates/dashboard.html:734 app/templates/focus.html:36
+#: app/templates/inbox.html:142 app/templates/invitations.html:168
+#: app/templates/profile.html:145 app/templates/spaces.html:33
+msgid "Friends"
+msgstr ""
+
+#: app/templates/dashboard.html:742 app/templates/focus.html:37
+#: app/templates/inbox.html:149 app/templates/profile.html:149
+#: app/templates/spaces.html:34
+msgid "Messages"
+msgstr ""
+
+#: app/templates/dashboard.html:751 app/templates/focus.html:38
+#: app/templates/inbox.html:153 app/templates/profile.html:153
+#: app/templates/spaces.html:35
+msgid "Notes"
+msgstr ""
+
+#: app/templates/dashboard.html:770 app/templates/inbox.html:160
 #: app/templates/invitations.html:131 app/templates/profile.html:167
 msgid "Sign out"
+msgstr ""
+
+#: app/templates/dashboard.html:1104 app/templates/dashboard.html:1633
+msgid "No active session"
+msgstr ""
+
+#: app/templates/dashboard.html:1110
+msgid "Switch language"
+msgstr ""
+
+#: app/templates/dashboard.html:1630
+msgid "Active"
 msgstr ""
 
 #: app/templates/focus.html:10
 msgid "Focus — LookAtMe"
 msgstr ""
 
-#: app/templates/focus.html:28 app/templates/inbox.html:130
-#: app/templates/invitations.html:117
+#: app/templates/focus.html:28 app/templates/invitations.html:117
 msgid "Focus Mode"
 msgstr ""
 
@@ -83,29 +114,28 @@ msgstr ""
 msgid "LookAtMe — Inbox"
 msgstr ""
 
-#: app/templates/inbox.html:134 app/templates/invitations.html:121
-msgid "Learning"
-msgstr ""
-
-#: app/templates/inbox.html:141 app/templates/inbox.html:156
-#: app/templates/inbox.html:166
+#: app/templates/inbox.html:168 app/templates/inbox.html:178
 msgid "Inbox"
 msgstr ""
 
-#: app/templates/inbox.html:157
+#: app/templates/inbox.html:169
 msgid "Your messages"
 msgstr ""
 
-#: app/templates/inbox.html:161
+#: app/templates/inbox.html:173
 msgid "Compose"
 msgstr ""
 
-#: app/templates/inbox.html:167
+#: app/templates/inbox.html:179
 msgid "Sent"
 msgstr ""
 
 #: app/templates/invitations.html:8
 msgid "LookAtMe — Invitations"
+msgstr ""
+
+#: app/templates/invitations.html:121
+msgid "Learning"
 msgstr ""
 
 #: app/templates/invitations.html:125 app/templates/invitations.html:137
@@ -122,5 +152,85 @@ msgstr ""
 
 #: app/templates/profile.html:8
 msgid "LookAtMe — Profile"
+msgstr ""
+
+#: app/templates/spaces.html:7 app/templates/spaces.html:25
+msgid "Spaces"
+msgstr ""
+
+#: app/templates/spaces.html:26
+msgid "Group hubs for challenges and shared activity."
+msgstr ""
+
+#: app/templates/spaces.html:41 app/templates/spaces.html:44
+msgid "Create Space"
+msgstr ""
+
+#: app/templates/spaces.html:43
+msgid "Space name"
+msgstr ""
+
+#: app/templates/spaces.html:49 app/templates/spaces.html:52
+msgid "Join Space"
+msgstr ""
+
+#: app/templates/spaces.html:51
+msgid "Invite code"
+msgstr ""
+
+#: app/templates/spaces.html:58
+msgid "My Spaces"
+msgstr ""
+
+#: app/templates/spaces.html:60
+msgid "Loading..."
+msgstr ""
+
+#: app/templates/spaces.html:65
+msgid "Challenges"
+msgstr ""
+
+#: app/templates/spaces.html:68
+msgid "Title"
+msgstr ""
+
+#: app/templates/spaces.html:69
+msgid "30 mins daily focus"
+msgstr ""
+
+#: app/templates/spaces.html:72
+msgid "Goal"
+msgstr ""
+
+#: app/templates/spaces.html:76
+msgid "Metric"
+msgstr ""
+
+#: app/templates/spaces.html:85
+msgid "Space"
+msgstr ""
+
+#: app/templates/spaces.html:89
+msgid "Create Challenge"
+msgstr ""
+
+#: app/templates/spaces.html:114
+msgid "You are not in any spaces yet."
+msgstr ""
+
+#: app/templates/spaces.html:115
+msgid "No spaces"
+msgstr ""
+
+#: app/templates/spaces.html:131
+msgid "No challenges yet."
+msgstr ""
+
+#: app/templates/spaces.html:137
+msgid "Progress"
+msgstr ""
+
+#: app/templates/spaces.html:140
+msgid "Update"
 msgstr ""
 
