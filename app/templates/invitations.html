@@ -133,9 +133,12 @@
   </aside>
 
   <main class="flex-1 ml-56 p-8 max-w-4xl">
-    <div class="mb-7">
-      <h1 class="text-[22px] font-extrabold text-main tracking-tight mb-1">{{ _('Invitations') }}</h1>
-      <p class="text-sm text-soft">{{ _('Track your friend invitations and see who joined.') }}</p>
+    <div class="mb-7 flex items-end justify-between gap-3">
+      <div>
+        <h1 class="text-[22px] font-extrabold text-main tracking-tight mb-1">{{ _('Invitations') }}</h1>
+        <p class="text-sm text-soft">{{ _('Track your friend invitations and see who joined.') }}</p>
+      </div>
+      <button onclick="openInviteFriendModal()" class="ghost-btn">{{ _('Invite Friend') }}</button>
     </div>
 
     <div class="grid grid-cols-3 gap-3 mb-6" id="stats-row">
@@ -173,7 +176,32 @@
     </div>
   </main>
 
+  <div id="invite-friend-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:120;align-items:center;justify-content:center;padding:16px;">
+    <div class="card" style="width:100%;max-width:440px;padding:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <p class="text-sm font-bold text-main">{{ _('Invite Friend') }}</p>
+        <button onclick="closeInviteFriendModal()" class="ghost-btn" style="padding:3px 8px;">✕</button>
+      </div>
+      <p class="text-xs text-soft mb-3">{{ _('Send an invite by email and share the link directly if needed.') }}</p>
+      <div style="display:flex;gap:8px;">
+        <input id="friend-invite-email" type="email" placeholder="friend@example.com"
+               style="flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;" />
+        <button id="friend-invite-send-btn" onclick="submitFriendInvite()" class="ghost-btn">{{ _('Send') }}</button>
+      </div>
+      <p id="friend-invite-status" class="text-xs text-soft mt-2" style="min-height:16px;"></p>
+      <div id="friend-invite-link-wrap" style="display:none;margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);">
+        <p class="text-[11px] text-soft mb-1">{{ _('Invite link') }}</p>
+        <p id="friend-invite-link" class="text-xs text-main" style="word-break:break-all;"></p>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button id="friend-invite-copy-btn" onclick="copyFriendInviteLink()" class="ghost-btn">{{ _('Copy invite link') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    let _latestFriendInviteUrl = '';
+
     function updateClock() {
       const now = new Date();
       const cl = document.getElementById('sidebar-clock');
@@ -192,6 +220,76 @@
     function closeMobileNav() {
       document.querySelector('aside').classList.remove('open');
       document.getElementById('nav-overlay').style.display = 'none';
+    }
+
+    function openInviteFriendModal() {
+      const modal = document.getElementById('invite-friend-modal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.getElementById('friend-invite-status').textContent = '';
+      document.getElementById('friend-invite-email').value = '';
+      document.getElementById('friend-invite-link-wrap').style.display = 'none';
+      setTimeout(() => document.getElementById('friend-invite-email').focus(), 40);
+    }
+
+    function closeInviteFriendModal() {
+      const modal = document.getElementById('invite-friend-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitFriendInvite() {
+      const emailEl = document.getElementById('friend-invite-email');
+      const statusEl = document.getElementById('friend-invite-status');
+      const sendBtn = document.getElementById('friend-invite-send-btn');
+      const email = (emailEl.value || '').trim();
+      if (!email || !email.includes('@')) {
+        statusEl.textContent = 'Enter a valid email.';
+        statusEl.className = 'text-xs error-text mt-2';
+        return;
+      }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+      statusEl.textContent = '';
+      try {
+        const res = await fetch('/api/friends/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          statusEl.textContent = data.error || 'Could not send invite.';
+          statusEl.className = 'text-xs error-text mt-2';
+          return;
+        }
+        _latestFriendInviteUrl = data.invite_url || '';
+        document.getElementById('friend-invite-link').textContent = _latestFriendInviteUrl;
+        document.getElementById('friend-invite-link-wrap').style.display = _latestFriendInviteUrl ? 'block' : 'none';
+        statusEl.textContent = data.email_sent ? 'Invite sent.' : 'Invite created. Copy the link below.';
+        statusEl.className = 'text-xs mt-2';
+        await loadInvitations();
+        await loadFriends();
+      } catch {
+        statusEl.textContent = 'Network error. Please try again.';
+        statusEl.className = 'text-xs error-text mt-2';
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+      }
+    }
+
+    async function copyFriendInviteLink() {
+      if (!_latestFriendInviteUrl) return;
+      const copyBtn = document.getElementById('friend-invite-copy-btn');
+      const prev = copyBtn.textContent;
+      try {
+        await navigator.clipboard.writeText(_latestFriendInviteUrl);
+        copyBtn.textContent = 'Copied';
+      } catch {
+        copyBtn.textContent = 'Copy failed';
+      } finally {
+        setTimeout(() => { copyBtn.textContent = prev; }, 1200);
+      }
     }
 
     async function logout() {
@@ -299,6 +397,10 @@
 
     loadInvitations();
     loadFriends();
+
+    document.getElementById('invite-friend-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'invite-friend-modal') closeInviteFriendModal();
+    });
   </script>
 </body>
 </html>

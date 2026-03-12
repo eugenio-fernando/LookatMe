@@ -3,12 +3,14 @@ Social accountability system — invitations and friendships.
 """
 
 import logging
+import os
 import secrets
 
 from flask import Blueprint, jsonify, request, session
 
 from ..models import db
 from ..services.activity_service import record_event
+from ..services.email_service import send_friend_invite_email
 from ..utils import api_login_required
 
 social_bp = Blueprint("social", __name__)
@@ -33,6 +35,92 @@ def create_invitation():
     logger.info("INVITE_CREATED user_id=%s method=%s token=%s", user_id, method, token)
 
     return jsonify({"ok": True, "invite_url": invite_url, "token": token})
+
+
+@social_bp.route("/api/friends/invite", methods=["POST"])
+@api_login_required
+def create_friend_invite():
+    user_id = session["user_id"]
+    body = request.get_json(silent=True) or {}
+    email = (body.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email required"}), 400
+
+    me = db.get_user_by_id(user_id) or {}
+    if (me.get("email") or "").strip().lower() == email:
+        return jsonify({"error": "You cannot invite yourself"}), 400
+
+    token = secrets.token_urlsafe(32)
+    invite = db.create_friend_invite(user_id, email, token)
+    base_url = os.environ.get("APP_BASE_URL", _BASE_URL).rstrip("/")
+    invite_url = f"{base_url}/invite/{token}"
+    inviter_name = (me.get("display_name") or me.get("email", "").split("@")[0] or "A friend").strip()
+    email_sent = send_friend_invite_email(email, token, inviter_name)
+    logger.info(
+        "FRIEND_INVITE_CREATED inviter_id=%s email=%s token_prefix=%s email_sent=%s",
+        user_id, email, token[:8], email_sent,
+    )
+
+    return jsonify({
+        "ok": True,
+        "invite": invite,
+        "invite_url": invite_url,
+        "email_sent": email_sent,
+    })
+
+
+@social_bp.route("/api/friends/invite-info/<token>", methods=["GET"])
+def friend_invite_info(token: str):
+    inv = db.get_friend_invite(token)
+    if not inv:
+        return jsonify({"error": "Invalid invite link"}), 404
+    if inv.get("status") != "pending" or inv.get("accepted_at"):
+        return jsonify({"error": "already_accepted", "message": "This invite has already been used."}), 400
+
+    inviter = db.get_user_by_id(inv["inviter_id"]) if inv.get("inviter_id") else None
+    inviter_name = (
+        (inviter.get("display_name") or inviter.get("email", "").split("@")[0]).strip()
+        if inviter else "Someone"
+    ) or "Someone"
+    return jsonify({
+        "ok": True,
+        "type": "friend",
+        "inviter_name": inviter_name,
+        "email": inv.get("email"),
+        "token": token,
+    })
+
+
+@social_bp.route("/api/friends/accept-invite", methods=["POST"])
+@api_login_required
+def accept_friend_invite():
+    token = (request.json or {}).get("token", "").strip()
+    if not token:
+        return jsonify({"error": "Token required"}), 400
+
+    me = db.get_user_by_id(session["user_id"]) or {}
+    result = db.accept_friend_invite(token, session["user_id"], invitee_email=me.get("email"))
+    if not result.get("accepted"):
+        reason = result.get("reason") or "invalid_invite"
+        if reason == "already_accepted":
+            return jsonify({"error": "already_accepted", "message": "This invite has already been used."}), 400
+        if reason == "own_invite":
+            return jsonify({"error": "Cannot accept your own invite"}), 400
+        if reason == "email_mismatch":
+            return jsonify({"error": "This invite was sent to a different email address"}), 403
+        return jsonify({"error": "Invalid invite link"}), 404
+
+    record_event(
+        session["user_id"],
+        "friend_joined",
+        "joined your circle",
+        metadata={"visibility": "public", "inviter_id": result.get("inviter_id")},
+    )
+    logger.info(
+        "FRIEND_INVITE_ACCEPTED token_prefix=%s recipient_user_id=%s inviter_id=%s",
+        token[:8], session["user_id"], result.get("inviter_id"),
+    )
+    return jsonify({"ok": True})
 
 
 @social_bp.route("/api/invitations/info/<token>", methods=["GET"])

@@ -122,7 +122,7 @@
 
   <script>
     const TOKEN = {{ token | tojson }};
-    let _inviteType = 'workspace'; // 'workspace' or 'social'
+    let _inviteType = 'workspace'; // 'workspace' | 'friend' | 'social'
 
     async function init() {
       try {
@@ -146,10 +146,23 @@
           return;
         }
 
-        // Fall back to social invite
-        const socRes  = await fetch(`/api/invitations/info/${TOKEN}`);
-        const socData = await socRes.json();
+        // Try friend invite
+        const friendRes = await fetch(`/api/friends/invite-info/${TOKEN}`);
+        const friendData = await friendRes.json().catch(() => ({}));
+        if (friendRes.ok) {
+          _inviteType = 'friend';
+          document.getElementById('sender-name').textContent = friendData.inviter_name || 'Someone';
+          document.getElementById('state-social').style.display = 'block';
+          if (!isAuth) {
+            document.getElementById('social-accept-btn').style.display = 'none';
+            document.getElementById('social-login-link').style.display = 'flex';
+          }
+          return;
+        }
 
+        // Fall back to legacy social invite
+        const socRes = await fetch(`/api/invitations/info/${TOKEN}`);
+        const socData = await socRes.json().catch(() => ({}));
         if (socRes.ok) {
           _inviteType = 'social';
           document.getElementById('sender-name').textContent = socData.sender_name || 'Someone';
@@ -163,7 +176,8 @@
 
         // Neither type matched
         const errData = await wsRes.json().catch(() => ({}));
-        document.getElementById('error-msg').textContent = socData.message || socData.error || 'Invite not found';
+        document.getElementById('error-msg').textContent =
+          friendData.message || friendData.error || socData.message || socData.error || errData.error || 'Invite not found';
         document.getElementById('state-error').style.display = 'block';
       } catch {
         document.getElementById('state-loading').style.display = 'none';
@@ -211,7 +225,8 @@
       status.className = '';
       status.textContent = '';
       try {
-        const res  = await fetch('/api/invitations/accept', {
+        const endpoint = _inviteType === 'friend' ? '/api/friends/accept-invite' : '/api/invitations/accept';
+        const res  = await fetch(endpoint, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ token: TOKEN }),

@@ -18,7 +18,7 @@ EVENT_MESSAGES = {
     "challenge_progress": "{username} updated challenge progress",
     "challenge_completed": "{username} completed a challenge",
     "message_sent": "{username} sent a message",
-    "friend_joined": "{username} joined a friend circle",
+    "friend_joined": "{username} joined your circle",
     "space_created": "{username} created a new space",
     "space_joined": "{username} joined a space",
 }

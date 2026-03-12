@@ -1420,11 +1420,85 @@ def accept_social_invitation(
     return True
 
 
+def _friend_invite_to_dict(row) -> dict:
+    created_at = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else row.created_at
+    accepted_at = row.accepted_at.isoformat() if (row.accepted_at and hasattr(row.accepted_at, "isoformat")) else row.accepted_at
+    return {
+        "id": row.id,
+        "inviter_id": row.inviter_id,
+        "email": row.email,
+        "token": row.token,
+        "status": row.status,
+        "created_at": created_at,
+        "accepted_at": accepted_at,
+    }
+
+
+def create_friend_invite(inviter_id: int, email: str, token: str) -> dict:
+    with Prisma() as client:
+        row = client.friendinvite.create(data={
+            "inviter_id": inviter_id,
+            "email": email.strip().lower(),
+            "token": token,
+            "status": "pending",
+        })
+    return _friend_invite_to_dict(row)
+
+
+def get_friend_invite(token: str) -> dict | None:
+    with Prisma() as client:
+        row = client.friendinvite.find_unique(where={"token": token})
+    return _friend_invite_to_dict(row) if row else None
+
+
+def accept_friend_invite(token: str, recipient_user_id: int, invitee_email: str | None = None) -> dict:
+    """
+    Accept a FriendInvite and create friendship if needed.
+    Returns: {"accepted": bool, "reason": str|None, "inviter_id": int|None}
+    """
+    with Prisma() as client:
+        row = client.friendinvite.find_unique(where={"token": token})
+        if not row:
+            return {"accepted": False, "reason": "not_found", "inviter_id": None}
+        if row.status != "pending" or row.accepted_at:
+            return {"accepted": False, "reason": "already_accepted", "inviter_id": row.inviter_id}
+        if row.inviter_id == recipient_user_id:
+            return {"accepted": False, "reason": "own_invite", "inviter_id": row.inviter_id}
+        if invitee_email and row.email and row.email.strip().lower() != invitee_email.strip().lower():
+            return {"accepted": False, "reason": "email_mismatch", "inviter_id": row.inviter_id}
+
+        now = datetime.now()
+        client.friendinvite.update(
+            where={"token": token},
+            data={"status": "accepted", "accepted_at": now},
+        )
+
+        now_iso = now.isoformat()
+        existing = client.friendship.find_first(where={
+            "OR": [
+                {"user_a": row.inviter_id, "user_b": recipient_user_id},
+                {"user_a": recipient_user_id, "user_b": row.inviter_id},
+            ]
+        })
+        if not existing:
+            client.friendship.create(data={
+                "user_a": row.inviter_id,
+                "user_b": recipient_user_id,
+                "created_at": now_iso,
+                "accepted_at": now_iso,
+            })
+    return {"accepted": True, "reason": None, "inviter_id": row.inviter_id}
+
+
 def get_user_invitations(user_id: int) -> list[dict]:
     """List all invitations sent by a user, with recipient name/email if accepted."""
     with Prisma() as client:
         rows = client.invitation.find_many(
             where={"sender_id": user_id},
+            order={"created_at": "desc"},
+        )
+        friend_rows = client.friendinvite.find_many(
+            where={"inviter_id": user_id},
             order={"created_at": "desc"},
         )
         recipient_ids = [r.recipient_user_id for r in rows if r.recipient_user_id]
@@ -1435,7 +1509,7 @@ def get_user_invitations(user_id: int) -> list[dict]:
                 u.id: {"name": u.display_name or u.email.split("@")[0], "email": u.email}
                 for u in users
             }
-    return [
+    base_rows = [
         {
             "id":             row.id,
             "method":         row.method,
@@ -1455,6 +1529,22 @@ def get_user_invitations(user_id: int) -> list[dict]:
         }
         for row in rows
     ]
+    friend_invite_rows = [
+        {
+            "id": row.id,
+            "method": "email",
+            "created_at": row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else row.created_at,
+            "opened_at": None,
+            "accepted_at": row.accepted_at.isoformat() if (row.accepted_at and hasattr(row.accepted_at, "isoformat")) else row.accepted_at,
+            "invitee_email": row.email,
+            "recipient_name": None,
+            "status": row.status,
+        }
+        for row in friend_rows
+    ]
+    combined = base_rows + friend_invite_rows
+    combined.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    return combined
 
 
 # ── Friendships ─────────────────────────────────────────────────────────

@@ -127,6 +127,19 @@ model Invitation {
   invitee_email     String?
 }
 
+model FriendInvite {
+  id          Int      @id @default(autoincrement())
+  inviter_id  Int
+  email       String
+  token       String   @unique
+  status      String   @default("pending")
+  created_at  DateTime @default(now())
+  accepted_at DateTime?
+
+  @@index([inviter_id])
+  @@index([email])
+}
+
 model Friendship {
   id          Int     @id @default(autoincrement())
   user_a      Int

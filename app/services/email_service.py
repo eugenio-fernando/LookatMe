@@ -37,7 +37,7 @@ def _sender_for(email_type: str, explicit_from: str | None = None) -> str:
             or os.environ.get("EMAIL_FROM", "").strip()
             or "LookatMe <verify@aitoptutor.com>"
         )
-    if email_type in ("magic_login", "password_reset", "support"):
+    if email_type in ("magic_login", "password_reset", "support", "friend_invite"):
         return (
             os.environ.get("SUPPORT_EMAIL_FROM", "").strip()
             or os.environ.get("EMAIL_FROM", "").strip()
@@ -252,4 +252,29 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
         "Reset your LookatMe password",
         html,
         email_type="password_reset",
+    )
+
+
+def send_friend_invite_email(to_email: str, token: str, inviter_name: str) -> bool:
+    """Send a friend invite email with direct invite URL."""
+    base_url = os.environ.get("APP_BASE_URL", "https://lookatme.fly.dev")
+    link = f"{base_url}/invite/{token}"
+    html = f"""
+    <div style="font-family:sans-serif;max-width:520px;margin:auto">
+      <h2 style="color:#3b82f6">You're invited to LookatMe</h2>
+      <p><strong>{inviter_name}</strong> invited you to join their accountability circle.</p>
+      <p>Use the link below to sign up or log in and connect instantly:</p>
+      <a href="{link}"
+         style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;
+                border-radius:8px;text-decoration:none;font-weight:600">
+        Accept invite
+      </a>
+      <p style="color:#6b7280;font-size:12px;margin-top:24px">If you weren't expecting this email, you can ignore it.</p>
+    </div>
+    """
+    return _send(
+        to_email,
+        f"{inviter_name} invited you on LookatMe",
+        html,
+        email_type="friend_invite",
     )

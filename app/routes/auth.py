@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, redirect, render_template, request, sessio
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..models import db
+from ..services.activity_service import record_event
 from ..services.email_service import (
     send_magic_login_link,
     send_password_reset_email,
@@ -153,11 +154,24 @@ def register():
     invite_token = body.get("invite_token", "").strip()
     if invite_token:
         try:
-            accepted = db.accept_social_invitation(invite_token, user["id"], invitee_email=email)
-            logger.info(
-                "INVITE_ACCEPTED_ON_REGISTER token_prefix=%s user_id=%s accepted=%s",
-                invite_token[:8], user["id"], accepted,
-            )
+            friend_result = db.accept_friend_invite(invite_token, user["id"], invitee_email=email)
+            if friend_result.get("accepted"):
+                record_event(
+                    user["id"],
+                    "friend_joined",
+                    "joined your circle",
+                    metadata={"visibility": "public", "inviter_id": friend_result.get("inviter_id")},
+                )
+                logger.info(
+                    "FRIEND_INVITE_ACCEPTED_ON_REGISTER token_prefix=%s user_id=%s inviter_id=%s",
+                    invite_token[:8], user["id"], friend_result.get("inviter_id"),
+                )
+            else:
+                accepted = db.accept_social_invitation(invite_token, user["id"], invitee_email=email)
+                logger.info(
+                    "INVITE_ACCEPTED_ON_REGISTER token_prefix=%s user_id=%s accepted=%s",
+                    invite_token[:8], user["id"], accepted,
+                )
         except Exception as exc:
             logger.warning("INVITE_ACCEPT_FAILED_ON_REGISTER token_prefix=%s err=%s",
                            invite_token[:8], exc)
