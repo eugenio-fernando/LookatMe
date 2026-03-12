@@ -1622,9 +1622,14 @@ def get_user_stats_for_leaderboard(user_id: int) -> dict | None:
 # ── Focus Mode ─────────────────────────────────────────────────────────
 
 def _focus_session_to_dict(row) -> dict:
+    start_time = getattr(row, "start_time", None)
+    if hasattr(start_time, "isoformat"):
+        start_time = start_time.isoformat()
     return {
         "id":           row.id,
         "user_id":      row.user_id,
+        "start_time":   start_time,
+        "duration":     getattr(row, "duration", None),
         "task":         row.task or "",
         "status":       row.status,
         "phase":        row.phase,
@@ -1671,6 +1676,8 @@ def start_focus_session(user_id: int, task: str = "") -> dict | None:
 
         row = client.focussession.create(data={
             "user_id":      user_id,
+            "start_time":   now,
+            "duration":     FOCUS_SECONDS,
             "task":         (task or "").strip(),
             "status":       "active",
             "phase":        "focus",

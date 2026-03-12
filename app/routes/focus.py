@@ -39,6 +39,22 @@ def focus_complete():
     return jsonify(result)
 
 
+@focus_bp.route("/api/focus/end", methods=["POST"])
+@api_login_required
+def focus_end():
+    body = request.get_json(silent=True) or {}
+    completed = bool(body.get("completed", False))
+    result = db.complete_focus_session(session["user_id"], completed=completed)
+    if completed:
+        record_event(
+            session["user_id"],
+            "focus_completed",
+            "completed a focus session",
+            metadata={"status": "completed"},
+        )
+    return jsonify(result)
+
+
 @focus_bp.route("/api/focus/status", methods=["GET"])
 @api_login_required
 def focus_status():

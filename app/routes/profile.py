@@ -103,3 +103,15 @@ def set_language():
     user = db.update_user_language(session["user_id"], language)
     session["lang"] = language
     return jsonify({"ok": True, "language": user.get("language", language)})
+
+
+@profile_bp.route("/api/user/set-language", methods=["POST"])
+@api_login_required
+def set_user_language():
+    body = request.get_json(silent=True) or {}
+    language = str(body.get("language", "en")).strip().lower()
+    if language not in {"en", "es", "it"}:
+        return jsonify({"error": "invalid language"}), 400
+    user = db.update_user_language(session["user_id"], language)
+    session["lang"] = language
+    return jsonify({"ok": True, "language": user.get("language", language)})

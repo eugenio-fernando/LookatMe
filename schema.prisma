@@ -239,6 +239,8 @@ model ChallengeProgress {
 model FocusSession {
   id           Int    @id @default(autoincrement())
   user_id      Int
+  start_time   DateTime?
+  duration     Int?
   task         String @default("")
   status       String @default("active")
   phase        String @default("focus")

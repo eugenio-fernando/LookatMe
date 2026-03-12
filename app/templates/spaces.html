@@ -1,17 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spaces</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background:#111; color:#eee; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
-    .card { background:#1c1c1c; border:1px solid #2a2a2a; border-radius:14px; }
-    .field { width:100%; background:#171717; border:1px solid #333; color:#eee; border-radius:8px; padding:8px 10px; font-size:14px; }
+    html[data-theme="dark"]  { --bg:#111111; --card:#1c1c1c; --border:#2a2a2a; --input:#171717; --input-border:#333333; --text:#eeeeee; --muted:#a1a1aa; --accent:#a3e635; }
+    html[data-theme="light"] { --bg:#f5f5f7; --card:#ffffff; --border:#e5e7eb; --input:#f9fafb; --input-border:#d1d5db; --text:#111827; --muted:#6b7280; --accent:#2563eb; }
+    html[data-theme="sepia"] { --bg:#f4ecd8; --card:#fbf6e7; --border:#d4c3a8; --input:#f0e8d4; --input-border:#c8b697; --text:#3c2a1a; --muted:#7c6350; --accent:#b45309; }
+    body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; }
+    .field { width:100%; background:var(--input); border:1px solid var(--input-border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:14px; }
     .btn { border-radius:8px; padding:8px 12px; font-size:13px; font-weight:700; }
-    .btn-primary { background:#a3e635; color:#0a0a0a; }
-    .btn-muted { background:#252525; color:#ddd; border:1px solid #333; }
+    .btn-primary { background:var(--accent); color:#0a0a0a; }
+    .btn-muted { background:transparent; color:var(--text); border:1px solid var(--input-border); }
   </style>
 </head>
 <body class="min-h-screen">

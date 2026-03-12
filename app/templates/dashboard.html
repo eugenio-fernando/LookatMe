@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <!-- Restore saved theme before CSS loads — prevents flash -->
-  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
@@ -492,7 +492,7 @@
 
     /* ── Profile elements ────────────────────────────────────────────── */
     .profile-avatar {
-      width: 72px; height: 72px; border-radius: 50%;
+      width: 96px; height: 96px; border-radius: 50%;
       object-fit: cover; border: 1.5px solid var(--border);
     }
     .sidebar-avatar {
@@ -503,6 +503,24 @@
     .widget-bio {
       overflow: hidden; display: -webkit-box;
       -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    }
+    @keyframes focusStartPulse {
+      from { transform: scale(0.96); opacity: 0.8; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes focusStartGlow {
+      from { box-shadow: 0 0 0 rgba(34,197,94,0); }
+      to { box-shadow: 0 0 24px rgba(34,197,94,0.28); }
+    }
+    @keyframes focusStartFade {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .focus-start-animation {
+      animation: focusStartPulse 600ms cubic-bezier(0.16,1,0.3,1), focusStartGlow 600ms ease-out;
+    }
+    .focus-start-fade {
+      animation: focusStartFade 600ms cubic-bezier(0.16,1,0.3,1);
     }
 
     /* ── Scrollbar ───────────────────────────────────────────────────── */
@@ -748,14 +766,6 @@
         <button class="theme-btn" data-theme="dark"  onclick="setTheme('dark')">🌙</button>
         <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️</button>
         <button class="theme-btn" data-theme="sepia" onclick="setTheme('sepia')">📜</button>
-      </div>
-      <div style="margin-bottom:8px;">
-        <label for="lang-select" style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:4px;">Switch language</label>
-        <select id="lang-select" class="field-input" style="font-size:12px;padding:6px 8px;" onchange="setLanguage(this.value)">
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="it">Italiano</option>
-        </select>
       </div>
       <button onclick="logout()" class="btn-outline">{{ _('Sign out') }}</button>
       <button id="install-btn" class="hidden btn-primary" style="width:100%;margin-top:6px;padding:7px 0;font-size:12px;">
@@ -1085,6 +1095,28 @@
 
     <!-- ──────────── RIGHT COLUMN ──────────── -->
     <div id="right-col" style="display:flex;flex-direction:column;gap:24px;position:sticky;top:40px;">
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Focus Timer</span>
+        </div>
+        <div class="card-body" style="padding-top:10px;padding-bottom:12px;">
+          <p id="global-focus-timer" style="font-family:'SF Mono','Fira Code',monospace;font-size:22px;font-weight:800;color:var(--text-primary);">00:00</p>
+          <p id="global-focus-state" style="font-size:11px;color:var(--text-secondary);">No active session</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Switch language</span>
+        </div>
+        <div class="card-body" style="padding-top:10px;padding-bottom:12px;">
+          <select id="lang-select" class="field-input" style="font-size:12px;padding:8px 10px;" onchange="setLanguage(this.value)">
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+          </select>
+        </div>
+      </section>
 
       <!-- ── Profile Widget ── -->
       <section class="card" id="profile-widget">
@@ -1487,6 +1519,7 @@
     // ── Theme ─────────────────────────────────────────────────────────
     function setTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
+      document.body.dataset.theme = theme;
       localStorage.setItem('theme', theme);
       document.querySelectorAll('input[type="date"]').forEach(el => {
         el.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
@@ -1498,7 +1531,7 @@
         btn.classList.toggle('active', btn.dataset.theme === theme);
       });
     }
-    (function() { setTheme(localStorage.getItem('theme') || 'dark'); })();
+    (function() { setTheme(localStorage.getItem('theme') || 'light'); })();
 
     // ── Default avatar SVG ────────────────────────────────────────────
     function defaultAvatarSvg() {
@@ -1567,7 +1600,7 @@
 
     async function setLanguage(language) {
       try {
-        const res = await fetch('/api/profile/language', {
+        const res = await fetch('/api/user/set-language', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ language }),
@@ -1576,6 +1609,33 @@
         window.location.reload();
       } catch { /* non-critical */ }
     }
+
+    function _fmtFocusMMSS(sec) {
+      const s = Math.max(0, parseInt(sec || 0, 10));
+      const m = String(Math.floor(s / 60)).padStart(2, '0');
+      const ss = String(s % 60).padStart(2, '0');
+      return `${m}:${ss}`;
+    }
+
+    async function refreshGlobalFocusTimer() {
+      try {
+        const res = await fetch('/api/focus/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        const timer = document.getElementById('global-focus-timer');
+        const state = document.getElementById('global-focus-state');
+        if (!timer || !state) return;
+        if (data?.active && data?.session) {
+          timer.textContent = _fmtFocusMMSS(data.session.remaining_seconds || 0);
+          state.textContent = 'Active';
+        } else {
+          timer.textContent = '00:00';
+          state.textContent = 'No active session';
+        }
+      } catch { /* non-critical */ }
+    }
+    refreshGlobalFocusTimer();
+    setInterval(refreshGlobalFocusTimer, 1000);
 
     // ── Activity Feed ─────────────────────────────────────────────────
     const ACTIVITY_ICONS = {
@@ -2575,12 +2635,19 @@
     async function startFocusSession(resume = false, restored = null) {
       if (document.getElementById('focus-overlay')) return;
       _setFocusDistractionMode(true);
+      const goalWidget = document.getElementById('focus-goal-widget');
+      if (goalWidget) {
+        goalWidget.classList.add('focus-start-animation');
+        setTimeout(() => goalWidget.classList.remove('focus-start-animation'), 700);
+      }
       if (resume && restored) {
         _focusPhase = 'focus';
         _focusDuration = restored.duration_sec || 1500;
         _focusRemaining = restored.remaining_seconds || 0;
         _focusTask = restored.task || '';
         _renderFocusOverlay();
+        const timer = document.getElementById('focus-display');
+        if (timer) timer.classList.add('focus-start-fade');
         _runFocusClock();
         return;
       }
@@ -2598,7 +2665,10 @@
         _focusTask = data.session?.task || '';
         _updateFocusGoalWidget(data.stats);
         _renderFocusOverlay();
+        const timer = document.getElementById('focus-display');
+        if (timer) timer.classList.add('focus-start-fade');
         _runFocusClock();
+        refreshGlobalFocusTimer();
       } catch {
         _setFocusDistractionMode(false);
         showMicroToast('task', 'Focus Mode', 'Could not start focus mode right now.');
