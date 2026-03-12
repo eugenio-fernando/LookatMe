@@ -277,12 +277,18 @@ def _activity_event_to_dict(row) -> dict:
             metadata = json.loads(row.metadata_json)
         except Exception:
             metadata = {}
+    created_at = getattr(row, "created_at", "")
+    if hasattr(created_at, "isoformat"):
+        created_at = created_at.isoformat()
     return {
         "id":          row.id,
         "user_id":     row.user_id,
         "event_type":  row.event_type,
         "description": row.description,
-        "created_at":  row.created_at,
+        "message":     (getattr(row, "message", "") or row.description),
+        "visibility":  getattr(row, "visibility", "space"),
+        "space_id":    getattr(row, "space_id", None),
+        "created_at":  created_at,
         "metadata":    metadata,
     }
 
@@ -313,6 +319,9 @@ def create_activity_event(
     event_type: str,
     description: str,
     metadata: dict | None = None,
+    message: str | None = None,
+    visibility: str = "space",
+    space_id: int | None = None,
 ) -> dict:
     payload = metadata or {}
     with Prisma() as client:
@@ -320,16 +329,27 @@ def create_activity_event(
             "user_id": user_id,
             "event_type": event_type,
             "description": description,
-            "created_at": datetime.now().isoformat(),
+            "message": message or description,
+            "visibility": visibility or "space",
+            "space_id": space_id,
             "metadata_json": json.dumps(payload),
         })
     return _activity_event_to_dict(row)
 
 
 def get_activity_event_feed_for_user(user_id: int, limit: int = 20) -> list[dict]:
+    space_ids = [w["id"] for w in get_user_workspaces(user_id)]
+    visibility_filters = [
+        {"visibility": "public"},
+        {"visibility": "private", "user_id": user_id},
+        {"visibility": "space", "user_id": user_id},
+    ]
+    if space_ids:
+        visibility_filters.append({"visibility": "space", "space_id": {"in": space_ids}})
+
     with Prisma() as client:
         rows = client.activityevent.find_many(
-            where={"user_id": user_id},
+            where={"OR": visibility_filters},
             order={"id": "desc"},
             take=limit,
         )
@@ -390,6 +410,47 @@ def get_reaction_counts_for_event_ids(event_ids: list[int]) -> dict[int, dict]:
         if r.reaction_type in bucket:
             bucket[r.reaction_type] += 1
     return counts
+
+
+def get_reaction_users_for_event_ids(event_ids: list[int], limit_per_type: int = 3) -> dict[int, dict]:
+    """
+    Return small per-reaction user lists grouped by event id.
+    Shape: {event_id: {"like": [{id, display_name, avatar_url}], ...}}
+    """
+    if not event_ids:
+        return {}
+
+    default_bucket = {"like": [], "love": [], "fire": [], "clap": []}
+    grouped = {eid: {"like": [], "love": [], "fire": [], "clap": []} for eid in event_ids}
+
+    with Prisma() as client:
+        rows = client.activityreaction.find_many(
+            where={"event_id": {"in": event_ids}},
+            order={"id": "desc"},
+        )
+
+    user_ids = list({r.user_id for r in rows})
+    users = get_users_public_by_ids(user_ids)
+    seen = set()
+
+    for r in rows:
+        if r.reaction_type not in default_bucket:
+            continue
+        key = (r.event_id, r.reaction_type, r.user_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        bucket = grouped.setdefault(r.event_id, {"like": [], "love": [], "fire": [], "clap": []})[r.reaction_type]
+        if len(bucket) >= limit_per_type:
+            continue
+        u = users.get(r.user_id) or {}
+        bucket.append({
+            "id": r.user_id,
+            "display_name": u.get("display_name") or "User",
+            "avatar_url": u.get("avatar_url") or "",
+        })
+
+    return grouped
 
 
 def get_recent_activity_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:

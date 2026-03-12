@@ -44,19 +44,49 @@ def react_to_activity():
         counts = db.get_reaction_counts_for_event_ids([event_id]).get(
             event_id, {"like": 0, "love": 0, "fire": 0, "clap": 0}
         )
-        return jsonify({"ok": True, "duplicate": True, "event_id": event_id, "reactions": counts})
+        reaction_users = db.get_reaction_users_for_event_ids([event_id]).get(
+            event_id, {"like": [], "love": [], "fire": [], "clap": []}
+        )
+        return jsonify({
+            "ok": True,
+            "duplicate": True,
+            "event_id": event_id,
+            "reactions": counts,
+            "reaction_users": reaction_users,
+        })
 
     reaction = db.create_activity_reaction(event_id, user_id, reaction_type)
     counts = db.get_reaction_counts_for_event_ids([event_id]).get(
         event_id, {"like": 0, "love": 0, "fire": 0, "clap": 0}
     )
+    reaction_users = db.get_reaction_users_for_event_ids([event_id]).get(
+        event_id, {"like": [], "love": [], "fire": [], "clap": []}
+    )
     payload = {
         "event_id": event_id,
         "reaction": reaction,
         "reactions": counts,
+        "reaction_users": reaction_users,
     }
-    socketio.emit("reaction:new", payload, to=f"user_{event['user_id']}")
-    if event["user_id"] != user_id:
-        socketio.emit("reaction:new", payload, to=f"user_{user_id}")
+    visibility = event.get("visibility", "space")
+    space_id = event.get("space_id")
+    if visibility == "public":
+        socketio.emit("reaction:new", payload)
+    elif visibility == "space" and isinstance(space_id, int):
+        members = db.get_workspace_members(space_id)
+        recipient_ids = {m["user_id"] for m in members}
+        recipient_ids.add(event["user_id"])
+        recipient_ids.add(user_id)
+        for recipient_id in recipient_ids:
+            socketio.emit("reaction:new", payload, to=f"user_{recipient_id}")
+    else:
+        socketio.emit("reaction:new", payload, to=f"user_{event['user_id']}")
+        if event["user_id"] != user_id:
+            socketio.emit("reaction:new", payload, to=f"user_{user_id}")
 
-    return jsonify({"ok": True, "event_id": event_id, "reactions": counts})
+    return jsonify({
+        "ok": True,
+        "event_id": event_id,
+        "reactions": counts,
+        "reaction_users": reaction_users,
+    })

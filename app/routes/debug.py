@@ -17,27 +17,15 @@ from ..utils import login_required
 logger = logging.getLogger(__name__)
 
 debug_bp = Blueprint("debug", __name__)
+AUTHORIZED_DEBUG_EMAIL = "eugenio.fernando@icloud.com"
 
 
 def _is_admin_user(user_id: int) -> bool:
-    admin_emails = {
-        e.strip().lower()
-        for e in os.environ.get("ADMIN_EMAILS", "").split(",")
-        if e.strip()
-    }
     user = db.get_user_by_id(user_id)
-    if not user:
-        return False
-
-    if admin_emails and user.get("email", "").lower() in admin_emails:
-        return True
-
-    workspace_id = session.get("workspace_id")
-    if workspace_id:
-        role = db.get_workspace_role(workspace_id, user_id)
-        if role == "admin":
-            return True
-    return False
+    return bool(
+        user
+        and user.get("email", "").casefold() == AUTHORIZED_DEBUG_EMAIL.casefold()
+    )
 
 
 @debug_bp.route("/admin/debug", methods=["GET"])

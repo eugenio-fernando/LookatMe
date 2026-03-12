@@ -1587,7 +1587,7 @@
       const payload = a?.event ? a.event : a;
       const reactions = a?.reactions || { like: 0, love: 0, fire: 0, clap: 0 };
       const type = payload.event_type || payload.type || 'event';
-      const text = payload.description || payload.content || '';
+      const text = payload.message || payload.description || payload.content || '';
       const avatar = payload.user_avatar_url || defaultAvatarSvg();
       const actor = payload.user_display_name || 'You';
       const icon = ACTIVITY_ICONS[type] || '·';

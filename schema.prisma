@@ -73,8 +73,14 @@ model ActivityEvent {
   user_id       Int
   event_type    String
   description   String
-  created_at    String
+  message       String   @default("")
+  visibility    String   @default("space")
+  space_id      Int?
+  created_at    DateTime @default(now())
   metadata_json String @default("")
+
+  @@index([visibility])
+  @@index([space_id])
 }
 
 model ActivityReaction {
