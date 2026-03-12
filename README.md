@@ -11,16 +11,18 @@ AI-powered productivity and habit tracking platform focused on accountability an
 - **Task management** — create, prioritize, and complete tasks with due dates
 - **Habit tracking** — daily streak system with milestone tracking
 - **Daily notes** — write and retrieve notes tied to the current day
-- **Daily Mission** — server-tracked goals (3 tasks, 1 habit, 1 note) with live progress
+- **Activity feed** — social productivity stream of focus sessions, reminders, challenges, and messages
+- **Activity reactions** — react to feed events with `like`, `love`, `fire`, and `clap`
+- **Centralized event system** — unified event recording and websocket broadcast for activity updates
+- **Daily Mission** — server-tracked goals with live progress
 - **Daily Commitment** — one-sentence daily intention with completion animation and streak integration
 - **AI productivity assistant** — analyze your day, plan tomorrow, summarize notes (10 req/day)
 - **Weekly insights** — AI-generated summary of weekly performance
 - **Friend accountability system** — invite friends and compare streaks side by side
 - **Invite system** — tracked social invitations via WhatsApp, Facebook, Twitter/X, and email
 - **Streak leaderboard** — top 10 friends + self ranked by streak and weekly tasks
-- **Real-time updates** — Socket.IO pushes task and streak events to all connected clients
-- **News feed** — trending headlines by category with AI-powered article summarization
-- **Learning tracker** — log study hours and progress for any topic
+- **Real-time updates** — Socket.IO pushes `activity:new` and `reaction:new` events to clients
+- **Admin debug panel** — admin-only operational view for email, auth, and webhook events
 - **PWA-ready** — manifest + service worker for mobile install
 - **Dark / light / sepia themes**
 
@@ -36,7 +38,9 @@ AI-powered productivity and habit tracking platform focused on accountability an
 | Framework | Flask + Flask-SocketIO |
 | ORM | Prisma Client Python (sync interface) |
 | Database | SQLite on Fly.io persistent volume |
-| Real-time | Socket.IO (threading async mode) |
+| Event System | Centralized event recording service for activity + notifications |
+| Activity Layer | Feature module with feed query + reaction aggregation |
+| Real-time | Socket.IO (threading async mode), `activity:new` + `reaction:new` |
 | AI | OpenAI `gpt-4o-mini` via `openai` SDK |
 | Email | Resend — verified sender domain `aitoptutor.com` |
 | Deployment | Docker + Fly.io Machines |
@@ -51,7 +55,12 @@ LookatMe/
 ├── schema.prisma           # Single source of truth for DB schema
 └── app/
     ├── __init__.py         # App factory, blueprint registration, SocketIO setup
-    ├── extensions.py       # Shared SocketIO instance
+    ├── extensions.py       # Shared SocketIO + Babel instances
+    ├── features/
+    │   └── activity/
+    │       ├── routes.py   # /api/activity/feed and /api/activity/react
+    │       ├── service.py  # Activity feed queries and reaction aggregation
+    │       └── templates/  # Feature-local templates (if needed)
     ├── models/
     │   └── db.py           # All database access (no ORM queries outside this file)
     ├── routes/
@@ -64,13 +73,16 @@ LookatMe/
     │   ├── invites.py      # Workspace invite creation and acceptance
     │   ├── workspaces.py   # Workspace management
     │   ├── social.py       # Friend invitations and leaderboard
-    │   ├── external.py     # News, notes, verse APIs
+    │   ├── external.py     # External/news integrations (kept for compatibility)
     │   └── views.py        # Page render routes (dashboard, profile, invitations)
     ├── services/
+    │   ├── event_service.py # Centralized event recording + socket emit
     │   ├── ai_service.py   # OpenAI wrapper (test mode support)
     │   └── email_service.py # Resend wrapper (verification, magic link, password reset)
     └── templates/
-        ├── dashboard.html  # Main dashboard (all JS inline)
+        ├── dashboard.html  # Main dashboard + activity feed
+        ├── activity_feed.html # Feed rendering with reactions
+        ├── admin_debug.html # Admin debug event dashboard
         ├── focus.html      # Focus mode with local countdown timer
         ├── invite.html     # Invitation landing page (workspace + social)
         ├── login.html      # Auth page (login, register, magic link, password reset)
@@ -81,20 +93,47 @@ All database access flows through `app/models/db.py`. Routes call named function
 
 ---
 
-## Key Improvements Implemented
+## Activity Feed
 
-| Area | Change |
-|---|---|
-| **Timer polling** | Removed `/api/timer` backend route and server-sync loop entirely; replaced with a local browser countdown (zero server requests) |
-| **Background traffic** | Service worker `NETWORK_ONLY` bypass for timer removed; cache version bumped to `v3` |
-| **Invitation tracking** | `Invitation` model tracks method, opened_at, accepted_at, and invitee_email |
-| **Auto-accept on register** | Registering via an invite link automatically creates a friendship |
-| **Friend leaderboard** | `/api/friends/leaderboard` returns top 10 friends + self, sorted by streak then weekly tasks |
-| **Email sender** | Default sender updated to `LookatMe <verify@aitoptutor.com>` (verified domain) |
-| **Email verification** | Full flow: register → verify email → login; magic link and password reset supported |
-| **LinkedIn verification** | Badge displayed on profile and leaderboard after manual code verification |
-| **Daily Commitment** | Completion triggers streak pulse animation and card glow; includes "change" and disable-on-submit UX |
-| **Apple-style UI** | Increased card border-radius, whitespace, padding; dashboard fade-in; removed green glow from hover states |
+The activity feed is the main social productivity surface. It aggregates recent user events such as focus completion, reminders, messages, and challenges into a single stream for dashboard visibility.
+
+## Reactions
+
+Activity events support lightweight reactions:
+
+- `like`
+- `love`
+- `fire`
+- `clap`
+
+Reaction counts are returned in feed payloads and updated in real time over Socket.IO.
+
+## Event System
+
+The app uses a centralized event architecture:
+
+- write activity events through a shared event service
+- keep event persistence and websocket emission in one place
+- broadcast `activity:new` for new feed events
+- broadcast `reaction:new` when reactions are added
+
+This keeps feature modules consistent and reduces route-level event duplication.
+
+## Admin Debug Panel
+
+Admin users can inspect recent operational events in:
+
+- `GET /admin/debug`
+
+The panel provides recent email events, auth events, and webhook events to speed up production debugging.
+
+## Experimental Features (Hidden From Primary Navigation)
+
+These are still present in the codebase and routes but are intentionally not part of the core product navigation:
+
+- learning tracker
+- news feed
+- advanced workspace modules
 
 ---
 
@@ -111,6 +150,16 @@ Three endpoints, each guarded by a 10-requests/day per-user limit tracked in the
 **Test mode:** set `AI_TEST_MODE=true` to return mock responses without calling OpenAI.
 
 Responses are cached per user per day in `AIResponseCache` to avoid duplicate API calls.
+
+---
+
+## Example API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/activity/feed` | Returns activity feed entries and reaction counts |
+| `POST` | `/api/activity/react` | Adds a reaction to an activity event (duplicate reactions blocked per user/event) |
+| `GET` | `/admin/debug` | Admin-only debug dashboard for operational events |
 
 ---
 
