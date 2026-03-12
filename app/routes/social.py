@@ -8,6 +8,7 @@ import secrets
 from flask import Blueprint, jsonify, request, session
 
 from ..models import db
+from ..services.activity_service import record_event
 from ..utils import api_login_required
 
 social_bp = Blueprint("social", __name__)
@@ -87,6 +88,12 @@ def accept_invitation():
 
     logger.info("INVITE_ACCEPTED token=%s recipient_user_id=%s email=%s",
                 token, user_id, invitee_email)
+    record_event(
+        user_id,
+        "friend_joined",
+        "joined a friend circle",
+        metadata={"token_prefix": token[:8]},
+    )
     return jsonify({"ok": True})
 
 
@@ -100,6 +107,13 @@ def list_invitations():
 @api_login_required
 def get_friends():
     return jsonify(db.get_friends(session["user_id"]))
+
+
+@social_bp.route("/api/friends/streaks", methods=["GET"])
+@api_login_required
+def friend_streaks():
+    """Friend streak feed sorted by highest streak first."""
+    return jsonify(db.get_friend_streaks(session["user_id"]))
 
 
 @social_bp.route("/api/friends/leaderboard", methods=["GET"])
@@ -125,3 +139,20 @@ def friends_leaderboard():
 
     logger.info("FRIENDS_LEADERBOARD user_id=%s friends=%s", user_id, len(friends))
     return jsonify(combined[:10])
+
+
+@social_bp.route("/api/friends/<int:friend_id>", methods=["GET"])
+@api_login_required
+def friend_profile(friend_id: int):
+    """Friend profile API for the social circle click-through page."""
+    profile = db.get_friend_public_profile(session["user_id"], friend_id)
+    if not profile:
+        return jsonify({"error": "Friend not found"}), 404
+    return jsonify(profile)
+
+
+@social_bp.route("/api/friends/focus-status", methods=["GET"])
+@api_login_required
+def friends_focus_status():
+    """Live-ish friend focus presence, fetched on demand by the dashboard."""
+    return jsonify(db.get_friends_focus_status(session["user_id"]))

@@ -1,279 +1,273 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
+  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>Focus — LookAtMe</title>
+  <title>{{ _('Focus — LookAtMe') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'sans-serif'],
-            mono: ['SF Mono', 'Fira Code', 'Consolas', 'monospace'],
-          },
-        },
-      },
-    }
-  </script>
   <style>
-    /* ── Card component ── */
-    .card { background-color: #18181b; border: 1px solid #27272a; border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.25); overflow: hidden; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem 0.875rem; border-bottom: 1px solid #27272a; }
-    .card-title { font-size: 0.7rem; font-weight: 700; color: #52525b; text-transform: uppercase; letter-spacing: 0.08em; }
-    .card-body { padding: 1.1rem 1.25rem 1.25rem; }
-
-    .task-row { transition: opacity 0.4s ease, transform 0.4s ease; }
-    .task-row.completing { opacity: 0.35; transform: translateX(6px); }
-    .task-row.completing .task-text { text-decoration: line-through; }
-    .task-row.done { opacity: 0; transform: translateX(16px); }
-    .complete-btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      background-color: #1a3a5c; color: #60a5fa;
-      font-size: 0.7rem; font-weight: 600;
-      padding: 0.2rem 0.65rem; border-radius: 9999px;
-      transition: background 0.15s, color 0.15s, transform 0.1s;
-      flex-shrink: 0; white-space: nowrap;
-    }
-    .task-row:hover .complete-btn { background-color: #1d4ed8; color: #fff; transform: scale(1.03); }
-    .task-row:active .complete-btn { transform: scale(0.97); }
-    .nav-btn {
-      display: inline-flex; align-items: center; background-color: #27272a;
-      color: #a1a1aa; font-size: 0.75rem; font-weight: 600;
-      padding: 0.3rem 0.85rem; border-radius: 0.5rem;
-      transition: background 0.15s, color 0.15s, transform 0.1s;
-    }
-    .nav-btn:hover { background-color: #3f3f46; color: #fff; }
-    .nav-btn:active { transform: scale(0.97); }
+    html[data-theme="dark"]  { --bg:#111111; --card:#1d1d1d; --border:#2a2a2a; --text:#f2f2f2; --muted:#8f8f8f; --accent:#a3e635; }
+    html[data-theme="light"] { --bg:#f5f5f7; --card:#ffffff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --accent:#2563eb; }
+    html[data-theme="sepia"] { --bg:#f4ecd8; --card:#fbf6e7; --border:#d4c3a8; --text:#3c2a1a; --muted:#7c6350; --accent:#b45309; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+    .btn { border-radius: 10px; font-size: 13px; font-weight: 700; padding: 9px 12px; }
+    .btn-primary { background: var(--accent); color: #0a0a0a; }
+    .btn-muted { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .goal-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
+    .goal-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#22c55e,#f59e0b); transition: width 0.3s ease; }
   </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen font-sans flex flex-col">
-
-  <!-- Top bar -->
-  <div class="flex items-center justify-between px-4 sm:px-8 pt-5 pb-2 gap-2 flex-wrap">
-    <span class="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Focus Mode</span>
-    <div class="flex items-center gap-2 flex-wrap justify-end">
-      <a href="/learning" class="nav-btn">Learning</a>
-      <a href="/" class="nav-btn">Dashboard &rarr;</a>
+<body class="min-h-screen">
+  <header class="max-w-4xl mx-auto px-5 pt-6 pb-3 flex items-center justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-widest" style="color:var(--muted);">{{ _('Focus Mode') }}</p>
+      <p class="text-sm" style="color:var(--muted);">Pomodoro 25/5 with long breaks every 4 sessions</p>
     </div>
-  </div>
+    <div class="flex items-center gap-2">
+      <a href="/profile" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Profile') }}</a>
+      <a href="/" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Dashboard') }}</a>
+      <span class="btn btn-primary" style="display:inline-flex;align-items:center;">{{ _('Focus') }}</span>
+      <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Activity Feed') }}</a>
+      <a href="/invitations" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Friends') }}</a>
+      <a href="/inbox" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Messages') }}</a>
+      <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;display:inline-flex;align-items:center;">{{ _('Notes') }}</a>
+    </div>
+  </header>
 
-  <!-- Main content — centered column -->
-  <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 gap-6">
+  <main class="max-w-4xl mx-auto px-5 pb-10 grid md:grid-cols-3 gap-5">
+    <section class="card md:col-span-2 p-6 text-center">
+      <p id="phase-label" class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">{{ _('Focus mode') }}</p>
+      <p id="focus-task" class="text-sm mb-4" style="color:var(--muted);">Task: Deep work</p>
 
-    <!-- Countdown Timer Card -->
-    <section class="card w-full max-w-xl">
-      <div class="card-header">
-        <h2 class="card-title">Countdown Timer</h2>
-        <span id="focus-timer-status" class="text-zinc-600 text-xs">local only</span>
+      <div id="timer-ring" style="width:220px;height:220px;margin:0 auto 14px;border-radius:999px;padding:10px;background:conic-gradient(#22c55e 0%, rgba(255,255,255,0.1) 0%);">
+        <div style="width:100%;height:100%;border-radius:999px;background:var(--card);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+          <p id="timer" style="font-size:46px;font-weight:800;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;">25:00</p>
+          <p class="text-xs" style="color:var(--muted);margin-top:6px;">remaining</p>
+        </div>
       </div>
-      <div class="card-body text-center">
-        <div id="timer" class="font-mono text-4xl sm:text-5xl font-bold text-white tracking-tight tabular-nums mb-4">
-          00:00:00
-        </div>
-        <div class="flex items-center justify-center gap-3 mt-2">
-          <input id="focus-timer-input" type="number" min="1" max="1440" value="25"
-            class="w-20 text-center bg-zinc-800 border border-zinc-700 text-white rounded-lg px-2 py-2 text-sm" />
-          <span class="text-zinc-500 text-sm">min</span>
-          <button onclick="startFocusTimer()" id="focus-timer-start-btn"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors">
-            Start
-          </button>
-          <button onclick="stopFocusTimer()"
-            class="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-sm font-semibold rounded-lg transition-colors">
-            Stop
-          </button>
-        </div>
-        <p id="streak-text" class="text-xs font-semibold text-blue-400 mt-3"></p>
+
+      <p id="motivation" class="text-sm mb-2" style="color:var(--muted);">Stay sharp. You're building momentum.</p>
+      <p id="processing-msg" class="text-xs mb-4" style="color:var(--muted);">Preparing your strategy...</p>
+
+      <div class="flex gap-2 justify-center">
+        <button class="btn btn-primary" onclick="startFocus()">{{ _('Start Focus') }}</button>
+        <button class="btn btn-muted" onclick="stopFocus(false)">End</button>
       </div>
     </section>
 
-    <!-- Tasks Card -->
-    <section class="card w-full max-w-xl">
-      <div class="card-header">
-        <h2 class="card-title">Your Tasks</h2>
+    <section class="card p-5">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:var(--muted);">Daily Focus Goal</p>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm" style="color:var(--muted);">Goal</span>
+        <span id="goal-text" class="text-sm" style="color:var(--muted);">0 / 4 sessions</span>
       </div>
-      <div class="card-body">
-        <ul id="task-list" class="space-y-3">
-          <li class="text-zinc-600 text-sm">Loading tasks…</li>
-        </ul>
-        <p id="all-done-msg" class="hidden mt-6 text-center text-zinc-400 text-sm">
-          All done for today. Rest well.
-        </p>
+      <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
+      <div class="mt-5 space-y-2 text-sm" style="color:var(--muted);">
+        <p>Drink water during breaks.</p>
+        <p>Stand up and stretch every cycle.</p>
+        <p>Silence non-VIP notifications while focusing.</p>
+      </div>
+      <div id="completion-box" class="mt-5 hidden" style="border:1px solid var(--border);border-radius:12px;padding:10px;">
+        <p class="text-sm font-semibold mb-2">Session Complete</p>
+        <p id="completion-stats" class="text-xs" style="color:var(--muted);"></p>
+        <p class="text-xs mt-3 mb-2" style="color:var(--muted);">Did you complete the task?</p>
+        <div class="flex gap-2">
+          <button class="btn btn-primary" style="flex:1;" onclick="showTaskDone('yes')">Yes</button>
+          <button class="btn btn-muted" style="flex:1;" onclick="showTaskDone('no')">No</button>
+        </div>
+        <p id="completion-reply" class="text-xs mt-2" style="color:var(--muted);"></p>
       </div>
     </section>
-
   </main>
 
   <script>
-    // ── Utilities ──────────────────────────────────────────────────────
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const FOCUS_SECONDS = 25 * 60;
+    const PROCESSING = [
+      'Thinking deeply...',
+      'Crunching the problem...',
+      'Brewing ideas...',
+      'Sharpening focus...',
+      'Preparing your strategy...',
+      'Generating insight...',
+    ];
+    const MOTIVATION = [
+      '5 minutes down — keep going.',
+      'Halfway there.',
+      'Final push.',
+      'Almost done.',
+    ];
+
+    let timerRef = null;
+    let remaining = FOCUS_SECONDS;
+    let duration = FOCUS_SECONDS;
+    let phase = 'focus';
+    let tickCount = 0;
+
+    function fmt(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const m = String(Math.floor(s / 60)).padStart(2, '0');
+      const rs = String(s % 60).padStart(2, '0');
+      return `${m}:${rs}`;
     }
 
-    // ── Local Countdown Timer (no server calls) ────────────────────────
-    let _focusCountdown = null;
-    let _focusRemaining = 0;
-
-    function _fmtFocusTimer(sec) {
-      sec = Math.max(0, Math.floor(sec));
-      const h = Math.floor(sec / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    function phaseColor() {
+      if (phase !== 'focus') return '#60a5fa';
+      const elapsed = (duration - remaining) / 60;
+      if (elapsed < 10) return '#22c55e';
+      if (elapsed < 20) return '#facc15';
+      return '#fb923c';
     }
 
-    function startFocusTimer() {
-      const minutes = parseInt(document.getElementById('focus-timer-input').value, 10) || 25;
-      clearInterval(_focusCountdown);
-      _focusRemaining = minutes * 60;
-      document.getElementById('timer').textContent = _fmtFocusTimer(_focusRemaining);
-      document.getElementById('focus-timer-status').textContent = 'running';
-      document.getElementById('focus-timer-start-btn').textContent = 'Restart';
+    function renderTimer() {
+      document.getElementById('timer').textContent = fmt(remaining);
+      const pct = duration ? Math.min(100, Math.max(0, ((duration - remaining) / duration) * 100)) : 0;
+      document.getElementById('timer-ring').style.background = `conic-gradient(${phaseColor()} ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+      document.getElementById('phase-label').textContent = phase === 'focus' ? 'Focus mode' : 'Break time';
+    }
 
-      _focusCountdown = setInterval(() => {
-        _focusRemaining--;
-        document.getElementById('timer').textContent = _fmtFocusTimer(_focusRemaining);
-        if (_focusRemaining <= 0) {
-          clearInterval(_focusCountdown);
-          _focusCountdown = null;
-          document.getElementById('focus-timer-status').textContent = 'done';
-          document.getElementById('focus-timer-start-btn').textContent = 'Start';
-          if (Notification.permission === 'granted') {
-            new Notification('LookatMe', { body: 'Focus session complete!', icon: '/favicon.svg' });
+    function pulseText() {
+      const msg = PROCESSING[Math.floor(Math.random() * PROCESSING.length)];
+      document.getElementById('processing-msg').textContent = msg;
+    }
+
+    function setGoal(stats) {
+      const sessions = stats?.sessions_today || 0;
+      const goal = stats?.today_goal || 4;
+      document.getElementById('goal-text').textContent = `${sessions} / ${goal} sessions`;
+      document.getElementById('goal-fill').style.width = `${stats?.goal_progress || 0}%`;
+    }
+
+    async function refreshGoal() {
+      try {
+        const res = await fetch('/api/focus/stats');
+        if (!res.ok) return;
+        setGoal(await res.json());
+      } catch {}
+    }
+
+    function runClock() {
+      clearInterval(timerRef);
+      timerRef = setInterval(async () => {
+        remaining -= 1;
+        tickCount += 1;
+        renderTimer();
+        if (tickCount % 7 === 0) pulseText();
+        if (phase === 'focus' && tickCount % 300 === 0 && remaining > 0) {
+          document.getElementById('motivation').textContent = MOTIVATION[Math.floor(Math.random() * MOTIVATION.length)];
+        }
+        if (remaining <= 0) {
+          clearInterval(timerRef);
+          if (phase === 'focus') {
+            await completeFocus();
+          } else {
+            phase = 'focus';
+            duration = FOCUS_SECONDS;
+            remaining = FOCUS_SECONDS;
+            tickCount = 0;
+            renderTimer();
           }
         }
       }, 1000);
     }
 
-    function stopFocusTimer() {
-      clearInterval(_focusCountdown);
-      _focusCountdown = null;
-      _focusRemaining = 0;
-      document.getElementById('timer').textContent = '00:00:00';
-      document.getElementById('focus-timer-status').textContent = 'local only';
-      document.getElementById('focus-timer-start-btn').textContent = 'Start';
-    }
-
-    // ── Streak ─────────────────────────────────────────────────────────
-    function renderStreak(data) {
-      const el = document.getElementById('streak-text');
-      if (!data || data.current_streak === 0) {
-        el.textContent = 'Complete a task to start your streak';
+    async function startFocus(restored = null) {
+      if (restored) {
+        phase = 'focus';
+        duration = restored.duration_sec || FOCUS_SECONDS;
+        remaining = restored.remaining_seconds || FOCUS_SECONDS;
+        renderTimer();
+        runClock();
         return;
       }
-      const day = data.current_streak === 1 ? 'day' : 'days';
-      let text = `Streak: ${data.current_streak} ${day}`;
-      if (data.longest_streak > data.current_streak) {
-        text += `  \u2014  Best: ${data.longest_streak} days`;
-      }
-      el.textContent = text;
-    }
-
-    async function loadStreak() {
-      const data = await fetch('/api/streak').then(r => r.json());
-      renderStreak(data);
-    }
-    loadStreak();
-
-    // ── Tasks ──────────────────────────────────────────────────────────
-    const PRIORITY = {
-      high:   { dot: 'bg-red-500',    label: 'High',  labelCls: 'text-red-400'    },
-      medium: { dot: 'bg-yellow-500', label: 'Med',   labelCls: 'text-yellow-400' },
-      low:    { dot: 'bg-green-500',  label: 'Low',   labelCls: 'text-green-400'  },
-    };
-
-    function dueBadge(due_date) {
-      if (!due_date) return '';
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const due   = new Date(due_date + 'T00:00:00');
-      const days  = Math.round((due - today) / 86_400_000);
-      let label, cls;
-      if      (days < 0)   { label = `Overdue ${Math.abs(days)}d`; cls = 'text-red-400';    }
-      else if (days === 0) { label = 'Due today';                  cls = 'text-red-400';    }
-      else if (days <= 3)  { label = `Due in ${days}d`;            cls = 'text-yellow-400'; }
-      else {
-        label = `Due ${due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        cls = 'text-zinc-500';
-      }
-      return `<span class="${cls} text-xs">${label}</span>`;
-    }
-
-    async function loadTasks() {
-      const list = document.getElementById('task-list');
-      const data = await fetch('/api/todos').then(r => r.json()).catch(() => []);
-
-      if (!data.length) {
-        list.innerHTML = '';
-        document.getElementById('all-done-msg').classList.remove('hidden');
-        return;
-      }
-
-      list.innerHTML = data.map(item => {
-        const p = PRIORITY[item.priority] || PRIORITY.medium;
-        return `
-          <li
-            class="task-row group flex items-start gap-4 bg-zinc-900 hover:bg-zinc-800
-                   rounded-xl px-5 py-4 cursor-pointer transition-colors"
-            data-id="${item.id}"
-            onclick="completeTask(this, ${item.id})"
-          >
-            <span class="mt-1 w-2.5 h-2.5 rounded-full ${p.dot} flex-shrink-0"></span>
-            <div class="flex-1 min-w-0">
-              <p class="task-text text-white text-base leading-snug">${escapeHtml(item.text.replace(/^•\s*/, ''))}</p>
-              <div class="flex items-center gap-3 mt-1.5">
-                <span class="${p.labelCls} text-xs font-medium">${p.label}</span>
-                ${dueBadge(item.due_date)}
-              </div>
-            </div>
-            <span class="complete-btn select-none">
-              ✓ Complete
-            </span>
-          </li>
-        `;
-      }).join('');
-    }
-    loadTasks();
-
-    // ── Complete a task ────────────────────────────────────────────────
-    async function completeTask(el, todoId) {
-      if (el.classList.contains('completing') || el.classList.contains('done')) return;
-
-      el.classList.add('completing');
-      el.style.pointerEvents = 'none';
-
       try {
-        const res  = await fetch(`/api/todos/${todoId}/complete`, { method: 'POST' });
+        const res = await fetch('/api/focus/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: '' }),
+        });
         const data = await res.json();
-        renderStreak(data.streak);
-      } catch { /* streak update best-effort */ }
-
-      setTimeout(() => {
-        el.classList.add('done');
-        setTimeout(() => {
-          el.remove();
-          if (!document.querySelector('#task-list li')) {
-            document.getElementById('task-list').innerHTML = '';
-            document.getElementById('all-done-msg').classList.remove('hidden');
-          }
-        }, 420);
-      }, 550);
+        if (!res.ok) return;
+        duration = data.session?.duration_sec || FOCUS_SECONDS;
+        remaining = duration;
+        phase = 'focus';
+        tickCount = 0;
+        setGoal(data.stats);
+        renderTimer();
+        runClock();
+      } catch {}
     }
 
-    // ── Service Worker ─────────────────────────────────────────────────
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    async function completeFocus() {
+      try {
+        const res = await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true }),
+        });
+        const data = await res.json();
+        setGoal(data.stats || {});
+        const box = document.getElementById('completion-box');
+        box.classList.remove('hidden');
+        document.getElementById('completion-reply').textContent = '';
+        document.getElementById('completion-stats').textContent = `Focus time: 25 min · Sessions today: ${data?.stats?.sessions_today || 0} · Current streak: ${data?.stats?.focus_streak || 0}`;
+        const breakSeconds = data?.next_break?.seconds || 300;
+        phase = 'break';
+        duration = breakSeconds;
+        remaining = breakSeconds;
+        tickCount = 0;
+        document.getElementById('motivation').textContent = 'Break Time: Drink water, stretch, look away from the screen.';
+        renderTimer();
+        runClock();
+      } catch {}
     }
+
+    function showTaskDone(answer) {
+      const el = document.getElementById('completion-reply');
+      if (!el) return;
+      el.textContent = answer === 'yes'
+        ? 'Great work. Momentum is building.'
+        : 'No problem. Reset and ship the next session.';
+    }
+
+    async function stopFocus(completed) {
+      clearInterval(timerRef);
+      timerRef = null;
+      try {
+        await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: !!completed }),
+        });
+      } catch {}
+      remaining = FOCUS_SECONDS;
+      duration = FOCUS_SECONDS;
+      phase = 'focus';
+      tickCount = 0;
+      renderTimer();
+      refreshGoal();
+    }
+
+    async function restoreIfActive() {
+      try {
+        const res = await fetch('/api/focus/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        setGoal(data.stats || {});
+        if (data.active && data.session) {
+          startFocus(data.session);
+        }
+      } catch {}
+    }
+
+    renderTimer();
+    pulseText();
+    refreshGoal();
+    restoreIfActive();
   </script>
-
 </body>
 </html>

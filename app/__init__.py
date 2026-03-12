@@ -9,15 +9,16 @@ import struct
 import zlib
 
 from dotenv import load_dotenv
-from flask import Flask, session # type: ignore
+from flask import Flask, request, session # type: ignore
 
 load_dotenv()  # no-op if .env is absent or vars are already set
 
 from flask_socketio import join_room, leave_room # type: ignore
 
-from .extensions import socketio
+from .extensions import babel, socketio
+from .features.activity.routes import activity_bp
+from .models import db
 from .models.db import migrate_from_json_if_needed
-from .routes.activity import activity_bp
 from .routes.auth import auth_api_bp, auth_bp
 from .routes.debug import debug_bp
 from .routes.external import external_bp
@@ -33,6 +34,10 @@ from .routes.social import social_bp
 from .routes.linkedin import linkedin_bp
 from .routes.mission import mission_bp
 from .routes.workspaces import workspaces_bp
+from .routes.focus import focus_bp
+from .routes.webhooks import webhooks_bp
+from .routes.spaces import spaces_bp
+from .routes.challenges import challenges_bp
 
 
 def create_app() -> Flask:
@@ -56,6 +61,30 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
+    app.config["BABEL_DEFAULT_LOCALE"] = "en"
+    app.config["BABEL_SUPPORTED_LOCALES"] = ["en", "es", "it"]
+    app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "translations",
+    )
+
+    def _select_locale() -> str:
+        supported = {"en", "es", "it"}
+        preferred = (session.get("lang") or "").strip().lower()
+        if preferred in supported:
+            return preferred
+
+        user_id = session.get("user_id")
+        if user_id:
+            user = db.get_user_by_id(int(user_id))
+            user_lang = ((user or {}).get("language") or "").strip().lower()
+            if user_lang in supported:
+                session["lang"] = user_lang
+                return user_lang
+
+        return request.accept_languages.best_match(["en", "es", "it"]) or "en"
+
+    babel.init_app(app, locale_selector=_select_locale)
 
     # Initialise SocketIO with threading async mode (no extra dependencies)
     socketio.init_app(
@@ -82,8 +111,11 @@ def create_app() -> Flask:
     app.register_blueprint(social_bp)
     app.register_blueprint(linkedin_bp)
     app.register_blueprint(mission_bp)
-    if os.environ.get("FLASK_ENV", "development") != "production":
-        app.register_blueprint(debug_bp, url_prefix="/api/debug")
+    app.register_blueprint(focus_bp)
+    app.register_blueprint(webhooks_bp)
+    app.register_blueprint(debug_bp)
+    app.register_blueprint(spaces_bp)
+    app.register_blueprint(challenges_bp)
 
     # ── Socket event handlers ──────────────────────────────────────────
     @socketio.on("connect")

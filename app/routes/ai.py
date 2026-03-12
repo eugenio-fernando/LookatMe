@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, request, session
 
 from ..models import db
 from ..utils import api_login_required
@@ -158,6 +158,7 @@ def summarize_notes():
 @api_login_required
 def weekly_report():
     user_id = session["user_id"]
+    workspace_id = session.get("workspace_id")
     logger.info("AI_REQUEST_STARTED user_id=%s type=weekly-report", user_id)
 
     cached = _get_cache(user_id, "weekly-report")
@@ -171,7 +172,9 @@ def weekly_report():
 
     try:
         stats  = db.get_weekly_activity(user_id)
-        result = ai_service.weekly_report(stats)
+        tasks  = db.get_todos(workspace_id) if workspace_id else []
+        notes  = _read_notes()
+        result = ai_service.weekly_report(stats, tasks, notes)
         db.log_ai_usage(user_id, "weekly-report")
         _set_cache(user_id, "weekly-report", result)
         logger.info("AI_REQUEST_SUCCESS user_id=%s type=weekly-report", user_id)
@@ -181,4 +184,38 @@ def weekly_report():
         return jsonify({"error": str(e)}), 503
     except Exception as e:
         logger.info("AI_REQUEST_FAILED user_id=%s type=weekly-report reason=%s", user_id, e)
+        return jsonify({"error": "AI service unavailable."}), 500
+
+
+@ai_bp.route("/api/ai/ask", methods=["POST"])
+@api_login_required
+def ask_assistant():
+    """Free-form AI endpoint used by the dashboard input bar."""
+    user_id = session["user_id"]
+    workspace_id = session.get("workspace_id")
+    body = (request.get_json(silent=True) or {})
+    prompt_text = (body.get("prompt") or "").strip()
+
+    if not prompt_text:
+        return jsonify({"error": "Prompt is required"}), 400
+
+    cached_key = f"ask:{prompt_text[:40].lower()}"
+    cached = _get_cache(user_id, cached_key)
+    if cached:
+        return jsonify({"ok": True, "result": cached, "remaining": _remaining_count(user_id), "cached": True})
+
+    allowed, remaining = _check_limit(user_id)
+    if not allowed:
+        return _limit_response()
+
+    try:
+        tasks = db.get_todos(workspace_id) if workspace_id else []
+        notes = _read_notes()
+        result = ai_service.ask_assistant(prompt_text, tasks, notes)
+        db.log_ai_usage(user_id, "ask")
+        _set_cache(user_id, cached_key, result)
+        return jsonify({"ok": True, "result": result, "remaining": remaining - 1})
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
+    except Exception:
         return jsonify({"error": "AI service unavailable."}), 500

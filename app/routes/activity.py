@@ -1,13 +1,8 @@
-from flask import Blueprint, jsonify, request, session
+"""Compatibility shim for activity routes.
 
-from ..models import db
-from ..utils import api_login_required
+The activity feature blueprint now lives in app.features.activity.routes.
+"""
 
-activity_bp = Blueprint("activity", __name__)
+from ..features.activity.routes import activity_bp
 
-
-@activity_bp.route("/api/activity")
-@api_login_required
-def get_activity():
-    limit = min(int(request.args.get("limit", 20)), 50)
-    return jsonify(db.get_activity_feed(session["user_id"], limit=limit))
+__all__ = ["activity_bp"]

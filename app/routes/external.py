@@ -3,13 +3,15 @@ import os
 import random
 from datetime import datetime
 
-import anthropic
 import feedparser
 import requests
 from flask import Blueprint, jsonify, request, send_from_directory, session
+from openai import OpenAI
 
 from ..extensions import socketio
 from ..models import db
+from ..services.news_service import fetch_news_by_topic, fetch_sports_news_by_team
+from ..services.gaming_news_service import fetch_gaming_news
 
 external_bp = Blueprint("external", __name__)
 
@@ -87,6 +89,56 @@ def news():
     return jsonify(items[:10])
 
 
+@external_bp.route("/api/news/personalized")
+def personalized_news():
+    """Return personalized news feed based on user's profile preferences."""
+    user_id = session.get("user_id")
+    if not user_id:
+        # Fallback for unauthenticated requests.
+        payload = fetch_news_by_topic("technology", limit=10)
+        return jsonify(payload)
+
+    user = db.get_user_by_id(user_id) or {}
+    topics_raw = (user.get("favorite_topics") or "technology").split(",")
+    teams_raw = (user.get("favorite_teams") or "").split(",")
+
+    topics = [t.strip().lower() for t in topics_raw if t.strip()]
+    teams = [t.strip() for t in teams_raw if t.strip()]
+
+    if not topics:
+        topics = ["technology"]
+
+    feed: list[dict] = []
+    for topic in topics[:2]:
+        for item in fetch_news_by_topic(topic, limit=5):
+            feed.append({
+                "headline": item.get("headline"),
+                "image": item.get("image", ""),
+                "source": item.get("source", "News"),
+                "link": item.get("link", "#"),
+                "topic": topic,
+            })
+
+    for team in teams[:1]:
+        for item in fetch_sports_news_by_team(team, limit=4):
+            feed.append({
+                "headline": item.get("headline"),
+                "image": item.get("image", ""),
+                "source": item.get("source", "Sports"),
+                "link": item.get("link", "#"),
+                "topic": "sports",
+                "team": team,
+            })
+
+    return jsonify(feed[:12])
+
+
+@external_bp.route("/api/news/gaming")
+def gaming_news():
+    """Gaming-specific headlines from Steam and gaming publications."""
+    return jsonify(fetch_gaming_news(limit=10))
+
+
 @external_bp.route("/api/summarize", methods=["POST"])
 def summarize():
     body = request.get_json(silent=True) or {}
@@ -95,7 +147,7 @@ def summarize():
     if not title:
         return jsonify({"error": "title is required"}), 400
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         return jsonify({"error": "AI summarization is not configured"}), 503
 
@@ -104,19 +156,29 @@ def summarize():
         content += f"\nDescription: {description}"
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You summarize news in exactly two concise factual sentences.",
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "Summarize this news article in exactly 2 sentences. "
+                        "Be factual and concise.\n\n" + content
+                    ),
+                },
+            ],
             max_tokens=150,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Summarize this news article in exactly 2 sentences. "
-                    "Be factual and concise.\n\n" + content
-                ),
-            }],
+            temperature=0.2,
         )
-        return jsonify({"summary": message.content[0].text.strip()})
+        summary = (response.choices[0].message.content or "").strip()
+        if not summary:
+            raise RuntimeError("empty summary")
+        return jsonify({"summary": summary})
     except Exception:
         return jsonify({"error": "Failed to generate summary"}), 503
 

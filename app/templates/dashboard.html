@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>LookAtMe — Dashboard</title>
+  <title>{{ _('LookAtMe — Dashboard') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
@@ -318,6 +318,24 @@
       transition: background 0.2s, border-color 0.2s, color 0.2s;
     }
     .mission-check.done { background: rgba(34,197,94,0.15); color: #22c55e; border: 1.5px solid rgba(34,197,94,0.3); }
+
+    .welcome-pop {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 10px;
+      padding: 8px 11px;
+      max-width: 680px;
+      animation: fadeUp 0.28s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .mission-check.todo { background: transparent; color: transparent; border: 1.5px solid var(--border-color); }
     .mission-label      { font-size: 13px; color: var(--text-body); transition: color 0.2s; }
     .mission-label.done { color: var(--text-muted); text-decoration: line-through; }
@@ -427,6 +445,29 @@
       white-space: pre-wrap; padding: 12px 14px;
       background: var(--bg-card-inner); border: 1px solid var(--border-subtle);
       border-radius: 9px;
+    }
+    .section-heading {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin: 2px 0 2px;
+    }
+    .friend-circles {
+      display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px;
+      scrollbar-width: thin;
+    }
+    .friend-circle-link { text-decoration: none; color: inherit; min-width: 74px; }
+    .friend-circle-avatar {
+      width: 56px; height: 56px; border-radius: 999px; object-fit: cover;
+      border: 2px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+      box-shadow: 0 0 0 2px var(--bg-card-inner);
+      margin: 0 auto 7px;
+    }
+    .friend-circle-name {
+      font-size: 11px; text-align: center; color: var(--text-body);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .friend-circle-streak {
+      font-size: 10px; text-align: center; color: #fb923c; font-weight: 700;
     }
 
     /* ── Pills ───────────────────────────────────────────────────────── */
@@ -623,19 +664,8 @@
       <span style="color:var(--text-primary);font-size:14px;font-weight:600;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></span>
     </div>
 
-    <!-- User -->
-    <div class="sidebar-section">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img id="sidebar-avatar" src="" alt="You" class="sidebar-avatar" onerror="this.src=defaultAvatarSvg()" />
-        <div style="min-width:0;flex:1;">
-          <p id="sidebar-display-name" style="font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;">—</p>
-          <p id="sidebar-user" style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-        </div>
-      </div>
-    </div>
-
     <!-- Workspace selector -->
-    <div class="sidebar-section" style="padding:10px 12px;">
+    <div class="sidebar-section" style="padding:10px 12px;display:none;">
       <div style="font-size:9.5px;font-weight:700;color:var(--border-color);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Workspace</div>
       <div style="display:flex;align-items:center;gap:6px;">
         <select id="workspace-select" class="field-input" style="flex:1;font-size:12px;padding:5px 8px;cursor:pointer;" onchange="switchWorkspace(this.value)">
@@ -649,43 +679,33 @@
     <!-- Nav -->
     <nav style="flex:1;padding:10px 10px;display:flex;flex-direction:column;gap:2px;">
 
+      <a href="/profile" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        {{ _('Profile') }}
+      </a>
+
       <a href="/" class="nav-item active">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
           <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
-        Dashboard
-      </a>
-
-      <a href="/inbox" class="nav-item" style="justify-content:space-between;">
-        <span style="display:flex;align-items:center;gap:9px;">
-          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Inbox
-        </span>
-        <span id="inbox-badge" class="hidden" style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;line-height:1.7;"></span>
+        {{ _('Dashboard') }}
       </a>
 
       <a href="/focus" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
         </svg>
-        Focus Mode
+        {{ _('Focus') }}
       </a>
 
-      <a href="/learning" class="nav-item">
+      <a href="/activity-feed" class="nav-item">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
         </svg>
-        Learning
-      </a>
-
-      <a href="/profile" class="nav-item">
-        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        Profile
+        {{ _('Activity Feed') }}
       </a>
 
       <a href="/invitations" class="nav-item">
@@ -693,7 +713,24 @@
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-        Friends
+        {{ _('Friends') }}
+      </a>
+
+      <a href="/inbox" class="nav-item" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:9px;">
+          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+          </svg>
+          {{ _('Messages') }}
+        </span>
+        <span id="inbox-badge" class="hidden" style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;line-height:1.7;"></span>
+      </a>
+
+      <a href="/#notes-section" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12h6m-6 4h6M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/>
+        </svg>
+        {{ _('Notes') }}
       </a>
 
     </nav>
@@ -712,7 +749,15 @@
         <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️</button>
         <button class="theme-btn" data-theme="sepia" onclick="setTheme('sepia')">📜</button>
       </div>
-      <button onclick="logout()" class="btn-outline">Sign out</button>
+      <div style="margin-bottom:8px;">
+        <label for="lang-select" style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:4px;">Switch language</label>
+        <select id="lang-select" class="field-input" style="font-size:12px;padding:6px 8px;" onchange="setLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+        </select>
+      </div>
+      <button onclick="logout()" class="btn-outline">{{ _('Sign out') }}</button>
       <button id="install-btn" class="hidden btn-primary" style="width:100%;margin-top:6px;padding:7px 0;font-size:12px;">
         Install App
       </button>
@@ -767,10 +812,10 @@
   {% endif %}
 
   <!-- ════════════════ MAIN LAYOUT ════════════════ -->
-  <div id="main-layout" style="margin-left:232px;flex:1;display:grid;grid-template-columns:1fr 288px;gap:24px;padding:40px 36px;align-items:start;min-height:100vh;">
+  <div id="main-layout" style="margin-left:232px;flex:1;display:grid;grid-template-columns:1fr 340px;gap:24px;padding:40px 36px;align-items:start;min-height:100vh;">
 
     <!-- ──────────── CENTER COLUMN ──────────── -->
-    <div style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+    <div style="display:flex;flex-direction:column;gap:24px;min-width:0;">
 
       <!-- Page header -->
       <div style="margin-bottom:2px;position:relative;overflow:hidden;">
@@ -783,9 +828,29 @@
         </svg>
         <h1 style="font-size:23px;font-weight:700;color:var(--text-primary);letter-spacing:-0.025em;margin:0;">{{ greeting_message }}</h1>
         <p id="header-date-full" style="font-size:12.5px;color:var(--text-secondary);margin-top:3px;"></p>
+        {% if fun_welcome and fun_welcome.message %}
+        <div class="welcome-pop">
+          <span style="font-size:14px;">😄</span>
+          <p style="margin:0;font-size:12.8px;color:var(--text-body);line-height:1.5;">{{ fun_welcome.message }}</p>
+        </div>
+        {% endif %}
       </div>
 
+      <p class="section-heading">{{ _('Activity Feed') }}</p>
+      <section class="card">
+        <div class="card-header">
+          <span class="card-label">Activity</span>
+          <span id="activity-live-dot" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
+        </div>
+        <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
+          <ul id="activity-list" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:360px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:12px;padding:8px 4px;" class="activity-empty">Loading…</li>
+          </ul>
+        </div>
+      </section>
+
       <!-- Quick stat row -->
+      <p class="section-heading">Top Section</p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
         <div class="stat-chip">
           <p style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Streak</p>
@@ -804,22 +869,36 @@
         </div>
       </div>
 
-      <!-- ── Trending News ── -->
-      <section class="card">
+      <p class="section-heading">Feed Section</p>
+      <!-- ── Your News Feed ── -->
+      <section class="card" style="display:none;">
         <div class="card-header">
-          <span class="card-label">Trending News</span>
+          <span class="card-label">Your News Feed</span>
           <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
         </div>
         <div class="card-body">
-          <div id="category-filters" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;"></div>
           <ul id="news-list" style="display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto;">
             <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>
           </ul>
         </div>
       </section>
 
+      <!-- ── Gaming News ── -->
+      <section class="card" style="display:none;">
+        <div class="card-header">
+          <span class="card-label">Gaming News</span>
+          <button onclick="loadGamingNews()" class="btn-ghost">↻ Refresh</button>
+        </div>
+        <div class="card-body">
+          <ul id="gaming-news-list" style="display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto;">
+            <li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Loading gaming headlines…</li>
+          </ul>
+        </div>
+      </section>
+
       <!-- ── Daily Mission ── -->
-      <section class="card" id="mission-card">
+      <p class="section-heading">Productivity Section</p>
+      <section class="card" id="mission-card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Daily Mission</span>
           <span id="mission-progress" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0 / 3</span>
@@ -841,12 +920,16 @@
       </section>
 
       <!-- ── AI Assistant ── -->
-      <section class="card" id="ai-card">
+      <section class="card" id="ai-card" style="display:none;">
         <div class="card-header">
           <span class="card-label">AI Assistant</span>
           <span id="ai-counter" style="font-size:11px;font-weight:600;color:var(--text-secondary);">10 left today</span>
         </div>
         <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input id="ai-freeform-input" type="text" class="field-input" style="flex:1;" />
+            <button class="btn-primary" style="padding:8px 10px;" onclick="submitAIInput()">Ask</button>
+          </div>
           <div style="display:flex;flex-direction:column;gap:7px;">
             <button class="ai-btn" onclick="callAI('analyze-day')">
               <span style="font-size:15px;">🔍</span><span>Analyze my day</span>
@@ -883,10 +966,19 @@
               <span class="quick-action-icon">⏱</span>
               <span>Focus</span>
             </button>
-            <a href="/learning" class="quick-action-btn">
-              <span class="quick-action-icon">📚</span>
-              <span>Learning</span>
+            <a href="/#notes-section" class="quick-action-btn">
+              <span class="quick-action-icon">📝</span>
+              <span>Notes</span>
             </a>
+          </div>
+          <div id="focus-goal-widget" style="margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+              <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Today's focus goal</span>
+              <span id="focus-goal-text" style="font-size:11px;color:var(--text-muted);">0 / 4 sessions</span>
+            </div>
+            <div class="progress-track" style="height:7px;">
+              <div id="focus-goal-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#f59e0b);border-radius:9999px;transition:width 0.3s ease;"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -928,6 +1020,30 @@
         </div>
       </section>
 
+      <p class="section-heading">Social Section</p>
+      <!-- ── Friend Circles ── -->
+      <section class="card" id="friend-circles-card">
+        <div class="card-header">
+          <span class="card-label">Friend Circles</span>
+          <button onclick="loadFriendCircles()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <div class="card-body" style="padding-top:10px;">
+          <div id="friend-circles-list" class="friend-circles">
+            <p style="color:var(--text-muted);font-size:12px;">Loading friends…</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="friend-focus-card">
+        <div class="card-header">
+          <span class="card-label">Friends Focusing</span>
+          <button onclick="loadFriendsFocusStatus()" class="btn-ghost" style="padding:3px 8px;font-size:12px;">↻</button>
+        </div>
+        <div class="card-body" id="friends-focus-body" style="padding-top:10px;padding-bottom:10px;">
+          <p style="color:var(--text-muted);font-size:12px;">Loading focus status…</p>
+        </div>
+      </section>
+
       <!-- ── Friends ── -->
       <section class="card" id="friends-card">
         <div class="card-header">
@@ -940,7 +1056,7 @@
       </section>
 
       <!-- ── Upcoming Tasks ── -->
-      <section class="card">
+      <section class="card" id="notes-section">
         <div class="card-header">
           <span class="card-label">Upcoming</span>
         </div>
@@ -968,7 +1084,7 @@
     </div>
 
     <!-- ──────────── RIGHT COLUMN ──────────── -->
-    <div id="right-col" style="display:flex;flex-direction:column;gap:20px;position:sticky;top:40px;">
+    <div id="right-col" style="display:flex;flex-direction:column;gap:24px;position:sticky;top:40px;">
 
       <!-- ── Profile Widget ── -->
       <section class="card" id="profile-widget">
@@ -990,7 +1106,7 @@
           <p id="widget-bio" class="widget-bio hidden"
             style="font-size:11.5px;color:var(--text-soft);font-style:italic;line-height:1.55;text-align:center;"></p>
           <div id="widget-linkedin-badge" class="hidden"
-            style="display:none;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,102,194,0.12);border:1px solid rgba(10,102,194,0.25);border-radius:20px;">
+            style="display:none !important;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,102,194,0.12);border:1px solid rgba(10,102,194,0.25);border-radius:20px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#0a66c2">
               <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
             </svg>
@@ -1124,13 +1240,13 @@
       </section>
 
       <!-- ── Activity Feed ── -->
-      <section class="card">
+      <section class="card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Activity</span>
-          <span id="activity-live-dot" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
+          <span id="activity-live-dot-secondary" style="width:6px;height:6px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background 0.3s;" title="Live updates"></span>
         </div>
         <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
-          <ul id="activity-list" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;">
+          <ul id="activity-list-secondary" style="display:flex;flex-direction:column;list-style:none;margin:0;padding:0;max-height:260px;overflow-y:auto;">
             <li style="color:var(--text-muted);font-size:12px;padding:8px 4px;" class="activity-empty">Loading…</li>
           </ul>
         </div>
@@ -1425,6 +1541,8 @@
         if (nameEl) nameEl.textContent = u.display_name || u.email;
         const emailEl = document.getElementById('widget-email');
         if (emailEl) emailEl.textContent = u.email;
+        const langSel = document.getElementById('lang-select');
+        if (langSel) langSel.value = u.language || 'en';
         const bioEl = document.getElementById('widget-bio');
         if (bioEl && u.bio) { bioEl.textContent = u.bio; bioEl.classList.remove('hidden'); }
 
@@ -1447,12 +1565,26 @@
     }
     loadProfileWidget();
 
+    async function setLanguage(language) {
+      try {
+        const res = await fetch('/api/profile/language', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language }),
+        });
+        if (!res.ok) return;
+        window.location.reload();
+      } catch { /* non-critical */ }
+    }
+
     // ── Activity Feed ─────────────────────────────────────────────────
     const ACTIVITY_ICONS = {
       task_created:   '＋',
       task_completed: '✓',
       message_sent:   '✉',
       note_created:   '✎',
+      focus_completed: '⏱',
+      friend_joined: '🤝',
     };
 
     function _relTime(iso) {
@@ -1464,19 +1596,29 @@
     }
 
     function renderActivityItem(a) {
-      const icon = ACTIVITY_ICONS[a.type] || '·';
+      const payload = a?.event ? a.event : a;
+      const reactions = a?.reactions || { like: 0, love: 0, fire: 0, clap: 0 };
+      const type = payload.event_type || payload.type || 'event';
+      const text = payload.message || payload.description || payload.content || '';
+      const avatar = payload.user_avatar_url || defaultAvatarSvg();
+      const actor = payload.user_display_name || 'You';
+      const icon = ACTIVITY_ICONS[type] || '·';
+      const createdAt = payload.created_at;
+      const eventId = payload.id || 0;
       return `<li class="activity-item">
-        <span class="activity-dot ${a.type}">${icon}</span>
-        <div class="activity-content">
-          <p class="activity-text" title="${a.content}">${a.content}</p>
-          <p class="activity-time">${_relTime(a.created_at)}</p>
+        <img src="${avatar}" alt="${actor}" style="width:24px;height:24px;border-radius:9999px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.src=defaultAvatarSvg()" />
+        <span class="activity-dot ${type}">${icon}</span>
+        <div class="activity-content" data-event-id="${eventId}">
+          <p class="activity-text" title="${text}">${text}</p>
+          <p class="activity-time">${_relTime(createdAt)}</p>
+          <p class="activity-time" style="margin-top:2px;">👍 ${reactions.like || 0} · ❤️ ${reactions.love || 0} · 🔥 ${reactions.fire || 0} · 👏 ${reactions.clap || 0}</p>
         </div>
       </li>`;
     }
 
     async function loadActivityFeed() {
       try {
-        const res = await fetch('/api/activity?limit=20');
+        const res = await fetch('/api/activity/feed?limit=20');
         if (!res.ok) return;
         const items = await res.json();
         const list = document.getElementById('activity-list');
@@ -1573,6 +1715,12 @@
       list.insertAdjacentHTML('afterbegin', renderActivityItem(activity));
       // Keep list trimmed to 20 items
       while (list.children.length > 20) list.lastElementChild.remove();
+    }
+
+    function applyReactionUpdate(eventId, reactions) {
+      const target = document.querySelector(`[data-event-id="${eventId}"] .activity-time:last-child`);
+      if (!target || !reactions) return;
+      target.textContent = `👍 ${reactions.like || 0} · ❤️ ${reactions.love || 0} · 🔥 ${reactions.fire || 0} · 👏 ${reactions.clap || 0}`;
     }
 
     // ── Workspaces ────────────────────────────────────────────────────
@@ -1987,25 +2135,15 @@
       }
     }
 
-    // ── News ──────────────────────────────────────────────────────────
-    const CATEGORIES = ['all', 'world', 'tech', 'science', 'health', 'business', 'sports'];
+    // ── News Feeds ────────────────────────────────────────────────────
     let newsData = [];
-    let activeCategory = 'all';
-
-    function renderCategoryFilters() {
-      document.getElementById('category-filters').innerHTML = CATEGORIES.map(cat => {
-        const isActive = cat === activeCategory;
-        return `<button class="pill ${isActive ? 'pill-active' : 'pill-inactive'} capitalize" onclick="setCategory('${cat}')">${cat}</button>`;
-      }).join('');
-    }
-
-    function setCategory(cat) { activeCategory = cat; renderCategoryFilters(); loadNews(); }
 
     async function loadNews() {
       const list = document.getElementById('news-list');
+      if (!list) return;
       list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>';
       try {
-        const res = await fetch(`/api/news?category=${activeCategory}`);
+        const res = await fetch('/api/news/personalized');
         newsData = await res.json();
         if (!newsData.length) {
           list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">No headlines available.</li>';
@@ -2013,44 +2151,44 @@
         }
         list.innerHTML = newsData.map(item => `
           <li class="news-card">
-            <span class="news-tag">${escapeHtml(item.category || 'news')}</span>
+            <span class="news-tag">${escapeHtml(item.topic || 'news')}</span>
             <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer"
                class="news-link" style="flex:1;font-size:13px;line-height:1.4;"
-            >${escapeHtml(item.title)}</a>
+            >${escapeHtml(item.headline || item.title || 'Untitled')}</a>
           </li>`).join('');
       } catch {
         list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Error loading news.</li>';
       }
     }
-    renderCategoryFilters();
-    loadNews();
-    setInterval(loadNews, 300_000);
 
-    // ── Summarize ─────────────────────────────────────────────────────
-    async function summarize(idx) {
-      const item      = newsData[idx];
-      const btn       = document.getElementById(`sum-btn-${idx}`);
-      const summaryEl = document.getElementById(`summary-${idx}`);
-      btn.disabled    = true;
-      btn.textContent = 'Summarizing…';
-      summaryEl.classList.remove('hidden');
-      summaryEl.textContent = '…';
+    async function loadGamingNews() {
+      const list = document.getElementById('gaming-news-list');
+      if (!list) return;
+      list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Loading gaming headlines…</li>';
       try {
-        const res  = await fetch('/api/summarize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: item.title, description: item.description }),
-        });
+        const res = await fetch('/api/news/gaming');
         const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        summaryEl.textContent = data.summary;
-        btn.textContent = 'Summarized ✓';
+        if (!data.length) {
+          list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">No gaming news available.</li>';
+          return;
+        }
+        list.innerHTML = data.map(item => `
+          <li class="news-card">
+            <span class="news-tag">${escapeHtml(item.source || 'gaming')}</span>
+            <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer" class="news-link" style="flex:1;font-size:13px;line-height:1.4;">
+              ${escapeHtml(item.headline || 'Untitled')}
+            </a>
+          </li>
+        `).join('');
       } catch {
-        summaryEl.textContent = 'Could not load summary.';
-        btn.disabled    = false;
-        btn.textContent = 'Summarize';
+        list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Error loading gaming news.</li>';
       }
     }
+
+    loadNews();
+    loadGamingNews();
+    setInterval(loadNews, 300_000);
+    setInterval(loadGamingNews, 300_000);
 
     // ── Bible Verse ───────────────────────────────────────────────────
     async function loadVerse() {
@@ -2188,6 +2326,12 @@
       socket.on('activity_created', data => {
         if (data.activity) prependActivity(data.activity);
       });
+      socket.on('activity:new', payload => {
+        if (payload) prependActivity(payload);
+      });
+      socket.on('reaction:new', payload => {
+        if (payload?.event_id) applyReactionUpdate(payload.event_id, payload.reactions);
+      });
     })();
 
     // ── Service Worker ────────────────────────────────────────────────
@@ -2291,63 +2435,265 @@
 
     // ── Focus Mode ────────────────────────────────────────────────────
     let _focusInterval = null;
-    let _focusSeconds  = 0;
-    let _focusPoints   = parseInt(localStorage.getItem('focus_points') || '0', 10);
+    let _focusRemaining = 0;
+    let _focusDuration = 0;
+    let _focusPhase = 'focus';
+    let _focusTickCount = 0;
+    let _focusTask = '';
+    const _focusLoadingMessages = [
+      'Thinking deeply...',
+      'Crunching the problem...',
+      'Brewing ideas...',
+      'Sharpening focus...',
+      'Preparing your strategy...',
+      'Generating insight...',
+    ];
+    const _focusMotivation = [
+      '5 minutes down — keep going.',
+      'Halfway there.',
+      'Final push.',
+      'Almost done.',
+    ];
+    const _focusDistractingIds = [
+      'news-list', 'gaming-news-list', 'leaderboard-card', 'friends-card',
+      'friend-circles-card', 'weekly-insights-card', 'activity-list',
+      'progress-widget', 'inv-dash-body',
+    ];
 
-    function startFocusSession() {
-      if (document.getElementById('focus-overlay')) return;
-      _focusSeconds = 25 * 60;
+    function _fmtMMSS(seconds) {
+      const s = Math.max(0, Math.floor(seconds));
+      const m = String(Math.floor(s / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${m}:${sec}`;
+    }
 
-      const overlay = document.createElement('div');
-      overlay.id = 'focus-overlay';
-      overlay.style.cssText =
-        'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;' +
-        'display:flex;align-items:center;justify-content:center;padding:16px;';
-      overlay.innerHTML = `
-        <div class="card" style="width:100%;max-width:340px;text-align:center;">
-          <div class="card-header" style="justify-content:center;">
-            <span class="card-label">Focus Session</span>
+    function _setFocusDistractionMode(active) {
+      _focusDistractingIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.opacity = active ? '0.15' : '';
+        el.style.pointerEvents = active ? 'none' : '';
+        el.style.filter = active ? 'grayscale(0.4)' : '';
+      });
+    }
+
+    function _focusPhaseColor() {
+      if (_focusPhase !== 'focus') return '#60a5fa';
+      const elapsedMinutes = (_focusDuration - _focusRemaining) / 60;
+      if (elapsedMinutes < 10) return '#22c55e';
+      if (elapsedMinutes < 20) return '#facc15';
+      return '#fb923c';
+    }
+
+    function _randomFocusLoading() {
+      return _focusLoadingMessages[Math.floor(Math.random() * _focusLoadingMessages.length)];
+    }
+
+    function _renderFocusOverlay() {
+      let overlay = document.getElementById('focus-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'focus-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;';
+        overlay.innerHTML = `
+          <div class="card" style="width:100%;max-width:380px;text-align:center;">
+            <div class="card-header" style="justify-content:center;">
+              <span id="focus-phase-label" class="card-label">Focus Mode</span>
+            </div>
+            <div id="focus-overlay-body" class="card-body" style="padding:22px 24px 24px;"></div>
+          </div>`;
+        document.body.appendChild(overlay);
+      }
+      const body = document.getElementById('focus-overlay-body');
+      if (!body) return;
+      const color = _focusPhaseColor();
+      const pct = _focusDuration ? Math.min(100, Math.max(0, ((_focusDuration - _focusRemaining) / _focusDuration) * 100)) : 0;
+      body.innerHTML = `
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Task: ${escapeHtml(_focusTask || 'Deep work')}</p>
+        <div id="focus-circle" style="width:196px;height:196px;border-radius:50%;margin:10px auto 14px;padding:10px;background:conic-gradient(${color} ${pct}%, rgba(255,255,255,0.08) ${pct}%);display:flex;align-items:center;justify-content:center;transition:background 0.2s ease;">
+          <div style="width:100%;height:100%;border-radius:50%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+            <p id="focus-display" style="font-size:42px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:var(--text-primary);font-variant-numeric:tabular-nums;">${_fmtMMSS(_focusRemaining)}</p>
+            <p style="font-size:10.5px;color:var(--text-muted);margin-top:6px;">remaining</p>
           </div>
-          <div class="card-body" style="padding:28px 24px 24px;">
-            <p id="focus-display"
-               style="font-size:58px;font-weight:800;color:var(--text-primary);
-                      font-variant-numeric:tabular-nums;letter-spacing:-0.03em;
-                      line-height:1;margin-bottom:16px;">25:00</p>
-            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-              Stay focused. You got this. 💪
-            </p>
-            <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:22px;">
-              🎯 Focus points: <strong id="focus-pts-display"
-              style="color:#fb923c;">${_focusPoints}</strong>
-            </p>
-            <button onclick="endFocusSession(false)" class="btn-ghost"
-                    style="width:100%;padding:9px;">End Session</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
+        </div>
+        <p id="focus-msg" style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Stay sharp. You are building momentum.</p>
+        <p style="font-size:10.5px;color:var(--text-muted);margin-bottom:16px;" id="focus-loading-msg">${_randomFocusLoading()}</p>
+        <button onclick="endFocusSession(false)" class="btn-ghost" style="width:100%;padding:8px;">End Session</button>
+      `;
+      const phaseLabel = document.getElementById('focus-phase-label');
+      if (phaseLabel) phaseLabel.textContent = _focusPhase === 'focus' ? 'Focus Mode' : 'Break Time';
+    }
 
+    function _updateFocusGoalWidget(stats) {
+      if (!stats) return;
+      const fill = document.getElementById('focus-goal-fill');
+      const text = document.getElementById('focus-goal-text');
+      if (fill) fill.style.width = `${stats.goal_progress || 0}%`;
+      if (text) text.textContent = `${stats.sessions_today || 0} / ${stats.today_goal || 4} sessions`;
+    }
+
+    async function refreshFocusStats() {
+      try {
+        const res = await fetch('/api/focus/stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+        _updateFocusGoalWidget(stats);
+      } catch {}
+    }
+
+    function _runFocusClock() {
+      clearInterval(_focusInterval);
+      _focusTickCount = 0;
       _focusInterval = setInterval(() => {
-        _focusSeconds--;
-        const m = String(Math.floor(_focusSeconds / 60)).padStart(2, '0');
-        const s = String(_focusSeconds % 60).padStart(2, '0');
-        const el = document.getElementById('focus-display');
-        if (el) el.textContent = `${m}:${s}`;
-        if (_focusSeconds <= 0) endFocusSession(true);
+        _focusRemaining -= 1;
+        _focusTickCount += 1;
+        const display = document.getElementById('focus-display');
+        if (display) display.textContent = _fmtMMSS(_focusRemaining);
+        const circle = document.getElementById('focus-circle');
+        if (circle) {
+          const color = _focusPhaseColor();
+          const pct = _focusDuration ? Math.min(100, Math.max(0, ((_focusDuration - _focusRemaining) / _focusDuration) * 100)) : 0;
+          circle.style.background = `conic-gradient(${color} ${pct}%, rgba(255,255,255,0.08) ${pct}%)`;
+        }
+        if (_focusPhase === 'focus' && _focusTickCount % 300 === 0 && _focusRemaining > 0) {
+          const msg = _focusMotivation[Math.floor(Math.random() * _focusMotivation.length)];
+          showMicroToast('task', 'Focus Mode', msg);
+        }
+        if (_focusRemaining <= 0) {
+          clearInterval(_focusInterval);
+          if (_focusPhase === 'focus') {
+            finishFocusSession();
+          } else {
+            _setFocusDistractionMode(false);
+            const overlay = document.getElementById('focus-overlay');
+            if (overlay) overlay.remove();
+          }
+        }
       }, 1000);
     }
 
-    function endFocusSession(completed = false) {
-      clearInterval(_focusInterval);
-      _focusInterval = null;
-      const overlay = document.getElementById('focus-overlay');
-      if (overlay) overlay.remove();
-      if (completed) {
-        _focusPoints++;
-        localStorage.setItem('focus_points', _focusPoints);
-        showMicroToast('task', 'Focus session completed ✔',
-          `+1 focus point · Total: ${_focusPoints}`);
+    async function startFocusSession(resume = false, restored = null) {
+      if (document.getElementById('focus-overlay')) return;
+      _setFocusDistractionMode(true);
+      if (resume && restored) {
+        _focusPhase = 'focus';
+        _focusDuration = restored.duration_sec || 1500;
+        _focusRemaining = restored.remaining_seconds || 0;
+        _focusTask = restored.task || '';
+        _renderFocusOverlay();
+        _runFocusClock();
+        return;
+      }
+      try {
+        const res = await fetch('/api/focus/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: _focusTask || '' }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Could not start focus mode');
+        _focusPhase = 'focus';
+        _focusDuration = data.session?.duration_sec || 1500;
+        _focusRemaining = _focusDuration;
+        _focusTask = data.session?.task || '';
+        _updateFocusGoalWidget(data.stats);
+        _renderFocusOverlay();
+        _runFocusClock();
+      } catch {
+        _setFocusDistractionMode(false);
+        showMicroToast('task', 'Focus Mode', 'Could not start focus mode right now.');
       }
     }
+
+    async function finishFocusSession() {
+      let payload = null;
+      try {
+        const res = await fetch('/api/focus/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true }),
+        });
+        payload = await res.json();
+      } catch {}
+      const body = document.getElementById('focus-overlay-body');
+      if (!body) return;
+      const sessionsToday = payload?.stats?.sessions_today ?? 0;
+      const streak = payload?.stats?.focus_streak ?? 0;
+      const breakSec = payload?.next_break?.seconds ?? 300;
+      body.innerHTML = `
+        <p style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:10px;">Session Complete</p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Focus time: 25 minutes</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <div style="padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Sessions today</p>
+            <p style="font-size:20px;font-weight:800;color:var(--text-primary);">${sessionsToday}</p>
+          </div>
+          <div style="padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
+            <p style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Current streak</p>
+            <p style="font-size:20px;font-weight:800;color:#fb923c;">${streak}</p>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Did you complete the task?</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button onclick="showMicroToast('task','Great work','Momentum locked in.')" class="btn-primary" style="flex:1;padding:8px 0;">Yes</button>
+          <button onclick="showMicroToast('task','No worries','Take the break and retry.')" class="btn-ghost" style="flex:1;padding:8px 0;">No</button>
+        </div>
+      `;
+      _updateFocusGoalWidget(payload?.stats);
+      showMicroToast('task', 'Focus session completed ✔', `Starting ${payload?.next_break?.type || 'short'} break.`);
+      startBreakScreen(breakSec);
+    }
+
+    function startBreakScreen(seconds) {
+      _focusPhase = 'break';
+      _focusDuration = seconds;
+      _focusRemaining = seconds;
+      _renderFocusOverlay();
+      const body = document.getElementById('focus-overlay-body');
+      if (body) {
+        body.innerHTML = `
+          <p style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:8px;">Break Time</p>
+          <p id="focus-display" style="font-size:44px;font-weight:800;line-height:1;margin-bottom:12px;font-variant-numeric:tabular-nums;">${_fmtMMSS(_focusRemaining)}</p>
+          <div style="font-size:12.5px;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+            Drink water<br/>Stretch<br/>Look away from the screen
+          </div>
+          <p style="font-size:10.5px;color:var(--text-muted);">${_randomFocusLoading()}</p>
+        `;
+      }
+      _runFocusClock();
+    }
+
+    async function endFocusSession(completed = false) {
+      clearInterval(_focusInterval);
+      _focusInterval = null;
+      _setFocusDistractionMode(false);
+      if (!completed) {
+        try {
+          await fetch('/api/focus/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: false }),
+          });
+        } catch {}
+      }
+      const overlay = document.getElementById('focus-overlay');
+      if (overlay) overlay.remove();
+      refreshFocusStats();
+    }
+
+    async function restoreFocusIfNeeded() {
+      try {
+        const res = await fetch('/api/focus/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        _updateFocusGoalWidget(data.stats);
+        if (data.active && data.session) {
+          startFocusSession(true, data.session);
+        }
+      } catch {}
+    }
+    refreshFocusStats();
+    restoreFocusIfNeeded();
 
     // ── AI Assistant ──────────────────────────────────────────────────
     const _aiEndpoints = {
@@ -2355,6 +2701,23 @@
       'plan-tomorrow':   { path: '/api/ai/plan-tomorrow',   title: "Tomorrow's Plan" },
       'summarize-notes': { path: '/api/ai/summarize-notes', title: 'Notes Summary' },
     };
+    const _aiProcessingMessages = [
+      'Thinking deeply...',
+      'Analyzing the situation...',
+      'Crunching the problem...',
+      'Preparing a solution...',
+      'Brewing a strategy...',
+      'Connecting ideas...',
+      'Generating insight...',
+    ];
+    const _aiInputPlaceholders = [
+      'You have one wish today. Describe it clearly.',
+      'What challenge are you facing today?',
+      'Tell me your biggest obstacle.',
+      "Describe your situation and I'll propose a plan.",
+      'What would you like to improve today?',
+      'What problem would you like solved?',
+    ];
     let _aiRemaining = 10;
 
     function updateAICounter() {
@@ -2374,6 +2737,23 @@
       if (modal) modal.style.display = 'none';
     }
 
+    function initAIInputPlaceholder() {
+      const input = document.getElementById('ai-freeform-input');
+      if (!input) return;
+      const random = _aiInputPlaceholders[Math.floor(Math.random() * _aiInputPlaceholders.length)];
+      input.placeholder = random;
+    }
+
+    function startAIProcessingTicker(targetEl) {
+      if (!targetEl) return null;
+      let idx = Math.floor(Math.random() * _aiProcessingMessages.length);
+      targetEl.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">${_aiProcessingMessages[idx]}</div>`;
+      return setInterval(() => {
+        idx = (idx + 1) % _aiProcessingMessages.length;
+        targetEl.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">${_aiProcessingMessages[idx]}</div>`;
+      }, 1100);
+    }
+
     async function callAI(type) {
       const endpoint = _aiEndpoints[type];
       if (!endpoint) return;
@@ -2382,7 +2762,7 @@
       const content = document.getElementById('ai-modal-content');
       if (!modal) return;
       title.textContent   = endpoint.title;
-      content.innerHTML   = '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px;">Thinking…</div>';
+      const ticker = startAIProcessingTicker(content);
       modal.style.display = 'flex';
       document.querySelectorAll('.ai-btn').forEach(b => b.disabled = true);
       try {
@@ -2447,6 +2827,7 @@
       } catch {
         content.innerHTML = '<p style="color:#f87171;font-size:13px;padding:4px 0;">Network error. Please try again.</p>';
       } finally {
+        if (ticker) clearInterval(ticker);
         document.querySelectorAll('.ai-btn').forEach(b => b.disabled = false);
       }
     }
@@ -2466,7 +2847,7 @@
       }
 
       if (btn) { btn.disabled = true; btn.textContent = '…'; }
-      body.innerHTML = '<p style="font-size:12.5px;color:var(--text-muted);text-align:center;padding:14px 0;">Generating insights…</p>';
+      const ticker = startAIProcessingTicker(body);
 
       try {
         const res  = await fetch('/api/ai/weekly-report', { method: 'POST' });
@@ -2526,9 +2907,47 @@
       } catch {
         body.innerHTML = '<p style="color:#f87171;font-size:12.5px;text-align:center;padding:8px 0;">Network error. Please try again.</p>';
       } finally {
+        if (ticker) clearInterval(ticker);
         if (btn) { btn.disabled = false; btn.textContent = 'Generate'; }
       }
     }
+
+    async function submitAIInput() {
+      const input = document.getElementById('ai-freeform-input');
+      if (!input) return;
+      const prompt = input.value.trim();
+      if (!prompt) return;
+      const modal   = document.getElementById('ai-modal');
+      const title   = document.getElementById('ai-modal-title');
+      const content = document.getElementById('ai-modal-content');
+      title.textContent = 'AI Assistant';
+      modal.style.display = 'flex';
+      const ticker = startAIProcessingTicker(content);
+      try {
+        const res = await fetch('/api/ai/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          content.innerHTML = `<p style="color:#f87171;font-size:13px;padding:4px 0;">${escapeHtml(data.error || 'AI request failed.')}</p>`;
+          return;
+        }
+        _aiRemaining = data.remaining ?? _aiRemaining;
+        updateAICounter();
+        content.innerHTML = `<div class="ai-suggestion">${escapeHtml(data.result?.answer || 'No answer available.')}</div>`;
+        input.value = '';
+      } catch {
+        content.innerHTML = '<p style="color:#f87171;font-size:13px;padding:4px 0;">Network error. Please try again.</p>';
+      } finally {
+        if (ticker) clearInterval(ticker);
+      }
+    }
+    initAIInputPlaceholder();
+    document.getElementById('ai-freeform-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submitAIInput();
+    });
 
     // ── Leaderboard ───────────────────────────────────────────────────
     // ── Friends Leaderboard ───────────────────────────────────────────
@@ -2606,6 +3025,58 @@
       }
     }
     loadLeaderboard();
+
+    // ── Friend circles ────────────────────────────────────────────────
+    async function loadFriendCircles() {
+      const container = document.getElementById('friend-circles-list');
+      if (!container) return;
+      try {
+        const res = await fetch('/api/friends/streaks');
+        const list = await res.json();
+        if (!res.ok || !Array.isArray(list) || !list.length) {
+          container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No friend circles yet.</p>';
+          return;
+        }
+        container.innerHTML = list.map(f => `
+          <a class="friend-circle-link" href="/friends/${f.id}">
+            <img class="friend-circle-avatar" src="${escapeHtml(f.profile_image || defaultAvatarSvg())}" onerror="this.src=defaultAvatarSvg()" alt="${escapeHtml(f.username)}" />
+            <p class="friend-circle-name">${escapeHtml(f.username)}</p>
+            <p class="friend-circle-streak">${f.current_streak || 0} 🔥</p>
+          </a>
+        `).join('');
+      } catch {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Could not load friend circles.</p>';
+      }
+    }
+    loadFriendCircles();
+
+    async function loadFriendsFocusStatus() {
+      const body = document.getElementById('friends-focus-body');
+      if (!body) return;
+      try {
+        const res = await fetch('/api/friends/focus-status');
+        const list = await res.json();
+        if (!res.ok || !Array.isArray(list) || !list.length) {
+          body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">No friends in focus mode right now.</p>';
+          return;
+        }
+        body.innerHTML = list.map(item => {
+          const dot = item.focus_status === 'focusing' ? '🟢' : '⚪';
+          const minsLeft = Math.max(0, Math.ceil((item.remaining_focus_time || 0) / 60));
+          const status = item.focus_status === 'focusing'
+            ? `${minsLeft} min left`
+            : 'just finished';
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border-soft);">
+              <span style="font-size:12px;color:var(--text-body);">${dot} ${escapeHtml(item.username)}</span>
+              <span style="font-size:11px;color:var(--text-muted);">${status}</span>
+            </div>`;
+        }).join('');
+      } catch {
+        body.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">Could not load focus status.</p>';
+      }
+    }
+    loadFriendsFocusStatus();
 
     // ── Friends Section (full list with detailed stats) ────────────────
     function _fmtRelative(iso) {

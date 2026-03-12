@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Feed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    .reaction-group { display: inline-flex; align-items: center; gap: 6px; }
+    .avatar-stack { display: flex; margin-left: 2px; }
+    .avatar-stack img {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #18181b;
+      object-fit: cover;
+      margin-left: -6px;
+      background: #27272a;
+    }
+    .avatar-stack img:first-child { margin-left: 0; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <header class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Activity Feed</h1>
+      <a href="/" class="text-sm text-lime-300 hover:text-lime-200">Back to dashboard</a>
+    </header>
+
+    <section id="feed-list" class="space-y-3">
+      {% if feed_items %}
+        {% for item in feed_items %}
+        <article class="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex gap-3 items-start" data-event-id="{{ item.event.id }}">
+          <img
+            src="{{ item.event.user_avatar_url or '/static/logo.svg' }}"
+            alt="{{ item.event.user_display_name }}"
+            class="w-10 h-10 rounded-full object-cover border border-zinc-700"
+          />
+          <div class="min-w-0 flex-1">
+            <p class="text-sm text-zinc-200">{{ item.event.message or item.event.description or item.event.content }}</p>
+            <p class="text-xs text-zinc-500 mt-1">{{ item.event.created_at }}</p>
+
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              {% for reaction_type, emoji in [('like', '👍'), ('love', '❤️'), ('fire', '🔥'), ('clap', '👏')] %}
+              <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="{{ reaction_type }}">{{ emoji }}</button>
+              <div class="reaction-group" data-reaction-group="{{ reaction_type }}">
+                <span data-count="{{ reaction_type }}">{{ item.reactions[reaction_type] or 0 }}</span>
+                <div class="avatar-stack" data-stack="{{ reaction_type }}">
+                  {% for user in item.reaction_users[reaction_type] or [] %}
+                  <img src="{{ user.avatar_url or '/static/logo.svg' }}" alt="{{ user.display_name }}" title="{{ user.display_name }}" />
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <p class="text-sm text-zinc-500">No activity yet.</p>
+      {% endif %}
+    </section>
+  </main>
+  <script>
+    const REACTION_TYPES = ['like', 'love', 'fire', 'clap'];
+
+    function defaultAvatar() {
+      return '/static/logo.svg';
+    }
+
+    async function postReaction(eventId, reactionType) {
+      const res = await fetch('/api/activity/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, reaction_type: reactionType }),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    }
+
+    function renderAvatarStack(users) {
+      return (users || []).map(u => {
+        const avatar = u.avatar_url || defaultAvatar();
+        const name = u.display_name || 'User';
+        return `<img src="${avatar}" alt="${name}" title="${name}" onerror="this.src='${defaultAvatar()}'" />`;
+      }).join('');
+    }
+
+    function applyReactionData(eventId, reactions, reactionUsers) {
+      const card = document.querySelector(`[data-event-id="${eventId}"]`);
+      if (!card) return;
+      REACTION_TYPES.forEach(type => {
+        const countEl = card.querySelector(`[data-count="${type}"]`);
+        if (countEl) countEl.textContent = (reactions && reactions[type]) || 0;
+        const stack = card.querySelector(`[data-stack="${type}"]`);
+        if (stack) stack.innerHTML = renderAvatarStack(reactionUsers ? reactionUsers[type] : []);
+      });
+    }
+
+    function renderEventCard(payload) {
+      const event = payload?.event || payload || {};
+      const reactions = payload?.reactions || { like: 0, love: 0, fire: 0, clap: 0 };
+      const reactionUsers = payload?.reaction_users || { like: [], love: [], fire: [], clap: [] };
+      const avatar = event.user_avatar_url || defaultAvatar();
+      const actor = event.user_display_name || 'User';
+      const message = event.message || event.description || event.content || '';
+      const createdAt = event.created_at || '';
+      return `
+        <article class="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex gap-3 items-start" data-event-id="${event.id || 0}">
+          <img src="${avatar}" alt="${actor}" class="w-10 h-10 rounded-full object-cover border border-zinc-700" onerror="this.src='${defaultAvatar()}'" />
+          <div class="min-w-0 flex-1">
+            <p class="text-sm text-zinc-200">${message}</p>
+            <p class="text-xs text-zinc-500 mt-1">${createdAt}</p>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              ${REACTION_TYPES.map(type => {
+                const emoji = type === 'like' ? '👍' : type === 'love' ? '❤️' : type === 'fire' ? '🔥' : '👏';
+                return `
+                  <button class="reaction-btn px-2 py-1 rounded border border-zinc-700 hover:bg-zinc-800" data-reaction="${type}">${emoji}</button>
+                  <div class="reaction-group" data-reaction-group="${type}">
+                    <span data-count="${type}">${reactions[type] || 0}</span>
+                    <div class="avatar-stack" data-stack="${type}">${renderAvatarStack(reactionUsers[type])}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </article>`;
+    }
+
+    document.getElementById('feed-list').addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('.reaction-btn');
+      if (!btn) return;
+      const card = btn.closest('[data-event-id]');
+      if (!card) return;
+      const eventId = parseInt(card.getAttribute('data-event-id'), 10);
+      const reactionType = btn.getAttribute('data-reaction');
+      if (!eventId || !reactionType) return;
+      const data = await postReaction(eventId, reactionType);
+      if (data?.reactions) applyReactionData(eventId, data.reactions, data.reaction_users || {});
+    });
+
+    try {
+      const socket = io();
+      socket.on('activity:new', (payload) => {
+        if (!payload?.event) return;
+        const list = document.getElementById('feed-list');
+        if (!list) return;
+        list.insertAdjacentHTML('afterbegin', renderEventCard(payload));
+      });
+      socket.on('reaction:new', (payload) => {
+        if (!payload?.event_id) return;
+        applyReactionData(payload.event_id, payload.reactions, payload.reaction_users || {});
+      });
+    } catch (_) {}
+  </script>
+</body>
+</html>

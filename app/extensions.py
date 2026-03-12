@@ -4,5 +4,7 @@ need to emit socket events without triggering circular imports.
 """
 
 from flask_socketio import SocketIO
+from flask_babel import Babel
 
 socketio = SocketIO()
+babel = Babel()

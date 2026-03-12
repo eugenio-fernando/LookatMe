@@ -87,6 +87,27 @@ def _today() -> str:
     return datetime.now(timezone.utc).strftime("%A, %B %d %Y")
 
 
+def build_productivity_context(tasks: list, notes: list) -> dict:
+    """
+    Build structured productivity signals for prompt grounding.
+    This avoids sending raw task lists to the model.
+    """
+    tasks_completed = sum(1 for t in tasks if t.get("completed"))
+    tasks_pending = sum(1 for t in tasks if not t.get("completed"))
+    notes_written = sum(1 for n in notes if n.get("text"))
+    high_priority_tasks = [
+        t.get("text", "")
+        for t in tasks
+        if not t.get("completed") and t.get("priority") == "high"
+    ][:3]
+    return {
+        "tasks_completed": tasks_completed,
+        "tasks_pending": tasks_pending,
+        "notes_written": notes_written,
+        "high_priority_tasks": high_priority_tasks,
+    }
+
+
 # ------------------------------------------------
 # Daily analysis
 # ------------------------------------------------
@@ -97,25 +118,17 @@ def analyze_day(tasks: list, notes: list) -> dict:
     if _test_mode():
         return _MOCK
 
-    done_count = sum(1 for t in tasks if t.get("completed"))
-    pending_count = sum(1 for t in tasks if not t.get("completed"))
-    notes_count = sum(1 for n in notes if n.get("text"))
-
-    high_pri = [
-        t.get("text", "")
-        for t in tasks
-        if not t.get("completed") and t.get("priority") == "high"
-    ][:3]
+    ctx = build_productivity_context(tasks, notes)
 
     prompt = f"""
 Today is {_today()}.
 
 User productivity snapshot:
 
-Tasks completed: {done_count}
-Tasks remaining: {pending_count}
-Notes written: {notes_count}
-High priority tasks pending: {high_pri if high_pri else "none"}
+Tasks completed: {ctx["tasks_completed"]}
+Tasks remaining: {ctx["tasks_pending"]}
+Notes written: {ctx["notes_written"]}
+High priority tasks pending: {ctx["high_priority_tasks"] if ctx["high_priority_tasks"] else "none"}
 
 Respond ONLY with JSON using this structure:
 
@@ -147,24 +160,16 @@ def plan_tomorrow(tasks: list, notes: list) -> dict:
     if _test_mode():
         return _MOCK
 
-    pending_count = sum(1 for t in tasks if not t.get("completed"))
-
-    high_pri = [
-        t.get("text", "")
-        for t in tasks
-        if not t.get("completed") and t.get("priority") == "high"
-    ][:3]
-
-    notes_count = sum(1 for n in notes if n.get("text"))
+    ctx = build_productivity_context(tasks, notes)
 
     prompt = f"""
 You are planning tomorrow for a productivity-focused user.
 
 Today's context:
 
-Tasks still pending: {pending_count}
-High priority tasks: {high_pri if high_pri else "none"}
-Notes written today: {notes_count}
+Tasks still pending: {ctx["tasks_pending"]}
+High priority tasks: {ctx["high_priority_tasks"] if ctx["high_priority_tasks"] else "none"}
+Notes written today: {ctx["notes_written"]}
 
 Respond ONLY with JSON:
 
@@ -190,10 +195,12 @@ Guidelines:
 # Weekly report
 # ------------------------------------------------
 
-def weekly_report(stats: dict) -> dict:
+def weekly_report(stats: dict, tasks: list | None = None, notes: list | None = None) -> dict:
 
     if _test_mode():
         return _MOCK_WEEKLY
+
+    context = build_productivity_context(tasks or [], notes or [])
 
     prompt = f"""
 You are analyzing a user's productivity over the past week.
@@ -204,6 +211,11 @@ Metrics:
 Tasks completed: {stats['tasks_completed']}
 Habits completed: {stats['habits_completed']}
 Notes written: {stats['notes_written']}
+
+Current productivity signals:
+Tasks pending now: {context['tasks_pending']}
+High-priority tasks pending now: {context['high_priority_tasks'] if context['high_priority_tasks'] else "none"}
+Notes created now: {context['notes_written']}
 
 Respond ONLY with JSON:
 
@@ -271,4 +283,30 @@ Respond ONLY with JSON:
 Focus on extracting meaning and concrete actions.
 """
 
+    return _chat(prompt)
+
+
+def ask_assistant(prompt_text: str, tasks: list, notes: list) -> dict:
+    """Free-form assistant answer grounded in structured productivity context."""
+    if _test_mode():
+        return {"answer": "Mock answer: start with one high-impact task and review progress tonight."}
+
+    context = build_productivity_context(tasks, notes)
+    prompt = f"""
+You are a practical productivity assistant.
+
+User question:
+{prompt_text}
+
+User context signals:
+- Tasks completed: {context['tasks_completed']}
+- Tasks pending: {context['tasks_pending']}
+- Notes written: {context['notes_written']}
+- High priority pending: {context['high_priority_tasks'] if context['high_priority_tasks'] else "none"}
+
+Respond ONLY as JSON:
+{{
+  "answer": "A concise helpful answer with concrete next steps"
+}}
+"""
     return _chat(prompt)

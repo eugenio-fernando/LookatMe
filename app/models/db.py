@@ -5,12 +5,22 @@ Uses Prisma Client Python (sync) backed by SQLite.
 
 import json
 import os
+import hashlib
+import logging
+import secrets
 from datetime import datetime, timedelta
 
 from prisma import Prisma
 
+from ..services.nickname_service import generate_nickname
+from ..services.welcome_service import build_fun_welcome
+
 # Project root (two levels up from app/models/)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FOCUS_SECONDS = 25 * 60
+SHORT_BREAK_SECONDS = 5 * 60
+LONG_BREAK_SECONDS = 15 * 60
+logger = logging.getLogger(__name__)
 
 
 # ── Internal helpers ───────────────────────────────────────────────────
@@ -261,6 +271,29 @@ def _activity_to_dict(row) -> dict:
     }
 
 
+def _activity_event_to_dict(row) -> dict:
+    metadata = {}
+    if getattr(row, "metadata_json", ""):
+        try:
+            metadata = json.loads(row.metadata_json)
+        except Exception:
+            metadata = {}
+    created_at = getattr(row, "created_at", "")
+    if hasattr(created_at, "isoformat"):
+        created_at = created_at.isoformat()
+    return {
+        "id":          row.id,
+        "user_id":     row.user_id,
+        "event_type":  row.event_type,
+        "description": row.description,
+        "message":     (getattr(row, "message", "") or row.description),
+        "visibility":  getattr(row, "visibility", "space"),
+        "space_id":    getattr(row, "space_id", None),
+        "created_at":  created_at,
+        "metadata":    metadata,
+    }
+
+
 def log_activity(user_id: int, type: str, content: str) -> dict:
     with Prisma() as client:
         row = client.activity.create(data={
@@ -282,6 +315,204 @@ def get_activity_feed(user_id: int, limit: int = 20) -> list[dict]:
     return [_activity_to_dict(r) for r in rows]
 
 
+def create_activity_event(
+    user_id: int,
+    event_type: str,
+    description: str,
+    metadata: dict | None = None,
+    message: str | None = None,
+    visibility: str = "space",
+    space_id: int | None = None,
+) -> dict:
+    payload = metadata or {}
+    with Prisma() as client:
+        row = client.activityevent.create(data={
+            "user_id": user_id,
+            "event_type": event_type,
+            "description": description,
+            "message": message or description,
+            "visibility": visibility or "space",
+            "space_id": space_id,
+            "metadata_json": json.dumps(payload),
+        })
+    return _activity_event_to_dict(row)
+
+
+def get_activity_event_feed_for_user(user_id: int, limit: int = 20) -> list[dict]:
+    space_ids = [s["id"] for s in get_user_spaces(user_id)]
+    visibility_filters = [
+        {"visibility": "public"},
+        {"visibility": "private", "user_id": user_id},
+        {"visibility": "space", "user_id": user_id},
+    ]
+    if space_ids:
+        visibility_filters.append({"visibility": "space", "space_id": {"in": space_ids}})
+
+    with Prisma() as client:
+        rows = client.activityevent.find_many(
+            where={"OR": visibility_filters},
+            order={"id": "desc"},
+            take=limit,
+        )
+    return [_activity_event_to_dict(r) for r in rows]
+
+
+def get_activity_event_by_id(event_id: int) -> dict | None:
+    with Prisma() as client:
+        row = client.activityevent.find_unique(where={"id": event_id})
+    return _activity_event_to_dict(row) if row else None
+
+
+def has_activity_reaction(event_id: int, user_id: int, reaction_type: str) -> bool:
+    with Prisma() as client:
+        row = client.activityreaction.find_first(
+            where={
+                "event_id": event_id,
+                "user_id": user_id,
+                "reaction_type": reaction_type,
+            }
+        )
+    return row is not None
+
+
+def create_activity_reaction(event_id: int, user_id: int, reaction_type: str) -> dict:
+    with Prisma() as client:
+        row = client.activityreaction.create(
+            data={
+                "event_id": event_id,
+                "user_id": user_id,
+                "reaction_type": reaction_type,
+            }
+        )
+    created = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "event_id": row.event_id,
+        "user_id": row.user_id,
+        "reaction_type": row.reaction_type,
+        "created_at": created,
+    }
+
+
+def get_reaction_counts_for_event_ids(event_ids: list[int]) -> dict[int, dict]:
+    """
+    Return reaction counts grouped by event id.
+    Shape: {event_id: {"like": n, "love": n, "fire": n, "clap": n}}
+    """
+    if not event_ids:
+        return {}
+    counts = {eid: {"like": 0, "love": 0, "fire": 0, "clap": 0} for eid in event_ids}
+    with Prisma() as client:
+        rows = client.activityreaction.find_many(where={"event_id": {"in": event_ids}})
+    for r in rows:
+        bucket = counts.setdefault(
+            r.event_id, {"like": 0, "love": 0, "fire": 0, "clap": 0}
+        )
+        if r.reaction_type in bucket:
+            bucket[r.reaction_type] += 1
+    return counts
+
+
+def get_reaction_users_for_event_ids(event_ids: list[int], limit_per_type: int = 3) -> dict[int, dict]:
+    """
+    Return small per-reaction user lists grouped by event id.
+    Shape: {event_id: {"like": [{id, display_name, avatar_url}], ...}}
+    """
+    if not event_ids:
+        return {}
+
+    default_bucket = {"like": [], "love": [], "fire": [], "clap": []}
+    grouped = {eid: {"like": [], "love": [], "fire": [], "clap": []} for eid in event_ids}
+
+    with Prisma() as client:
+        rows = client.activityreaction.find_many(
+            where={"event_id": {"in": event_ids}},
+            order={"id": "desc"},
+        )
+
+    user_ids = list({r.user_id for r in rows})
+    users = get_users_public_by_ids(user_ids)
+    seen = set()
+
+    for r in rows:
+        if r.reaction_type not in default_bucket:
+            continue
+        key = (r.event_id, r.reaction_type, r.user_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        bucket = grouped.setdefault(r.event_id, {"like": [], "love": [], "fire": [], "clap": []})[r.reaction_type]
+        if len(bucket) >= limit_per_type:
+            continue
+        u = users.get(r.user_id) or {}
+        bucket.append({
+            "id": r.user_id,
+            "display_name": u.get("display_name") or "User",
+            "avatar_url": u.get("avatar_url") or "",
+        })
+
+    return grouped
+
+
+def get_recent_activity_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:
+    where = {}
+    if event_types:
+        where = {"event_type": {"in": event_types}}
+    with Prisma() as client:
+        rows = client.activityevent.find_many(
+            where=where,
+            order={"id": "desc"},
+            take=limit,
+        )
+    return [_activity_event_to_dict(r) for r in rows]
+
+
+def get_recent_email_webhook_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:
+    where = {}
+    if event_types:
+        where = {"event_type": {"in": event_types}}
+    with Prisma() as client:
+        rows = client.emailwebhookevent.find_many(
+            where=where,
+            order={"id": "desc"},
+            take=limit,
+        )
+    result = []
+    for row in rows:
+        payload = {}
+        if row.payload:
+            try:
+                payload = json.loads(row.payload)
+            except Exception:
+                payload = {}
+        result.append({
+            "id": row.id,
+            "provider": row.provider,
+            "event_type": row.event_type,
+            "email": row.email,
+            "message_id": row.message_id,
+            "payload": payload,
+            "created_at": row.created_at,
+        })
+    return result
+
+
+def get_users_public_by_ids(user_ids: list[int]) -> dict[int, dict]:
+    if not user_ids:
+        return {}
+    with Prisma() as client:
+        rows = client.user.find_many(where={"id": {"in": user_ids}})
+    return {
+        r.id: {
+            "id": r.id,
+            "display_name": (r.display_name or r.email.split("@")[0]),
+            "email": r.email,
+            "avatar_url": r.avatar_path or r.avatar_url or "",
+        }
+        for r in rows
+    }
+
+
 # ── Users ──────────────────────────────────────────────────────────────
 
 def _user_to_dict(row) -> dict:
@@ -292,7 +523,10 @@ def _user_to_dict(row) -> dict:
         "verified":     row.verified,
         "created_at":   row.created_at,
         "display_name": row.display_name,
-        "avatar_url":   row.avatar_url,
+        "nickname":     row.nickname,
+        "avatar_url":   row.avatar_path or row.avatar_url,
+        "avatar_path":  row.avatar_path,
+        "language":     row.language or "en",
         "bio":          row.bio,
         "company":      row.company,
         "address":      row.address,
@@ -301,11 +535,21 @@ def _user_to_dict(row) -> dict:
         "phone":        row.phone,
         "hobbies":      row.hobbies,
         "interests":    row.interests,
+        "gender":       row.gender,
+        "instagram_username": row.instagram_username,
+        "favorite_topics": row.favorite_topics,
+        "favorite_news_sources": row.favorite_news_sources,
+        "favorite_teams": row.favorite_teams,
         "has_seen_onboarding":  row.has_seen_onboarding,
         "last_onboarding_seen": row.last_onboarding_seen,
         "current_streak":       row.current_streak,
         "longest_streak":       row.longest_streak,
         "last_completed_date":  row.last_completed_date,
+        "focus_sessions_today": row.focus_sessions_today,
+        "focus_sessions_total": row.focus_sessions_total,
+        "focus_streak":         row.focus_streak,
+        "longest_focus_streak": row.longest_focus_streak,
+        "focus_day_key":        row.focus_day_key,
         "linkedin_url":         row.linkedin_url,
         "linkedin_verified":    row.linkedin_verified,
     }
@@ -317,6 +561,8 @@ def create_user(email: str, password_hash: str, created_at: str) -> dict:
             "email":         email,
             "password_hash": password_hash,
             "created_at":    created_at,
+            # Assign a default nickname at signup.
+            "nickname":      generate_nickname(),
         })
     return _user_to_dict(row)
 
@@ -340,14 +586,21 @@ def get_user_by_id(user_id: int) -> dict | None:
     """Returns public user dict without password_hash."""
     with Prisma() as client:
         row = client.user.find_unique(where={"id": user_id})
-    if row is None:
-        return None
+        if row is None:
+            return None
+        # Backfill nickname for legacy users created before this field existed.
+        if not (row.nickname or "").strip():
+            row = client.user.update(
+                where={"id": user_id},
+                data={"nickname": generate_nickname()},
+            )
     return _user_to_dict(row)
 
 
 _PROFILE_FIELDS = {
-    "display_name", "avatar_url", "bio", "company",
-    "address", "city", "zip_code", "phone", "hobbies", "interests",
+    "display_name", "avatar_url", "avatar_path", "language", "bio", "company",
+    "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
+    "instagram_username", "favorite_topics", "favorite_news_sources", "favorite_teams",
 }
 
 
@@ -356,6 +609,12 @@ def update_profile(user_id: int, **fields) -> dict:
     data = {k: v for k, v in fields.items() if k in _PROFILE_FIELDS}
     with Prisma() as client:
         row = client.user.update(where={"id": user_id}, data=data)
+    return _user_to_dict(row)
+
+
+def update_user_language(user_id: int, language: str) -> dict:
+    with Prisma() as client:
+        row = client.user.update(where={"id": user_id}, data={"language": language})
     return _user_to_dict(row)
 
 
@@ -468,23 +727,54 @@ def complete_commitment(user_id: int) -> dict:
 
 # ── Token helpers (verification / magic login / password reset) ─────────
 
+def hash_verification_token(token: str) -> str:
+    return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+
+
 def set_verification_token(user_id: int, token: str, expiry: str) -> None:
+    token_hash = hash_verification_token(token)
     with Prisma() as client:
         client.user.update(
             where={"id": user_id},
-            data={"verification_token": token, "verification_expiry": expiry},
+            data={"verification_token": token_hash, "verification_expiry": expiry},
         )
 
 
-def get_user_by_verification_token(token: str) -> dict | None:
+def get_user_by_verification_token_hash(token_hash: str, legacy_token: str | None = None) -> dict | None:
+    where = {"verification_token": token_hash}
+    if legacy_token:
+        # Backward compatibility: allow existing plaintext tokens already issued
+        where = {"OR": [{"verification_token": token_hash}, {"verification_token": legacy_token}]}
     with Prisma() as client:
-        row = client.user.find_first(where={"verification_token": token})
+        row = client.user.find_first(where=where)
     if row is None:
         return None
     d = _user_to_dict(row)
     d["verification_expiry"] = row.verification_expiry
     d["verified"] = row.verified
     return d
+
+
+def get_user_by_verification_token(token: str) -> dict | None:
+    token_hash = hash_verification_token(token)
+    return get_user_by_verification_token_hash(token_hash, legacy_token=token)
+
+
+def count_verification_email_attempts_last_hour(user_id: int) -> int:
+    since = (datetime.now() - timedelta(hours=1)).isoformat()
+    with Prisma() as client:
+        return client.verificationemailattempt.count(
+            where={"user_id": user_id, "created_at": {"gte": since}}
+        )
+
+
+def log_verification_email_attempt(user_id: int, email: str) -> None:
+    with Prisma() as client:
+        client.verificationemailattempt.create(data={
+            "user_id": user_id,
+            "email": email,
+            "created_at": datetime.now().isoformat(),
+        })
 
 
 def mark_user_verified(user_id: int) -> None:
@@ -545,6 +835,24 @@ def clear_reset_token(user_id: int) -> None:
             where={"id": user_id},
             data={"reset_token": None, "reset_expiry": None},
         )
+
+
+def log_email_webhook_event(
+    provider: str,
+    event_type: str,
+    email: str | None,
+    message_id: str | None,
+    payload: dict,
+) -> None:
+    with Prisma() as client:
+        client.emailwebhookevent.create(data={
+            "provider": provider,
+            "event_type": event_type,
+            "email": email or "",
+            "message_id": message_id or "",
+            "payload": json.dumps(payload),
+            "created_at": datetime.now().isoformat(),
+        })
 
 
 def mark_onboarding_seen(user_id: int) -> None:
@@ -687,6 +995,184 @@ def invite_to_workspace(workspace_id: int, email: str) -> dict | None:
             where={"workspace_id": workspace_id, "user_id": user["id"]}
         )
     return _member_to_dict(row, {"email": user["email"], "display_name": user.get("display_name", "")})
+
+
+# ── Spaces ─────────────────────────────────────────────────────────────
+
+def _space_to_dict(row) -> dict:
+    created_at = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "name": row.name,
+        "owner_id": row.owner_id,
+        "invite_code": row.invite_code,
+        "created_at": created_at,
+    }
+
+
+def _space_member_to_dict(row) -> dict:
+    joined_at = row.joined_at.isoformat() if hasattr(row.joined_at, "isoformat") else str(row.joined_at)
+    return {
+        "id": row.id,
+        "space_id": row.space_id,
+        "user_id": row.user_id,
+        "role": row.role,
+        "joined_at": joined_at,
+    }
+
+
+def create_space(owner_id: int, name: str) -> dict:
+    invite_code = secrets.token_urlsafe(8)
+    with Prisma() as client:
+        space = client.space.create(data={
+            "name": name.strip(),
+            "owner_id": owner_id,
+            "invite_code": invite_code,
+        })
+        client.spacemember.create(data={
+            "space_id": space.id,
+            "user_id": owner_id,
+            "role": "owner",
+        })
+    return _space_to_dict(space)
+
+
+def get_space_by_id(space_id: int) -> dict | None:
+    with Prisma() as client:
+        row = client.space.find_unique(where={"id": space_id})
+    return _space_to_dict(row) if row else None
+
+
+def get_space_by_invite_code(invite_code: str) -> dict | None:
+    with Prisma() as client:
+        row = client.space.find_unique(where={"invite_code": invite_code})
+    return _space_to_dict(row) if row else None
+
+
+def get_user_spaces(user_id: int) -> list[dict]:
+    with Prisma() as client:
+        members = client.spacemember.find_many(where={"user_id": user_id})
+        space_ids = [m.space_id for m in members]
+        if not space_ids:
+            return []
+        rows = client.space.find_many(where={"id": {"in": space_ids}}, order={"id": "desc"})
+    return [_space_to_dict(r) for r in rows]
+
+
+def add_space_member(space_id: int, user_id: int, role: str = "member") -> dict:
+    with Prisma() as client:
+        existing = client.spacemember.find_first(where={"space_id": space_id, "user_id": user_id})
+        if existing:
+            return _space_member_to_dict(existing)
+        row = client.spacemember.create(data={
+            "space_id": space_id,
+            "user_id": user_id,
+            "role": role,
+        })
+    return _space_member_to_dict(row)
+
+
+def is_space_member(space_id: int, user_id: int) -> bool:
+    with Prisma() as client:
+        row = client.spacemember.find_first(where={"space_id": space_id, "user_id": user_id})
+    return row is not None
+
+
+def get_space_members(space_id: int) -> list[dict]:
+    with Prisma() as client:
+        rows = client.spacemember.find_many(where={"space_id": space_id})
+    return [_space_member_to_dict(r) for r in rows]
+
+
+def join_space_by_invite_code(user_id: int, invite_code: str) -> dict | None:
+    space = get_space_by_invite_code(invite_code.strip())
+    if not space:
+        return None
+    add_space_member(space["id"], user_id, role="member")
+    return space
+
+
+# ── Challenges ────────────────────────────────────────────────────────
+
+def _challenge_to_dict(row) -> dict:
+    created_at = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "space_id": row.space_id,
+        "title": row.title,
+        "goal": row.goal,
+        "metric": row.metric,
+        "created_by": row.created_by,
+        "created_at": created_at,
+    }
+
+
+def create_challenge(space_id: int, title: str, goal: int, metric: str, created_by: int) -> dict:
+    with Prisma() as client:
+        row = client.challenge.create(data={
+            "space_id": space_id,
+            "title": title.strip(),
+            "goal": int(goal),
+            "metric": metric.strip(),
+            "created_by": created_by,
+        })
+        client.challengeprogress.upsert(
+            where={"challenge_id_user_id": {"challenge_id": row.id, "user_id": created_by}},
+            data={"create": {"challenge_id": row.id, "user_id": created_by, "progress": 0}, "update": {}},
+        )
+    return _challenge_to_dict(row)
+
+
+def get_challenges_for_user(user_id: int, space_id: int | None = None) -> list[dict]:
+    user_space_ids = [s["id"] for s in get_user_spaces(user_id)]
+    if space_id is not None:
+        if space_id not in user_space_ids:
+            return []
+        scope_ids = [space_id]
+    else:
+        scope_ids = user_space_ids
+    if not scope_ids:
+        return []
+    with Prisma() as client:
+        challenges = client.challenge.find_many(
+            where={"space_id": {"in": scope_ids}},
+            order={"id": "desc"},
+        )
+        progress_rows = client.challengeprogress.find_many(
+            where={"challenge_id": {"in": [c.id for c in challenges]}},
+        )
+    progress_map: dict[tuple[int, int], int] = {}
+    for row in progress_rows:
+        progress_map[(row.challenge_id, row.user_id)] = row.progress
+
+    result = []
+    for challenge in challenges:
+        item = _challenge_to_dict(challenge)
+        item["my_progress"] = progress_map.get((challenge.id, user_id), 0)
+        item["completed"] = item["my_progress"] >= item["goal"]
+        result.append(item)
+    return result
+
+
+def upsert_challenge_progress(challenge_id: int, user_id: int, progress: int) -> dict | None:
+    with Prisma() as client:
+        challenge = client.challenge.find_unique(where={"id": challenge_id})
+        if not challenge:
+            return None
+        row = client.challengeprogress.upsert(
+            where={"challenge_id_user_id": {"challenge_id": challenge_id, "user_id": user_id}},
+            data={
+                "create": {"challenge_id": challenge_id, "user_id": user_id, "progress": progress},
+                "update": {"progress": progress},
+            },
+        )
+    return {
+        "challenge_id": row.challenge_id,
+        "user_id": row.user_id,
+        "progress": row.progress,
+        "goal": challenge.goal,
+        "completed": row.progress >= challenge.goal,
+    }
 
 
 # ── Workspace Invites ──────────────────────────────────────────────────
@@ -994,8 +1480,10 @@ def get_friends(user_id: int) -> list[dict]:
         {
             "id":                u.id,
             "name":              u.display_name or u.email.split("@")[0],
+            "username":          u.display_name or u.email.split("@")[0],
             "display_name":      u.display_name,
             "email":             u.email,
+            "avatar_url":        u.avatar_path or u.avatar_url,
             "current_streak":    u.current_streak,
             "streak":            u.current_streak,
             "last_active":       u.last_completed_date,
@@ -1004,6 +1492,53 @@ def get_friends(user_id: int) -> list[dict]:
         }
         for u in users
     ]
+
+
+def get_friend_streaks(user_id: int) -> list[dict]:
+    """Return friend streak payload sorted by highest streak for social circles/leaderboard."""
+    friends = get_friends(user_id)
+    payload = [
+        {
+            "id": f["id"],
+            "username": f["username"],
+            "profile_image": f.get("avatar_url", ""),
+            "current_streak": f.get("current_streak", 0) or 0,
+            "last_activity": f.get("last_active", ""),
+        }
+        for f in friends
+    ]
+    return sorted(payload, key=lambda x: (-x["current_streak"], x["username"].lower()))
+
+
+def get_friend_public_profile(viewer_user_id: int, friend_id: int) -> dict | None:
+    """Return limited friend profile only if the users are connected as friends."""
+    with Prisma() as client:
+        friendship = client.friendship.find_first(where={
+            "OR": [
+                {"user_a": viewer_user_id, "user_b": friend_id},
+                {"user_a": friend_id, "user_b": viewer_user_id},
+            ]
+        })
+        if not friendship:
+            return None
+        user = client.user.find_unique(where={"id": friend_id})
+        if not user:
+            return None
+    return {
+        "id": user.id,
+        "display_name": user.display_name or user.email.split("@")[0],
+        "nickname": user.nickname or "",
+        "avatar_url": user.avatar_path or user.avatar_url or "",
+        "bio": user.bio or "",
+        "city": user.city or "",
+        "company": user.company or "",
+        "current_streak": user.current_streak or 0,
+        "longest_streak": user.longest_streak or 0,
+        "last_activity": user.last_completed_date or "",
+        "instagram_username": user.instagram_username or "",
+        "linkedin_url": user.linkedin_url or "",
+        "linkedin_verified": bool(user.linkedin_verified),
+    }
 
 
 def get_friends_with_stats(user_id: int) -> list[dict]:
@@ -1084,11 +1619,344 @@ def get_user_stats_for_leaderboard(user_id: int) -> dict | None:
     }
 
 
+# ── Focus Mode ─────────────────────────────────────────────────────────
+
+def _focus_session_to_dict(row) -> dict:
+    return {
+        "id":           row.id,
+        "user_id":      row.user_id,
+        "task":         row.task or "",
+        "status":       row.status,
+        "phase":        row.phase,
+        "started_at":   row.started_at,
+        "ends_at":      row.ends_at,
+        "completed_at": row.completed_at,
+        "duration_sec": row.duration_sec,
+    }
+
+
+def _reset_focus_today_if_needed(client: Prisma, user) -> tuple[str, bool]:
+    """Reset per-day focus counters when a new day starts."""
+    today = datetime.now().date().isoformat()
+    day_changed = (user.focus_day_key or "") != today
+    if day_changed:
+        client.user.update(
+            where={"id": user.id},
+            data={"focus_sessions_today": 0, "focus_day_key": today},
+        )
+    return today, day_changed
+
+
+def start_focus_session(user_id: int, task: str = "") -> dict | None:
+    """Create a new active focus session and return session + current stats."""
+    now = datetime.now()
+    ends = now + timedelta(seconds=FOCUS_SECONDS)
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return None
+
+        _reset_focus_today_if_needed(client, user)
+
+        # Keep only one active focus session per user.
+        active = client.focussession.find_first(
+            where={"user_id": user_id, "status": "active"},
+            order={"id": "desc"},
+        )
+        if active:
+            client.focussession.update(
+                where={"id": active.id},
+                data={"status": "cancelled", "completed_at": now.isoformat()},
+            )
+
+        row = client.focussession.create(data={
+            "user_id":      user_id,
+            "task":         (task or "").strip(),
+            "status":       "active",
+            "phase":        "focus",
+            "started_at":   now.isoformat(),
+            "ends_at":      ends.isoformat(),
+            "duration_sec": FOCUS_SECONDS,
+        })
+        user = client.user.find_unique(where={"id": user_id})
+
+    stats = {
+        "today_goal": 4,
+        "sessions_today": user.focus_sessions_today if user else 0,
+        "sessions_total": user.focus_sessions_total if user else 0,
+        "focus_streak": user.focus_streak if user else 0,
+        "longest_focus_streak": user.longest_focus_streak if user else 0,
+    }
+    return {"session": _focus_session_to_dict(row), "stats": stats}
+
+
+def complete_focus_session(user_id: int, completed: bool = True) -> dict:
+    """Complete/cancel active focus session and update daily + streak stats."""
+    now = datetime.now()
+    with Prisma() as client:
+        active = client.focussession.find_first(
+            where={"user_id": user_id, "status": "active"},
+            order={"id": "desc"},
+        )
+        if not active:
+            user = client.user.find_unique(where={"id": user_id})
+            return {
+                "completed": False,
+                "session": None,
+                "stats": {
+                    "sessions_today": user.focus_sessions_today if user else 0,
+                    "sessions_total": user.focus_sessions_total if user else 0,
+                    "focus_streak": user.focus_streak if user else 0,
+                    "longest_focus_streak": user.longest_focus_streak if user else 0,
+                },
+            }
+
+        status = "completed" if completed else "cancelled"
+        updated = client.focussession.update(
+            where={"id": active.id},
+            data={"status": status, "completed_at": now.isoformat()},
+        )
+
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return {"completed": False, "session": _focus_session_to_dict(updated), "stats": {}}
+
+        prev_focus_day_key = user.focus_day_key or ""
+        today, _ = _reset_focus_today_if_needed(client, user)
+        user = client.user.find_unique(where={"id": user_id})
+
+        sessions_today = user.focus_sessions_today if user else 0
+        sessions_total = user.focus_sessions_total if user else 0
+        focus_streak = user.focus_streak if user else 0
+        longest_focus_streak = user.longest_focus_streak if user else 0
+
+        if completed:
+            first_completion_today = sessions_today == 0
+            sessions_today += 1
+            sessions_total += 1
+            if first_completion_today:
+                yesterday = (datetime.now().date() - timedelta(days=1)).isoformat()
+                if prev_focus_day_key == yesterday:
+                    focus_streak += 1
+                elif prev_focus_day_key == today:
+                    focus_streak = max(focus_streak, 1)
+                else:
+                    focus_streak = 1
+            longest_focus_streak = max(longest_focus_streak, focus_streak)
+
+            client.user.update(
+                where={"id": user_id},
+                data={
+                    "focus_sessions_today": sessions_today,
+                    "focus_sessions_total": sessions_total,
+                    "focus_streak": focus_streak,
+                    "longest_focus_streak": longest_focus_streak,
+                    "focus_day_key": today,
+                },
+            )
+
+        break_seconds = LONG_BREAK_SECONDS if (sessions_today and sessions_today % 4 == 0) else SHORT_BREAK_SECONDS
+        break_type = "long" if break_seconds == LONG_BREAK_SECONDS else "short"
+        final_user = client.user.find_unique(where={"id": user_id})
+
+    return {
+        "completed": completed,
+        "session": _focus_session_to_dict(updated),
+        "next_break": {"type": break_type, "seconds": break_seconds},
+        "stats": {
+            "sessions_today": final_user.focus_sessions_today if final_user else sessions_today,
+            "sessions_total": final_user.focus_sessions_total if final_user else sessions_total,
+            "focus_streak": final_user.focus_streak if final_user else focus_streak,
+            "longest_focus_streak": final_user.longest_focus_streak if final_user else longest_focus_streak,
+            "today_goal": 4,
+            "goal_progress": min(100, int(((final_user.focus_sessions_today if final_user else sessions_today) / 4) * 100)),
+        },
+    }
+
+
+def get_focus_status(user_id: int) -> dict:
+    """Return active focus state and remaining time in seconds."""
+    now = datetime.now()
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        active = client.focussession.find_first(
+            where={"user_id": user_id, "status": "active"},
+            order={"id": "desc"},
+        )
+    if not user:
+        return {"active": False}
+
+    payload = {
+        "active": False,
+        "session": None,
+        "stats": {
+            "sessions_today": user.focus_sessions_today,
+            "sessions_total": user.focus_sessions_total,
+            "focus_streak": user.focus_streak,
+            "longest_focus_streak": user.longest_focus_streak,
+            "today_goal": 4,
+            "goal_progress": min(100, int((user.focus_sessions_today / 4) * 100)),
+        },
+    }
+    if not active:
+        return payload
+
+    ends_at = datetime.fromisoformat(active.ends_at)
+    remaining = max(0, int((ends_at - now).total_seconds()))
+    payload["active"] = True
+    payload["session"] = {
+        **_focus_session_to_dict(active),
+        "remaining_seconds": remaining,
+        "needs_completion": remaining == 0,
+    }
+    return payload
+
+
+def get_focus_stats(user_id: int) -> dict:
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+    if not user:
+        return {}
+    return {
+        "sessions_today": user.focus_sessions_today,
+        "sessions_total": user.focus_sessions_total,
+        "focus_streak": user.focus_streak,
+        "longest_focus_streak": user.longest_focus_streak,
+        "today_goal": 4,
+        "goal_progress": min(100, int((user.focus_sessions_today / 4) * 100)),
+    }
+
+
+def get_friends_focus_status(user_id: int) -> list[dict]:
+    """Return lightweight focus presence for connected friends."""
+    now = datetime.now()
+    recent_window = (now - timedelta(minutes=20)).isoformat()
+    with Prisma() as client:
+        friendships = client.friendship.find_many(where={
+            "OR": [{"user_a": user_id}, {"user_b": user_id}]
+        })
+        friend_ids = [
+            f.user_b if f.user_a == user_id else f.user_a
+            for f in friendships
+        ]
+        if not friend_ids:
+            return []
+
+        users = client.user.find_many(where={"id": {"in": friend_ids}})
+        active_sessions = client.focussession.find_many(where={
+            "user_id": {"in": friend_ids},
+            "status": "active",
+        })
+        recent_completed = client.focussession.find_many(where={
+            "user_id": {"in": friend_ids},
+            "status": "completed",
+            "completed_at": {"gte": recent_window},
+        })
+
+    active_by_user = {s.user_id: s for s in active_sessions}
+    recent_done_ids = {s.user_id for s in recent_completed}
+    payload: list[dict] = []
+    for u in users:
+        active = active_by_user.get(u.id)
+        if active:
+            remaining = max(0, int((datetime.fromisoformat(active.ends_at) - now).total_seconds()))
+            payload.append({
+                "id": u.id,
+                "username": (u.display_name or u.email.split("@")[0]),
+                "profile_image": u.avatar_path or u.avatar_url or "",
+                "focus_status": "focusing",
+                "remaining_focus_time": remaining,
+            })
+        elif u.id in recent_done_ids:
+            payload.append({
+                "id": u.id,
+                "username": (u.display_name or u.email.split("@")[0]),
+                "profile_image": u.avatar_path or u.avatar_url or "",
+                "focus_status": "just_finished",
+                "remaining_focus_time": 0,
+            })
+    return sorted(payload, key=lambda x: (0 if x["focus_status"] == "focusing" else 1, x["username"].lower()))
+
+
+# ── VIP Contacts ───────────────────────────────────────────────────────
+
+def set_vip_contact(user_id: int, vip_user_id: int) -> bool:
+    if user_id == vip_user_id:
+        return False
+    with Prisma() as client:
+        exists = client.vipcontact.find_first(where={"user_id": user_id, "vip_user_id": vip_user_id})
+        if exists:
+            return True
+        client.vipcontact.create(data={
+            "user_id": user_id,
+            "vip_user_id": vip_user_id,
+            "created_at": datetime.now().isoformat(),
+        })
+    return True
+
+
+def remove_vip_contact(user_id: int, vip_user_id: int) -> None:
+    with Prisma() as client:
+        row = client.vipcontact.find_first(where={"user_id": user_id, "vip_user_id": vip_user_id})
+        if row:
+            client.vipcontact.delete(where={"id": row.id})
+
+
+def list_vip_contact_ids(user_id: int) -> list[int]:
+    with Prisma() as client:
+        rows = client.vipcontact.find_many(where={"user_id": user_id})
+    return [r.vip_user_id for r in rows]
+
+
+def is_vip_contact(user_id: int, maybe_vip_user_id: int) -> bool:
+    with Prisma() as client:
+        row = client.vipcontact.find_first(
+            where={"user_id": user_id, "vip_user_id": maybe_vip_user_id}
+        )
+    return row is not None
+
+
+def is_user_in_active_focus(user_id: int) -> bool:
+    with Prisma() as client:
+        row = client.focussession.find_first(where={"user_id": user_id, "status": "active"})
+    return row is not None
+
+
 def update_last_login(user_id: int) -> None:
     """Stamp last_login_at for a user after a successful authentication."""
     now = datetime.now().isoformat()
     with Prisma() as client:
         client.user.update(where={"id": user_id}, data={"last_login_at": now})
+
+
+def record_login_and_get_welcome(user_id: int) -> dict | None:
+    """Track per-day login count and return a playful message for first 3 logins."""
+    now = datetime.now()
+    day_key = now.date().isoformat()
+
+    with Prisma() as client:
+        user = client.user.find_unique(where={"id": user_id})
+        if not user:
+            return None
+
+        count = user.welcome_count_today if (user.welcome_day_key or "") == day_key else 0
+        count += 1
+
+        client.user.update(
+            where={"id": user_id},
+            data={
+                "last_login_at": now.isoformat(),
+                "welcome_day_key": day_key,
+                "welcome_count_today": count,
+            },
+        )
+
+        if count > 3:
+            return None
+
+        display_name = (user.display_name or user.email.split("@")[0]).strip()
+        message = build_fun_welcome(display_name, user.gender or "prefer_not_to_say", count)
+        return {"message": message, "count_today": count}
 
 
 # ── Messages ───────────────────────────────────────────────────────────
