@@ -2,7 +2,7 @@ app = "lookatme"
 primary_region = "ams"
 
 [deploy]
-  release_command = "prisma db push --skip-generate"
+  release_command = "prisma db push --skip-generate --accept-data-loss"
 
 [http_service]
   internal_port = 8080
