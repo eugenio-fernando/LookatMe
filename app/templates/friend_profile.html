@@ -1,9 +1,6 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Friend Profile — LookAtMe</title>
@@ -16,8 +13,11 @@
     .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; }
     .muted { color:var(--muted); }
   </style>
-</head>
-<body>
+
+{% endblock %}
+{% block content %}
+<div>
+
   <div class="wrap">
     <p><a href="/" style="color:var(--accent);text-decoration:none;">← Back to dashboard</a></p>
     <section class="card">
@@ -68,6 +68,6 @@
       }
     })();
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

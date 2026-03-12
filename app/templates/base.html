@@ -1,1 +1,40 @@
-{% block document %}{% endblock %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <script>
+    (function () {
+      var allowed = ['light', 'dark', 'sunny', 'sepia'];
+      var saved = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.theme = allowed.indexOf(saved) >= 0 ? saved : 'light';
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}" />
+  <title>{% block title %}LookAtMe{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  {% if not hide_navigation|default(false) %}
+  <header class="site-header">
+    <a href="/" class="logo">LookAt<span class="logo-accent">Me</span></a>
+    <nav class="main-nav">
+      <a href="/profile" class="{{ 'active' if request.path == '/profile' else '' }}">{{ _('Profile') }}</a>
+      <a href="/" class="{{ 'active' if request.path == '/' else '' }}">{{ _('Dashboard') }}</a>
+      <a href="/focus" class="{{ 'active' if request.path.startswith('/focus') else '' }}">{{ _('Focus') }}</a>
+      <a href="/activity-feed" class="{{ 'active' if request.path.startswith('/activity-feed') else '' }}">{{ _('Activity Feed') }}</a>
+      <a href="/invitations" class="{{ 'active' if request.path.startswith('/invitations') else '' }}">{{ _('Friends') }}</a>
+      <a href="/inbox" class="{{ 'active' if request.path.startswith('/inbox') else '' }}">{{ _('Messages') }}</a>
+      <a href="/#notes-section" class="{{ 'active' if request.path == '/' else '' }}">{{ _('Notes') }}</a>
+    </nav>
+  </header>
+  {% endif %}
+  <div class="page-shell">
+    {% block content %}{% endblock %}
+  </div>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

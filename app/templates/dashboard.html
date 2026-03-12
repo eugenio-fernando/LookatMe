@@ -1,17 +1,13 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
+{% block head_extra %}
+
   <!-- Restore saved theme before CSS loads — prevents flash -->
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('LookAtMe — Dashboard') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -657,8 +653,11 @@
       }
     }
   </style>
-</head>
-<body>
+
+{% endblock %}
+{% block content %}
+<div>
+
 
   <!-- Mobile overlay + header -->
   <div id="nav-overlay" class="nav-overlay" onclick="closeMobileNav()"></div>
@@ -3601,6 +3600,6 @@
     async function copyLink() { return trackedShare('copy'); }
   </script>
 
-</body>
-</html>
+
+</div>
 {% endblock %}

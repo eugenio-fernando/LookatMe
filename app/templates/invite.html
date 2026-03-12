@@ -1,9 +1,7 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% set hide_navigation = true %}
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>You're invited — LookatMe</title>
@@ -47,8 +45,11 @@
     #status.error { color: #f87171; }
     #status.success { color: #22c55e; }
   </style>
-</head>
-<body>
+
+{% endblock %}
+{% block content %}
+<div>
+
   <div class="card" id="invite-card">
 
     <!-- Loading state -->
@@ -254,6 +255,6 @@
 
     init();
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

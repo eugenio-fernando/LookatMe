@@ -1,13 +1,10 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% set hide_navigation = true %}
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#111111" />
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>Verification failed — LookAtMe</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -146,8 +143,11 @@
     }
     .btn-secondary:hover { background: var(--card-soft); color: var(--text); }
   </style>
-</head>
-<body>
+
+{% endblock %}
+{% block content %}
+<div>
+
   <div class="card text-center">
     <div style="display:flex;justify-content:center;">
       <div class="theme-switch" role="group" aria-label="Theme">
@@ -211,6 +211,6 @@
 
     window.addEventListener('DOMContentLoaded', syncThemeUi);
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

@@ -1,14 +1,10 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('Focus — LookAtMe') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -23,8 +19,11 @@
     .goal-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; }
     .goal-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#22c55e,#f59e0b); transition: width 0.3s ease; }
   </style>
-</head>
-<body class="min-h-screen">
+
+{% endblock %}
+{% block content %}
+<div class="min-h-screen">
+
   <header class="max-w-4xl mx-auto px-5 pt-6 pb-3 flex items-center justify-between gap-3">
     <div>
       <p class="text-xs font-semibold uppercase tracking-widest" style="color:var(--muted);">{{ _('Focus Mode') }}</p>
@@ -271,6 +270,6 @@
     refreshGoal();
     restoreIfActive();
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

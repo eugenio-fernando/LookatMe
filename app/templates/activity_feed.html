@@ -1,8 +1,6 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _('Activity Feed') }}</title>
@@ -22,8 +20,11 @@
     }
     .avatar-stack img:first-child { margin-left: 0; }
   </style>
-</head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+
+{% endblock %}
+{% block content %}
+<div class="bg-zinc-950 text-zinc-100 min-h-screen">
+
   <main class="max-w-3xl mx-auto px-4 py-8">
     <header class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-semibold">{{ _('Activity Feed') }}</h1>
@@ -156,6 +157,6 @@
       });
     } catch (_) {}
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

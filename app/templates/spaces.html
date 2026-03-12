@@ -1,9 +1,6 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ _('Spaces') }}</title>
@@ -19,8 +16,11 @@
     .btn-primary { background:var(--accent); color:#0a0a0a; }
     .btn-muted { background:transparent; color:var(--text); border:1px solid var(--input-border); }
   </style>
-</head>
-<body class="min-h-screen">
+
+{% endblock %}
+{% block content %}
+<div class="min-h-screen">
+
   <main class="max-w-5xl mx-auto px-4 py-8 space-y-5">
     <header class="flex items-center justify-between gap-3">
       <div>
@@ -222,6 +222,6 @@
       await loadChallenges();
     })();
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

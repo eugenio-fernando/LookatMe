@@ -1,12 +1,8 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('LookAtMe — Invitations') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -88,8 +84,11 @@
       .table-grid { grid-template-columns: 1fr 90px 80px 80px 70px !important; }
     }
   </style>
-</head>
-<body class="min-h-screen font-sans flex">
+
+{% endblock %}
+{% block content %}
+<div class="min-h-screen font-sans flex">
+
 
   <div id="nav-overlay" class="nav-overlay" onclick="closeMobileNav()"></div>
   <header class="mobile-header">
@@ -408,6 +407,6 @@
       if (e.target.id === 'invite-friend-modal') closeInviteFriendModal();
     });
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}

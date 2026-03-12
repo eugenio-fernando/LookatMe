@@ -1,13 +1,9 @@
 {% extends "base.html" %}
-{% block document %}
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
+{% block head_extra %}
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
-  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>Learning — LookAtMe</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -61,8 +57,11 @@
       },
     }
   </script>
-</head>
-<body class="min-h-screen font-sans flex flex-col">
+
+{% endblock %}
+{% block content %}
+<div class="min-h-screen font-sans flex flex-col">
+
 
   <div class="top-panel flex items-center justify-between px-4 sm:px-8 pt-5 pb-4 gap-2 flex-wrap">
     <span class="top-label text-xs font-semibold uppercase tracking-widest">Learning Tracker</span>
@@ -258,6 +257,6 @@
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
     }
   </script>
-</body>
-</html>
+
+</div>
 {% endblock %}
