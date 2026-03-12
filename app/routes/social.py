@@ -5,6 +5,7 @@ Social accountability system — invitations and friendships.
 import logging
 import os
 import secrets
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request, session
 
@@ -50,6 +51,42 @@ def create_friend_invite():
     if (me.get("email") or "").strip().lower() == email:
         return jsonify({"error": "You cannot invite yourself"}), 400
 
+    existing_user = db.get_user_by_email(email)
+    if existing_user:
+        created = db.create_friendship_if_missing(user_id, existing_user["id"])
+        # Add user to inviter's first space and workspace, if any.
+        inviter_spaces = db.get_user_spaces(user_id)
+        if inviter_spaces:
+            db.add_space_member(inviter_spaces[0]["id"], existing_user["id"], role="member")
+        inviter_workspaces = db.get_user_workspaces(user_id)
+        if inviter_workspaces:
+            db.add_workspace_member(inviter_workspaces[0]["id"], existing_user["id"], role="member")
+        # Send welcome direct message
+        inviter_name = (me.get("display_name") or me.get("email", "").split("@")[0] or "A friend").strip()
+        db.create_message(
+            sender_id=user_id,
+            recipient_id=existing_user["id"],
+            subject="Welcome to my circle",
+            content=f"Hi! {inviter_name} added you as a friend on LookatMe.",
+            created_at=datetime.now().isoformat(),
+        )
+        record_event(
+            existing_user["id"],
+            "friend_joined",
+            "joined your circle",
+            metadata={"visibility": "public", "inviter_id": user_id, "auto_added": True},
+        )
+        logger.info(
+            "FRIEND_INVITE_AUTO_CONNECTED inviter_id=%s recipient_id=%s created=%s",
+            user_id, existing_user["id"], created,
+        )
+        return jsonify({
+            "ok": True,
+            "mode": "auto_connected",
+            "recipient_user_id": existing_user["id"],
+            "friendship_created": created,
+        })
+
     token = secrets.token_urlsafe(32)
     invite = db.create_friend_invite(user_id, email, token)
     base_url = os.environ.get("APP_BASE_URL", _BASE_URL).rstrip("/")
@@ -63,6 +100,7 @@ def create_friend_invite():
 
     return jsonify({
         "ok": True,
+        "mode": "email_invite",
         "invite": invite,
         "invite_url": invite_url,
         "email_sent": email_sent,
@@ -195,6 +233,16 @@ def list_invitations():
 @api_login_required
 def get_friends():
     return jsonify(db.get_friends(session["user_id"]))
+
+
+@social_bp.route("/api/friends/overview", methods=["GET"])
+@api_login_required
+def friends_overview():
+    user_id = session["user_id"]
+    return jsonify({
+        "friends": db.get_friends(user_id),
+        "pending_invites": db.get_pending_friend_invites(user_id),
+    })
 
 
 @social_bp.route("/api/friends/streaks", methods=["GET"])

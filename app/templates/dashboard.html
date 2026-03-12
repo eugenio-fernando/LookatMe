@@ -1,3 +1,5 @@
+{% extends "base.html" %}
+{% block document %}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -9,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('LookAtMe — Dashboard') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -2401,22 +2403,47 @@
 
     // ── Install prompt ────────────────────────────────────────────────
     let _installPrompt = null;
+    const _installBtn = document.getElementById('install-btn');
+    function _isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function _renderInstallButton() {
+      if (!_installBtn) return;
+      if (_isStandalone()) {
+        _installBtn.classList.remove('hidden');
+        _installBtn.textContent = 'Open App';
+        return;
+      }
+      if (_installPrompt) {
+        _installBtn.classList.remove('hidden');
+        _installBtn.textContent = 'Install App';
+      } else {
+        _installBtn.classList.add('hidden');
+      }
+    }
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       _installPrompt = e;
-      document.getElementById('install-btn').classList.remove('hidden');
+      _renderInstallButton();
     });
-    document.getElementById('install-btn').addEventListener('click', async () => {
-      if (!_installPrompt) return;
-      _installPrompt.prompt();
-      const { outcome } = await _installPrompt.userChoice;
-      if (outcome === 'accepted') document.getElementById('install-btn').classList.add('hidden');
-      _installPrompt = null;
-    });
+    if (_installBtn) {
+      _installBtn.addEventListener('click', async () => {
+        if (_isStandalone()) {
+          window.location.href = '/';
+          return;
+        }
+        if (!_installPrompt) return;
+        _installPrompt.prompt();
+        const { outcome } = await _installPrompt.userChoice;
+        if (outcome === 'accepted') _installPrompt = null;
+        _renderInstallButton();
+      });
+    }
     window.addEventListener('appinstalled', () => {
-      document.getElementById('install-btn').classList.add('hidden');
       _installPrompt = null;
+      _renderInstallButton();
     });
+    _renderInstallButton();
 
     // ── Mobile nav ──────────────────────────────────────────────────────
     function toggleMobileNav() {
@@ -3322,7 +3349,7 @@
       status.textContent = '';
 
       try {
-        const res  = await fetch('/api/workspaces/invite', {
+        const res  = await fetch('/api/friends/invite', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ email }),
@@ -3337,7 +3364,20 @@
           return;
         }
 
-        _currentInviteUrl = data.invite_url;
+        _currentInviteUrl = data.invite_url || '';
+        if (data.mode === 'auto_connected') {
+          status.style.color = 'var(--accent)';
+          status.textContent = 'User found. Friendship created instantly.';
+          document.getElementById('invite-form-section').style.display  = 'block';
+          document.getElementById('invite-share-section').style.display = 'none';
+          btn.disabled = false;
+          btn.textContent = 'Send';
+          loadFriendsSection();
+          loadFriendCircles();
+          loadLeaderboard();
+          loadDashboardInvitations();
+          return;
+        }
         document.getElementById('invite-link-display').textContent = _currentInviteUrl;
 
         const shareText = `Hey! Join me on LookatMe — a productivity app where we can track streaks together.`;
@@ -3349,7 +3389,7 @@
         document.getElementById('invite-twitter-btn').href   = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent('Check out this productivity tool')}`;
 
         document.getElementById('invite-form-section').style.display  = 'none';
-        document.getElementById('invite-share-section').style.display = 'block';
+        document.getElementById('invite-share-section').style.display = _currentInviteUrl ? 'block' : 'none';
       } catch {
         status.style.color = '#f87171';
         status.textContent = 'Network error. Please try again.';
@@ -3563,3 +3603,4 @@
 
 </body>
 </html>
+{% endblock %}

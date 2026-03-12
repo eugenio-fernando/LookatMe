@@ -1,10 +1,12 @@
+{% extends "base.html" %}
+{% block document %}
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('LookAtMe — Profile') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -68,6 +70,7 @@
     }
     #toast.error { background: #dc2626; }
     #toast.show { opacity: 1; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Mobile nav ── */
     .mobile-header {
@@ -302,9 +305,11 @@
         </div>
 
         <div class="flex justify-end pt-2">
-          <button type="submit"
-            class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors cursor-pointer">
-            Save changes
+          <button id="profile-save-btn" type="submit"
+            class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors cursor-pointer inline-flex items-center gap-2">
+            <span id="profile-save-spinner" class="hidden" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></span>
+            <span id="profile-save-check" class="hidden" style="color:#86efac;font-weight:800;">✓</span>
+            <span id="profile-save-label">Save changes</span>
           </button>
         </div>
       </form>
@@ -402,7 +407,7 @@
   <div id="toast"></div>
 
   <script>
-    const FIELDS = ['display_name','bio','company','address','city','zip_code','phone','hobbies','interests','gender','instagram_username','favorite_topics','favorite_news_sources','favorite_teams'];
+    const FIELDS = ['display_name','bio','company','address','city','zip_code','phone','hobbies','interests','gender','instagram_username','favorite_topics','favorite_news_sources','favorite_teams','language'];
     let _profileDirty = false;
 
     function defaultAvatar() {
@@ -526,23 +531,51 @@
 
     async function saveProfile(e) {
       e.preventDefault();
+      const saveBtn = document.getElementById('profile-save-btn');
+      const spinner = document.getElementById('profile-save-spinner');
+      const check = document.getElementById('profile-save-check');
+      const label = document.getElementById('profile-save-label');
+      if (saveBtn) saveBtn.disabled = true;
+      if (spinner) spinner.classList.remove('hidden');
+      if (check) check.classList.add('hidden');
+      if (label) label.textContent = 'Saving...';
       const body = {};
       FIELDS.forEach(f => {
         const el = document.getElementById('f-' + f);
         if (el) body[f] = el.value;
       });
-      const res = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const u = await res.json();
-        document.getElementById('profile-name').textContent = u.display_name || u.email;
-        _profileDirty = false;
-        showToast('Profile saved');
-      } else {
+      try {
+        const res = await fetch('/api/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const u = await res.json();
+          document.getElementById('profile-name').textContent = u.display_name || u.email;
+          _profileDirty = false;
+          if (spinner) spinner.classList.add('hidden');
+          if (check) check.classList.remove('hidden');
+          if (label) label.textContent = 'Saved';
+          setTimeout(() => {
+            if (check) check.classList.add('hidden');
+            if (label) label.textContent = 'Save changes';
+            if (saveBtn) saveBtn.disabled = false;
+          }, 1200);
+          showToast('Profile saved');
+          return;
+        }
+        if (spinner) spinner.classList.add('hidden');
+        if (check) check.classList.add('hidden');
+        if (label) label.textContent = 'Save changes';
+        if (saveBtn) saveBtn.disabled = false;
         showToast('Failed to save', true);
+      } catch {
+        if (spinner) spinner.classList.add('hidden');
+        if (check) check.classList.add('hidden');
+        if (label) label.textContent = 'Save changes';
+        if (saveBtn) saveBtn.disabled = false;
+        showToast('Network error while saving', true);
       }
     }
 
@@ -642,3 +675,4 @@
   </script>
 </body>
 </html>
+{% endblock %}

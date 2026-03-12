@@ -1,10 +1,12 @@
+{% extends "base.html" %}
+{% block document %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
-  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>{{ _('LookAtMe — Invitations') }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -158,8 +160,8 @@
 
     <div class="card overflow-hidden">
       <div class="px-5 py-4 row-border flex items-center justify-between">
-        <span class="text-sm font-bold text-main">{{ _('Your Invites') }}</span>
-        <button onclick="loadInvitations()" class="ghost-btn">Refresh</button>
+        <span class="text-sm font-bold text-main">{{ _('Pending Invites') }}</span>
+        <button onclick="loadOverview()" class="ghost-btn">Refresh</button>
       </div>
       <div id="invitations-body">
         <div class="p-8 text-center text-soft text-sm">Loading…</div>
@@ -265,10 +267,13 @@
         _latestFriendInviteUrl = data.invite_url || '';
         document.getElementById('friend-invite-link').textContent = _latestFriendInviteUrl;
         document.getElementById('friend-invite-link-wrap').style.display = _latestFriendInviteUrl ? 'block' : 'none';
-        statusEl.textContent = data.email_sent ? 'Invite sent.' : 'Invite created. Copy the link below.';
+        if (data.mode === 'auto_connected') {
+          statusEl.textContent = 'User found. Friendship created instantly.';
+        } else {
+          statusEl.textContent = data.email_sent ? 'Invite sent.' : 'Invite created. Copy the link below.';
+        }
         statusEl.className = 'text-xs mt-2';
-        await loadInvitations();
-        await loadFriends();
+        await loadOverview();
       } catch {
         statusEl.textContent = 'Network error. Please try again.';
         statusEl.className = 'text-xs error-text mt-2';
@@ -304,7 +309,7 @@
     }
 
     function statusPill(inv) {
-      if (inv.accepted_at) return '<span class="pill pill-accepted">Joined</span>';
+      if (inv.accepted_at) return '<span class="pill pill-accepted">Accepted</span>';
       if (inv.opened_at)   return '<span class="pill pill-opened">Opened</span>';
       return '<span class="pill pill-pending">Sent</span>';
     }
@@ -314,89 +319,90 @@
       twitter: 'X / Twitter', instagram: 'Instagram', email: 'Email',
     };
 
-    async function loadInvitations() {
+    let _overviewCache = null;
+
+    async function loadOverview() {
+      try {
+        const res = await fetch('/api/friends/overview');
+        if (!res.ok) throw new Error('failed');
+        _overviewCache = await res.json();
+        renderPendingInvites(_overviewCache.pending_invites || []);
+        renderFriends(_overviewCache.friends || []);
+      } catch {
+        document.getElementById('invitations-body').innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load pending invites.</div>';
+        document.getElementById('friends-body').innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load friends.</div>';
+      }
+    }
+
+    function renderPendingInvites(list) {
       const body = document.getElementById('invitations-body');
-      try {
-        const res  = await fetch('/api/invitations');
-        if (!res.ok) throw new Error('failed');
-        const list = await res.json();
+      if (!body) return;
 
-        document.getElementById('stat-sent').textContent   = list.length;
-        document.getElementById('stat-opened').textContent = list.filter(i => i.opened_at).length;
-        document.getElementById('stat-joined').textContent = list.filter(i => i.accepted_at).length;
+      document.getElementById('stat-sent').textContent = list.length;
+      document.getElementById('stat-opened').textContent = list.filter(i => i.opened_at).length;
+      document.getElementById('stat-joined').textContent = (_overviewCache?.friends || []).length;
 
-        if (!list.length) {
-          body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No invitations sent yet. Share your link from the dashboard!</div>';
-          return;
-        }
-
-        const rows = list.map(inv => {
-          const emailCell = inv.invitee_email
-            ? `<p class="text-xs font-semibold text-main mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">${inv.invitee_email}</p>`
-            : `<p class="text-xs text-soft">—</p>`;
-          const viewedCell = inv.opened_at
-            ? `<p class="text-xs text-blue-500">${fmtDate(inv.opened_at)}</p>`
-            : `<p class="text-xs text-soft">—</p>`;
-          const joinedCell = inv.accepted_at
-            ? `<p class="text-xs" style="color:var(--accent);">${fmtDate(inv.accepted_at)}</p>`
-            : `<p class="text-xs text-soft">—</p>`;
-          return `
-            <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 items-center px-5 py-3 row-border">
-              <div class="min-w-0">
-                ${emailCell}
-                <p class="text-[10.5px] text-soft">${METHOD_LABELS[inv.method] || inv.method} · ${fmtDate(inv.created_at)}</p>
-              </div>
-              <div class="text-xs text-muted">${METHOD_LABELS[inv.method] || inv.method}</div>
-              ${viewedCell}
-              ${joinedCell}
-              <div>${statusPill(inv)}</div>
-            </div>`;
-        }).join('');
-
-        body.innerHTML = `
-          <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 px-5 py-2 row-border surface">
-            <p class="table-head">Email</p>
-            <p class="table-head">Method</p>
-            <p class="table-head">Viewed</p>
-            <p class="table-head">Joined</p>
-            <p class="table-head">Status</p>
-          </div>
-          ${rows}`;
-      } catch {
-        body.innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load invitations.</div>';
+      if (!list.length) {
+        body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No pending invites.</div>';
+        return;
       }
+
+      const rows = list.map(inv => {
+        const emailCell = inv.email
+          ? `<p class="text-xs font-semibold text-main mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">${inv.email}</p>`
+          : `<p class="text-xs text-soft">—</p>`;
+        const viewedCell = inv.opened_at
+          ? `<p class="text-xs text-blue-500">${fmtDate(inv.opened_at)}</p>`
+          : `<p class="text-xs text-soft">—</p>`;
+        const joinedCell = inv.accepted_at
+          ? `<p class="text-xs" style="color:var(--accent);">${fmtDate(inv.accepted_at)}</p>`
+          : `<p class="text-xs text-soft">—</p>`;
+        return `
+          <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 items-center px-5 py-3 row-border">
+            <div class="min-w-0">
+              ${emailCell}
+              <p class="text-[10.5px] text-soft">Email · ${fmtDate(inv.created_at)}</p>
+            </div>
+            <div class="text-xs text-muted">Email</div>
+            ${viewedCell}
+            ${joinedCell}
+            <div>${statusPill(inv)}</div>
+          </div>`;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="table-grid grid grid-cols-[1fr_130px_90px_90px_80px] gap-2.5 px-5 py-2 row-border surface">
+          <p class="table-head">Email</p>
+          <p class="table-head">Method</p>
+          <p class="table-head">Viewed</p>
+          <p class="table-head">Joined</p>
+          <p class="table-head">Status</p>
+        </div>
+        ${rows}`;
     }
 
-    async function loadFriends() {
+    function renderFriends(list) {
       const body = document.getElementById('friends-body');
-      try {
-        const res  = await fetch('/api/friends');
-        if (!res.ok) throw new Error('failed');
-        const list = await res.json();
-
-        if (!list.length) {
-          body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No friends yet — invite someone from the dashboard!</div>';
-          return;
-        }
-
-        body.innerHTML = list.map(f => `
-          <div class="flex items-center gap-3 px-5 py-3 row-border">
-            <div class="w-9 h-9 rounded-full surface border border-theme flex items-center justify-center flex-shrink-0 text-sm font-bold" style="color:var(--accent);">
-              ${(f.name || '?').charAt(0).toUpperCase()}
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-main overflow-hidden text-ellipsis whitespace-nowrap">${f.name}</p>
-              <p class="text-xs text-soft">Friends since ${fmtDate(f.friends_since)}</p>
-            </div>
-            ${f.streak > 0 ? `<span class="text-sm font-bold text-orange-500">${f.streak} 🔥</span>` : ''}
-          </div>`).join('');
-      } catch {
-        body.innerHTML = '<div class="p-8 text-center error-text text-sm">Could not load friends.</div>';
+      if (!body) return;
+      if (!list.length) {
+        body.innerHTML = '<div class="p-8 text-center text-soft text-sm">No friends yet — invite someone from the dashboard!</div>';
+        return;
       }
+
+      body.innerHTML = list.map(f => `
+        <div class="flex items-center gap-3 px-5 py-3 row-border">
+          <img src="${f.avatar_url || '/static/logo.svg'}" alt="${f.name || 'Friend'}"
+               class="w-9 h-9 rounded-full object-cover border border-theme flex-shrink-0"
+               onerror="this.src='/static/logo.svg'" />
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-main overflow-hidden text-ellipsis whitespace-nowrap">${f.name}</p>
+            <p class="text-xs text-soft">Friends since ${fmtDate(f.friends_since)}</p>
+          </div>
+          <span class="text-sm font-bold text-orange-500">${f.streak || 0} 🔥</span>
+        </div>`).join('');
     }
 
-    loadInvitations();
-    loadFriends();
+    loadOverview();
 
     document.getElementById('invite-friend-modal').addEventListener('click', (e) => {
       if (e.target.id === 'invite-friend-modal') closeInviteFriendModal();
@@ -404,3 +410,4 @@
   </script>
 </body>
 </html>
+{% endblock %}

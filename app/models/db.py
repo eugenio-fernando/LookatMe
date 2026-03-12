@@ -1490,6 +1490,38 @@ def accept_friend_invite(token: str, recipient_user_id: int, invitee_email: str 
     return {"accepted": True, "reason": None, "inviter_id": row.inviter_id}
 
 
+def create_friendship_if_missing(user_a: int, user_b: int) -> bool:
+    """Ensure friendship exists between two users. Returns True if created."""
+    if user_a == user_b:
+        return False
+    now_iso = datetime.now().isoformat()
+    with Prisma() as client:
+        existing = client.friendship.find_first(where={
+            "OR": [
+                {"user_a": user_a, "user_b": user_b},
+                {"user_a": user_b, "user_b": user_a},
+            ]
+        })
+        if existing:
+            return False
+        client.friendship.create(data={
+            "user_a": user_a,
+            "user_b": user_b,
+            "created_at": now_iso,
+            "accepted_at": now_iso,
+        })
+    return True
+
+
+def get_pending_friend_invites(inviter_id: int) -> list[dict]:
+    with Prisma() as client:
+        rows = client.friendinvite.find_many(
+            where={"inviter_id": inviter_id, "status": "pending"},
+            order={"created_at": "desc"},
+        )
+    return [_friend_invite_to_dict(r) for r in rows]
+
+
 def get_user_invitations(user_id: int) -> list[dict]:
     """List all invitations sent by a user, with recipient name/email if accepted."""
     with Prisma() as client:

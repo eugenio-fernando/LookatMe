@@ -1,11 +1,13 @@
+{% extends "base.html" %}
+{% block document %}
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
-  <script>(function(){var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script>(function(){var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);window.__savedTheme=t;})();</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#09090b" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
   <title>Learning — LookAtMe</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -258,3 +260,4 @@
   </script>
 </body>
 </html>
+{% endblock %}
