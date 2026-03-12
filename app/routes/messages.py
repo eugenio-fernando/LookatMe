@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request, session
 
 from ..extensions import socketio
 from ..models import db
+from ..services.activity_service import record_event
 from ..utils import api_login_required
 
 messages_bp = Blueprint("messages", __name__)
@@ -61,6 +62,12 @@ def send_message():
         created_at=datetime.now().isoformat(),
     )
     activity = db.log_activity(session["user_id"], "message_sent", f"Sent: {subject}")
+    record_event(
+        session["user_id"],
+        "message_sent",
+        f"sent a message: {subject}",
+        metadata={"recipient_id": recipient_id},
+    )
     uid = session["user_id"]
     # During active focus sessions, only VIP senders trigger real-time notifications.
     recipient_in_focus = db.is_user_in_active_focus(recipient_id)

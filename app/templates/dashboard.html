@@ -676,7 +676,7 @@
     </div>
 
     <!-- Workspace selector -->
-    <div class="sidebar-section" style="padding:10px 12px;">
+    <div class="sidebar-section" style="padding:10px 12px;display:none;">
       <div style="font-size:9.5px;font-weight:700;color:var(--border-color);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Workspace</div>
       <div style="display:flex;align-items:center;gap:6px;">
         <select id="workspace-select" class="field-input" style="flex:1;font-size:12px;padding:5px 8px;cursor:pointer;" onchange="switchWorkspace(this.value)">
@@ -703,7 +703,7 @@
           <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
           </svg>
-          Inbox
+          Messages
         </span>
         <span id="inbox-badge" class="hidden" style="background:#3b82f6;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:9999px;line-height:1.7;"></span>
       </a>
@@ -712,10 +712,10 @@
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
         </svg>
-        Focus Mode
+        Focus
       </a>
 
-      <a href="/learning" class="nav-item">
+      <a href="/learning" class="nav-item" style="display:none;">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
         </svg>
@@ -728,6 +728,12 @@
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
         Friends
+      </a>
+      <a href="/#notes-section" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12h6m-6 4h6M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2"/>
+        </svg>
+        Notes
       </a>
 
     </nav>
@@ -847,7 +853,7 @@
 
       <p class="section-heading">Feed Section</p>
       <!-- ── Your News Feed ── -->
-      <section class="card">
+      <section class="card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Your News Feed</span>
           <button onclick="loadNews()" class="btn-ghost">↻ Refresh</button>
@@ -860,7 +866,7 @@
       </section>
 
       <!-- ── Gaming News ── -->
-      <section class="card">
+      <section class="card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Gaming News</span>
           <button onclick="loadGamingNews()" class="btn-ghost">↻ Refresh</button>
@@ -874,7 +880,7 @@
 
       <!-- ── Daily Mission ── -->
       <p class="section-heading">Productivity Section</p>
-      <section class="card" id="mission-card">
+      <section class="card" id="mission-card" style="display:none;">
         <div class="card-header">
           <span class="card-label">Daily Mission</span>
           <span id="mission-progress" style="font-size:11px;font-weight:600;color:var(--text-secondary);">0 / 3</span>
@@ -896,7 +902,7 @@
       </section>
 
       <!-- ── AI Assistant ── -->
-      <section class="card" id="ai-card">
+      <section class="card" id="ai-card" style="display:none;">
         <div class="card-header">
           <span class="card-label">AI Assistant</span>
           <span id="ai-counter" style="font-size:11px;font-weight:600;color:var(--text-secondary);">10 left today</span>
@@ -942,9 +948,9 @@
               <span class="quick-action-icon">⏱</span>
               <span>Focus</span>
             </button>
-            <a href="/learning" class="quick-action-btn">
-              <span class="quick-action-icon">📚</span>
-              <span>Learning</span>
+            <a href="/#notes-section" class="quick-action-btn">
+              <span class="quick-action-icon">📝</span>
+              <span>Notes</span>
             </a>
           </div>
           <div id="focus-goal-widget" style="margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg-card-inner);">
@@ -1032,7 +1038,7 @@
       </section>
 
       <!-- ── Upcoming Tasks ── -->
-      <section class="card">
+      <section class="card" id="notes-section">
         <div class="card-header">
           <span class="card-label">Upcoming</span>
         </div>
@@ -1082,7 +1088,7 @@
           <p id="widget-bio" class="widget-bio hidden"
             style="font-size:11.5px;color:var(--text-soft);font-style:italic;line-height:1.55;text-align:center;"></p>
           <div id="widget-linkedin-badge" class="hidden"
-            style="display:none;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,102,194,0.12);border:1px solid rgba(10,102,194,0.25);border-radius:20px;">
+            style="display:none !important;align-items:center;gap:6px;padding:5px 10px;background:rgba(10,102,194,0.12);border:1px solid rgba(10,102,194,0.25);border-radius:20px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="#0a66c2">
               <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
             </svg>
@@ -1545,6 +1551,8 @@
       task_completed: '✓',
       message_sent:   '✉',
       note_created:   '✎',
+      focus_completed: '⏱',
+      friend_joined: '🤝',
     };
 
     function _relTime(iso) {
@@ -1556,11 +1564,16 @@
     }
 
     function renderActivityItem(a) {
-      const icon = ACTIVITY_ICONS[a.type] || '·';
+      const type = a.event_type || a.type || 'event';
+      const text = a.description || a.content || '';
+      const avatar = a.user_avatar_url || defaultAvatarSvg();
+      const actor = a.user_display_name || 'You';
+      const icon = ACTIVITY_ICONS[type] || '·';
       return `<li class="activity-item">
-        <span class="activity-dot ${a.type}">${icon}</span>
+        <img src="${avatar}" alt="${actor}" style="width:24px;height:24px;border-radius:9999px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.src=defaultAvatarSvg()" />
+        <span class="activity-dot ${type}">${icon}</span>
         <div class="activity-content">
-          <p class="activity-text" title="${a.content}">${a.content}</p>
+          <p class="activity-text" title="${text}">${text}</p>
           <p class="activity-time">${_relTime(a.created_at)}</p>
         </div>
       </li>`;
@@ -1568,7 +1581,7 @@
 
     async function loadActivityFeed() {
       try {
-        const res = await fetch('/api/activity?limit=20');
+        const res = await fetch('/api/activity/feed?limit=20');
         if (!res.ok) return;
         const items = await res.json();
         const list = document.getElementById('activity-list');
@@ -2084,6 +2097,7 @@
 
     async function loadNews() {
       const list = document.getElementById('news-list');
+      if (!list) return;
       list.innerHTML = '<li style="color:var(--text-muted);font-size:13px;padding:8px 0;">Fetching headlines…</li>';
       try {
         const res = await fetch('/api/news/personalized');

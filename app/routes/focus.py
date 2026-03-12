@@ -6,6 +6,7 @@ Timer remains client-side; the backend records lifecycle events only.
 from flask import Blueprint, jsonify, request, session
 
 from ..models import db
+from ..services.activity_service import record_event
 from ..utils import api_login_required
 
 focus_bp = Blueprint("focus", __name__)
@@ -28,6 +29,13 @@ def focus_complete():
     body = request.get_json(silent=True) or {}
     completed = bool(body.get("completed", True))
     result = db.complete_focus_session(session["user_id"], completed=completed)
+    if completed:
+        record_event(
+            session["user_id"],
+            "focus_completed",
+            "completed a focus session",
+            metadata={"status": "completed"},
+        )
     return jsonify(result)
 
 

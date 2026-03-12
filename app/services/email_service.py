@@ -23,6 +23,8 @@ import os
 
 import resend
 
+from ..models import db
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +94,15 @@ def _send(
         "EMAIL_SEND_ATTEMPT event=EMAIL_SEND_ATTEMPT type=%s to=%s subject=%r from=%s reply_to=%s key_prefix=%s",
         email_type, to, subject, sender, reply_to or "-", key_preview,
     )
+    try:
+        db.create_activity_event(
+            user_id=0,
+            event_type="EMAIL_SEND_ATTEMPT",
+            description=f"{email_type} email attempt to {to}",
+            metadata={"subject": subject, "from": sender, "email_type": email_type},
+        )
+    except Exception:
+        pass
 
     # ── Send ─────────────────────────────────────────────────────────────
     try:
@@ -109,6 +120,15 @@ def _send(
             "EMAIL_SEND_SUCCESS event=EMAIL_SEND_SUCCESS type=%s sender=%s to=%s subject=%r id=%s response=%r",
             email_type, sender, to, subject, getattr(response, "id", None), response,
         )
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_SEND_SUCCESS",
+                description=f"{email_type} email accepted by provider for {to}",
+                metadata={"subject": subject, "email_type": email_type},
+            )
+        except Exception:
+            pass
         return True
 
     except resend.exceptions.ResendError as exc:
@@ -126,6 +146,15 @@ def _send(
             exc.message if hasattr(exc, "message") else str(exc),
             key_preview,
         )
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_SEND_FAIL",
+                description=f"{email_type} email failed for {to}",
+                metadata={"subject": subject, "email_type": email_type, "error": str(exc)},
+            )
+        except Exception:
+            pass
         return False
 
     except Exception as exc:
@@ -133,6 +162,15 @@ def _send(
             "EMAIL_SEND_FAIL event=EMAIL_SEND_FAIL type=%s [%s]: to=%s subject=%r error=%s",
             email_type, type(exc).__name__, to, subject, exc,
         )
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_SEND_FAIL",
+                description=f"{email_type} email failed for {to}",
+                metadata={"subject": subject, "email_type": email_type, "error": str(exc)},
+            )
+        except Exception:
+            pass
         return False
 
 

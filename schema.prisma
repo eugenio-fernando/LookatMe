@@ -68,6 +68,15 @@ model Activity {
   created_at String
 }
 
+model ActivityEvent {
+  id            Int    @id @default(autoincrement())
+  user_id       Int
+  event_type    String
+  description   String
+  created_at    String
+  metadata_json String @default("")
+}
+
 model Invitation {
   id                Int     @id @default(autoincrement())
   sender_id         Int

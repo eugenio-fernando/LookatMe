@@ -40,12 +40,39 @@ def resend_webhook():
 
     if event_type == "email.sent":
         logger.info("EMAIL_SEND_SUCCESS event=EMAIL_SEND_SUCCESS source=webhook provider=resend email=%s message_id=%s", email, message_id)
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_SEND_SUCCESS",
+                description=f"email sent webhook for {email or '-'}",
+                metadata={"provider": "resend", "message_id": message_id},
+            )
+        except Exception:
+            pass
     elif event_type == "email.delivered":
         logger.info("EMAIL_DELIVERED event=EMAIL_DELIVERED provider=resend email=%s message_id=%s", email, message_id)
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_DELIVERED",
+                description=f"email delivered webhook for {email or '-'}",
+                metadata={"provider": "resend", "message_id": message_id},
+            )
+        except Exception:
+            pass
     elif event_type == "email.opened":
         logger.info("EMAIL_OPENED event=EMAIL_OPENED provider=resend email=%s message_id=%s", email, message_id)
     elif event_type == "email.bounced":
         logger.warning("EMAIL_BOUNCED event=EMAIL_BOUNCED provider=resend email=%s message_id=%s", email, message_id)
+        try:
+            db.create_activity_event(
+                user_id=0,
+                event_type="EMAIL_SEND_FAIL",
+                description=f"email bounced webhook for {email or '-'}",
+                metadata={"provider": "resend", "message_id": message_id},
+            )
+        except Exception:
+            pass
     else:
         logger.info("EMAIL_WEBHOOK_IGNORED event=EMAIL_WEBHOOK_IGNORED provider=resend type=%s message_id=%s", event_type, message_id)
 

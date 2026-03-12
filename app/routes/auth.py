@@ -50,10 +50,28 @@ def verify_email(token):
             "TOKEN_EXPIRED event=TOKEN_EXPIRED token_type=verification user_id=%s",
             user["id"],
         )
+        try:
+            db.create_activity_event(
+                user_id=user["id"],
+                event_type="TOKEN_EXPIRED",
+                description="verification token expired",
+                metadata={"token_type": "verification"},
+            )
+        except Exception:
+            pass
         return render_template("verify_error.html", reason="expired"), 400
 
     db.mark_user_verified(user["id"])
     logger.info("USER_VERIFIED event=USER_VERIFIED user_id=%s", user["id"])
+    try:
+        db.create_activity_event(
+            user_id=user["id"],
+            event_type="USER_VERIFIED",
+            description="user verified account",
+            metadata={"source": "verify_link"},
+        )
+    except Exception:
+        pass
     session["user_id"] = user["id"]
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
@@ -114,6 +132,15 @@ def register():
         password_hash=password_hash,
         created_at=datetime.now().isoformat(),
     )
+    try:
+        db.create_activity_event(
+            user_id=user["id"],
+            event_type="USER_REGISTERED",
+            description="user registered account",
+            metadata={"email": email},
+        )
+    except Exception:
+        pass
     workspace = db.create_workspace(
         name="Personal",
         created_at=datetime.now().isoformat(),
@@ -159,6 +186,16 @@ def login():
     password = body.get("password", "")
 
     user = db.get_user_by_email(email)
+    if user:
+        try:
+            db.create_activity_event(
+                user_id=user["id"],
+                event_type="LOGIN_ATTEMPT",
+                description="login attempt",
+                metadata={"email": email},
+            )
+        except Exception:
+            pass
     if not user or not check_password_hash(user["password_hash"], password):
         return jsonify({"error": "Invalid email or password"}), 401
     if not user.get("verified"):

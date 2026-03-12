@@ -8,6 +8,7 @@ import secrets
 from flask import Blueprint, jsonify, request, session
 
 from ..models import db
+from ..services.activity_service import record_event
 from ..utils import api_login_required
 
 social_bp = Blueprint("social", __name__)
@@ -87,6 +88,12 @@ def accept_invitation():
 
     logger.info("INVITE_ACCEPTED token=%s recipient_user_id=%s email=%s",
                 token, user_id, invitee_email)
+    record_event(
+        user_id,
+        "friend_joined",
+        "joined a friend circle",
+        metadata={"token_prefix": token[:8]},
+    )
     return jsonify({"ok": True})
 
 

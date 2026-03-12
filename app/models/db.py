@@ -6,6 +6,7 @@ Uses Prisma Client Python (sync) backed by SQLite.
 import json
 import os
 import hashlib
+import logging
 from datetime import datetime, timedelta
 
 from prisma import Prisma
@@ -18,6 +19,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 FOCUS_SECONDS = 25 * 60
 SHORT_BREAK_SECONDS = 5 * 60
 LONG_BREAK_SECONDS = 15 * 60
+logger = logging.getLogger(__name__)
 
 
 # ── Internal helpers ───────────────────────────────────────────────────
@@ -268,6 +270,23 @@ def _activity_to_dict(row) -> dict:
     }
 
 
+def _activity_event_to_dict(row) -> dict:
+    metadata = {}
+    if getattr(row, "metadata_json", ""):
+        try:
+            metadata = json.loads(row.metadata_json)
+        except Exception:
+            metadata = {}
+    return {
+        "id":          row.id,
+        "user_id":     row.user_id,
+        "event_type":  row.event_type,
+        "description": row.description,
+        "created_at":  row.created_at,
+        "metadata":    metadata,
+    }
+
+
 def log_activity(user_id: int, type: str, content: str) -> dict:
     with Prisma() as client:
         row = client.activity.create(data={
@@ -287,6 +306,93 @@ def get_activity_feed(user_id: int, limit: int = 20) -> list[dict]:
             take=limit,
         )
     return [_activity_to_dict(r) for r in rows]
+
+
+def create_activity_event(
+    user_id: int,
+    event_type: str,
+    description: str,
+    metadata: dict | None = None,
+) -> dict:
+    payload = metadata or {}
+    with Prisma() as client:
+        row = client.activityevent.create(data={
+            "user_id": user_id,
+            "event_type": event_type,
+            "description": description,
+            "created_at": datetime.now().isoformat(),
+            "metadata_json": json.dumps(payload),
+        })
+    return _activity_event_to_dict(row)
+
+
+def get_activity_event_feed_for_user(user_id: int, limit: int = 20) -> list[dict]:
+    with Prisma() as client:
+        rows = client.activityevent.find_many(
+            where={"user_id": user_id},
+            order={"id": "desc"},
+            take=limit,
+        )
+    return [_activity_event_to_dict(r) for r in rows]
+
+
+def get_recent_activity_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:
+    where = {}
+    if event_types:
+        where = {"event_type": {"in": event_types}}
+    with Prisma() as client:
+        rows = client.activityevent.find_many(
+            where=where,
+            order={"id": "desc"},
+            take=limit,
+        )
+    return [_activity_event_to_dict(r) for r in rows]
+
+
+def get_recent_email_webhook_events(limit: int = 50, event_types: list[str] | None = None) -> list[dict]:
+    where = {}
+    if event_types:
+        where = {"event_type": {"in": event_types}}
+    with Prisma() as client:
+        rows = client.emailwebhookevent.find_many(
+            where=where,
+            order={"id": "desc"},
+            take=limit,
+        )
+    result = []
+    for row in rows:
+        payload = {}
+        if row.payload:
+            try:
+                payload = json.loads(row.payload)
+            except Exception:
+                payload = {}
+        result.append({
+            "id": row.id,
+            "provider": row.provider,
+            "event_type": row.event_type,
+            "email": row.email,
+            "message_id": row.message_id,
+            "payload": payload,
+            "created_at": row.created_at,
+        })
+    return result
+
+
+def get_users_public_by_ids(user_ids: list[int]) -> dict[int, dict]:
+    if not user_ids:
+        return {}
+    with Prisma() as client:
+        rows = client.user.find_many(where={"id": {"in": user_ids}})
+    return {
+        r.id: {
+            "id": r.id,
+            "display_name": (r.display_name or r.email.split("@")[0]),
+            "email": r.email,
+            "avatar_url": r.avatar_url or "",
+        }
+        for r in rows
+    }
 
 
 # ── Users ──────────────────────────────────────────────────────────────

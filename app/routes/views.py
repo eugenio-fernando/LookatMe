@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, current_app, render_template, send_from_directory, session
 
 from ..models import db
+from ..services.activity_service import get_feed_for_user
 from ..utils import login_required
 
 views_bp = Blueprint("views", __name__)
@@ -54,6 +55,13 @@ def profile():
 @login_required
 def inbox():
     return render_template("inbox.html")
+
+
+@views_bp.route("/activity-feed")
+@login_required
+def activity_feed():
+    feed_items = get_feed_for_user(session["user_id"], limit=50)
+    return render_template("activity_feed.html", feed_items=feed_items)
 
 
 @views_bp.route("/invite/<token>")

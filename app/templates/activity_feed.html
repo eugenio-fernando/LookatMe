@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Feed</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <header class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Activity Feed</h1>
+      <a href="/" class="text-sm text-lime-300 hover:text-lime-200">Back to dashboard</a>
+    </header>
+
+    <section class="space-y-3">
+      {% if feed_items %}
+        {% for item in feed_items %}
+        <article class="rounded-xl border border-zinc-800 bg-zinc-900 p-4 flex gap-3 items-start">
+          <img
+            src="{{ item.user_avatar_url or '/static/logo.svg' }}"
+            alt="{{ item.user_display_name }}"
+            class="w-10 h-10 rounded-full object-cover border border-zinc-700"
+          />
+          <div class="min-w-0">
+            <p class="text-sm">
+              <span class="font-semibold">{{ item.user_display_name }}</span>
+              <span class="text-zinc-300">{{ item.content or item.description }}</span>
+            </p>
+            <p class="text-xs text-zinc-500 mt-1">{{ item.created_at }}</p>
+          </div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <p class="text-sm text-zinc-500">No activity yet.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

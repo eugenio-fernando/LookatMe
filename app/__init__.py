@@ -86,8 +86,7 @@ def create_app() -> Flask:
     app.register_blueprint(mission_bp)
     app.register_blueprint(focus_bp)
     app.register_blueprint(webhooks_bp)
-    if os.environ.get("FLASK_ENV", "development") != "production":
-        app.register_blueprint(debug_bp, url_prefix="/api/debug")
+    app.register_blueprint(debug_bp)
 
     # ── Socket event handlers ──────────────────────────────────────────
     @socketio.on("connect")
