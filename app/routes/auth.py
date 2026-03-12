@@ -73,6 +73,7 @@ def verify_email(token):
     except Exception:
         pass
     session["user_id"] = user["id"]
+    session["lang"] = (user.get("language") or "en")
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
@@ -95,6 +96,7 @@ def magic_login(token):
     if not user.get("verified"):
         return redirect(url_for("auth.login_page") + "?msg=invalid_token")
     session["user_id"] = user["id"]
+    session["lang"] = (user.get("language") or "en")
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]
@@ -202,6 +204,8 @@ def login():
         return jsonify({"error": "Please verify your email before signing in."}), 403
 
     session["user_id"] = user["id"]
+    user_profile = db.get_user_by_id(user["id"]) or {}
+    session["lang"] = (user_profile.get("language") or "en")
     workspaces = db.get_user_workspaces(user["id"])
     if workspaces:
         session["workspace_id"] = workspaces[0]["id"]

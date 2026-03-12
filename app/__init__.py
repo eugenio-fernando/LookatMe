@@ -17,6 +17,7 @@ from flask_socketio import join_room, leave_room # type: ignore
 
 from .extensions import babel, socketio
 from .features.activity.routes import activity_bp
+from .models import db
 from .models.db import migrate_from_json_if_needed
 from .routes.auth import auth_api_bp, auth_bp
 from .routes.debug import debug_bp
@@ -35,6 +36,8 @@ from .routes.mission import mission_bp
 from .routes.workspaces import workspaces_bp
 from .routes.focus import focus_bp
 from .routes.webhooks import webhooks_bp
+from .routes.spaces import spaces_bp
+from .routes.challenges import challenges_bp
 
 
 def create_app() -> Flask:
@@ -59,14 +62,27 @@ def create_app() -> Flask:
 
     app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
     app.config["BABEL_DEFAULT_LOCALE"] = "en"
-    app.config["BABEL_SUPPORTED_LOCALES"] = ["en", "es"]
+    app.config["BABEL_SUPPORTED_LOCALES"] = ["en", "es", "it"]
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "translations",
     )
 
     def _select_locale() -> str:
-        return request.accept_languages.best_match(["en", "es"]) or "en"
+        supported = {"en", "es", "it"}
+        preferred = (session.get("lang") or "").strip().lower()
+        if preferred in supported:
+            return preferred
+
+        user_id = session.get("user_id")
+        if user_id:
+            user = db.get_user_by_id(int(user_id))
+            user_lang = ((user or {}).get("language") or "").strip().lower()
+            if user_lang in supported:
+                session["lang"] = user_lang
+                return user_lang
+
+        return request.accept_languages.best_match(["en", "es", "it"]) or "en"
 
     babel.init_app(app, locale_selector=_select_locale)
 
@@ -98,6 +114,8 @@ def create_app() -> Flask:
     app.register_blueprint(focus_bp)
     app.register_blueprint(webhooks_bp)
     app.register_blueprint(debug_bp)
+    app.register_blueprint(spaces_bp)
+    app.register_blueprint(challenges_bp)
 
     # ── Socket event handlers ──────────────────────────────────────────
     @socketio.on("connect")

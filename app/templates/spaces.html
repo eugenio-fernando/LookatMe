@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spaces</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background:#111; color:#eee; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+    .card { background:#1c1c1c; border:1px solid #2a2a2a; border-radius:14px; }
+    .field { width:100%; background:#171717; border:1px solid #333; color:#eee; border-radius:8px; padding:8px 10px; font-size:14px; }
+    .btn { border-radius:8px; padding:8px 12px; font-size:13px; font-weight:700; }
+    .btn-primary { background:#a3e635; color:#0a0a0a; }
+    .btn-muted { background:#252525; color:#ddd; border:1px solid #333; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <main class="max-w-5xl mx-auto px-4 py-8 space-y-5">
+    <header class="flex items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold">Spaces</h1>
+        <p class="text-sm text-zinc-400">Group hubs for challenges and shared activity.</p>
+      </div>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <a href="/profile" class="btn btn-muted" style="text-decoration:none;">Profile</a>
+        <a href="/" class="btn btn-muted" style="text-decoration:none;">Dashboard</a>
+        <a href="/focus" class="btn btn-muted" style="text-decoration:none;">Focus</a>
+        <a href="/activity-feed" class="btn btn-muted" style="text-decoration:none;">Activity Feed</a>
+        <a href="/invitations" class="btn btn-muted" style="text-decoration:none;">Friends</a>
+        <a href="/inbox" class="btn btn-muted" style="text-decoration:none;">Messages</a>
+        <a href="/#notes-section" class="btn btn-muted" style="text-decoration:none;">Notes</a>
+      </div>
+    </header>
+
+    <section class="grid md:grid-cols-2 gap-5">
+      <div class="card p-4">
+        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">Create Space</h2>
+        <form id="space-create-form" class="space-y-3">
+          <input id="space-name" class="field" placeholder="Space name" />
+          <button class="btn btn-primary" type="submit">Create Space</button>
+        </form>
+      </div>
+
+      <div class="card p-4">
+        <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">Join Space</h2>
+        <form id="space-join-form" class="space-y-3">
+          <input id="space-invite" class="field" placeholder="Invite code" />
+          <button class="btn btn-muted" type="submit">Join Space</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="card p-4">
+      <h2 class="text-sm uppercase tracking-widest text-zinc-400 mb-3">My Spaces</h2>
+      <div id="spaces-list" class="grid md:grid-cols-2 gap-3 text-sm text-zinc-300">
+        <p class="text-zinc-500">Loading…</p>
+      </div>
+    </section>
+
+    <section class="card p-4 space-y-4">
+      <h2 class="text-sm uppercase tracking-widest text-zinc-400">Challenges</h2>
+      <form id="challenge-create-form" class="grid md:grid-cols-4 gap-3 items-end">
+        <div>
+          <label class="text-xs text-zinc-400">Title</label>
+          <input id="challenge-title" class="field" placeholder="30 mins daily focus" />
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Goal</label>
+          <input id="challenge-goal" class="field" type="number" min="1" value="30" />
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Metric</label>
+          <select id="challenge-metric" class="field">
+            <option value="focus_minutes">focus_minutes</option>
+            <option value="tasks_completed">tasks_completed</option>
+            <option value="km_run">km_run</option>
+            <option value="books_read">books_read</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Space</label>
+          <select id="challenge-space" class="field"></select>
+        </div>
+        <div class="md:col-span-4">
+          <button type="submit" class="btn btn-primary">Create Challenge</button>
+        </div>
+      </form>
+      <div id="challenges-list" class="space-y-2 text-sm text-zinc-300"></div>
+    </section>
+  </main>
+
+  <script>
+    let dirty = false;
+
+    function setDirty() { dirty = true; }
+    function clearDirty() { dirty = false; }
+
+    async function getJSON(url, opts) {
+      const res = await fetch(url, opts);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    async function loadSpaces() {
+      const spaces = await getJSON('/api/spaces');
+      const list = document.getElementById('spaces-list');
+      const sel = document.getElementById('challenge-space');
+      if (!spaces.length) {
+        list.innerHTML = '<p class="text-zinc-500">You are not in any spaces yet.</p>';
+        sel.innerHTML = '<option value="">No spaces</option>';
+        return;
+      }
+      list.innerHTML = spaces.map(s => `
+        <div class="border border-zinc-700 rounded-lg p-3">
+          <p class="font-semibold">${s.name}</p>
+          <p class="text-xs text-zinc-500">Invite code: ${s.invite_code}</p>
+        </div>
+      `).join('');
+      sel.innerHTML = spaces.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+
+    async function loadChallenges() {
+      const rows = await getJSON('/api/challenges');
+      const root = document.getElementById('challenges-list');
+      if (!rows.length) {
+        root.innerHTML = '<p class="text-zinc-500">No challenges yet.</p>';
+        return;
+      }
+      root.innerHTML = rows.map(c => `
+        <div class="border border-zinc-700 rounded-lg p-3">
+          <p class="font-semibold">${c.title} <span class="text-xs text-zinc-500">(${c.metric})</span></p>
+          <p class="text-xs text-zinc-400">Progress: ${c.my_progress}/${c.goal}</p>
+          <div class="mt-2 flex gap-2">
+            <input class="field" style="max-width:100px" type="number" min="0" value="${c.my_progress}" data-progress="${c.id}" />
+            <button class="btn btn-muted" data-save-progress="${c.id}">Update</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('space-create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('space-name').value.trim();
+      if (!name) return;
+      await getJSON('/api/spaces/create', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({name})
+      });
+      document.getElementById('space-name').value = '';
+      clearDirty();
+      await loadSpaces();
+    });
+
+    document.getElementById('space-join-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const invite_code = document.getElementById('space-invite').value.trim();
+      if (!invite_code) return;
+      await getJSON('/api/spaces/join', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({invite_code})
+      });
+      document.getElementById('space-invite').value = '';
+      clearDirty();
+      await loadSpaces();
+      await loadChallenges();
+    });
+
+    document.getElementById('challenge-create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('challenge-title').value.trim();
+      const goal = parseInt(document.getElementById('challenge-goal').value, 10);
+      const metric = document.getElementById('challenge-metric').value;
+      const space_id = parseInt(document.getElementById('challenge-space').value, 10);
+      await getJSON('/api/challenges/create', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({title, goal, metric, space_id})
+      });
+      document.getElementById('challenge-title').value = '';
+      clearDirty();
+      await loadChallenges();
+    });
+
+    document.getElementById('challenges-list').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-save-progress]');
+      if (!btn) return;
+      const challengeId = parseInt(btn.getAttribute('data-save-progress'), 10);
+      const input = document.querySelector(`[data-progress="${challengeId}"]`);
+      if (!input) return;
+      const progress = parseInt(input.value, 10);
+      await getJSON('/api/challenges/update-progress', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({challenge_id: challengeId, progress})
+      });
+      await loadChallenges();
+    });
+
+    ['space-name','space-invite','challenge-title','challenge-goal','challenge-metric','challenge-space'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', setDirty);
+      if (el) el.addEventListener('change', setDirty);
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = 'You have unsaved changes. Leave without saving?';
+    });
+
+    (async () => {
+      await loadSpaces();
+      await loadChallenges();
+    })();
+  </script>
+</body>
+</html>

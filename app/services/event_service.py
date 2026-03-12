@@ -15,8 +15,12 @@ EVENT_MESSAGES = {
     "focus_completed": "{username} completed a focus session",
     "note_added": "{username} added a note",
     "challenge_started": "{username} started a challenge",
+    "challenge_progress": "{username} updated challenge progress",
+    "challenge_completed": "{username} completed a challenge",
     "message_sent": "{username} sent a message",
     "friend_joined": "{username} joined a friend circle",
+    "space_created": "{username} created a new space",
+    "space_joined": "{username} joined a space",
 }
 
 
@@ -43,9 +47,9 @@ def record_event(user_id: int, event_type: str, description: str, metadata: dict
     visibility = str(payload_meta.get("visibility") or "space")
     space_id = payload_meta.get("space_id")
     if visibility == "space" and not isinstance(space_id, int):
-        workspaces = db.get_user_workspaces(user_id)
-        if workspaces:
-            space_id = workspaces[0]["id"]
+        spaces = db.get_user_spaces(user_id)
+        if spaces:
+            space_id = spaces[0]["id"]
 
     event = db.create_activity_event(
         user_id=user_id,
@@ -70,7 +74,7 @@ def record_event(user_id: int, event_type: str, description: str, metadata: dict
     if visibility == "public":
         socketio.emit("activity:new", payload)
     elif visibility == "space" and isinstance(space_id, int):
-        members = db.get_workspace_members(space_id)
+        members = db.get_space_members(space_id)
         recipient_ids = {m["user_id"] for m in members}
         recipient_ids.add(user_id)
         for recipient_id in recipient_ids:

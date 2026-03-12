@@ -10,7 +10,9 @@ from ..utils import api_login_required
 profile_bp = Blueprint("profile", __name__)
 logger = logging.getLogger(__name__)
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "..", "static", "uploads")
+UPLOAD_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "static", "uploads", "avatars"
+)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
@@ -55,6 +57,7 @@ def onboarding_seen():
 
 
 @profile_bp.route("/api/profile/avatar", methods=["POST"])
+@profile_bp.route("/api/profile/upload-avatar", methods=["POST"])
 @api_login_required
 def upload_avatar():
     if "avatar" not in request.files:
@@ -67,10 +70,36 @@ def upload_avatar():
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     ext = file.filename.rsplit(".", 1)[1].lower()
-    filename = secure_filename(f"avatar_{session['user_id']}.{ext}")
+    filename = secure_filename(f"user_{session['user_id']}.{ext}")
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
 
-    avatar_url = f"/static/uploads/{filename}"
-    user = db.update_profile(session["user_id"], avatar_url=avatar_url)
+    avatar_path = f"/static/uploads/avatars/{filename}"
+    user = db.update_profile(
+        session["user_id"],
+        avatar_path=avatar_path,
+        avatar_url=avatar_path,
+    )
     return jsonify(user)
+
+
+@profile_bp.route("/api/profile/language", methods=["GET"])
+@api_login_required
+def get_language():
+    user = db.get_user_by_id(session["user_id"])
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({"language": user.get("language", "en")})
+
+
+@profile_bp.route("/api/profile/language", methods=["POST"])
+@api_login_required
+def set_language():
+    body = request.get_json(silent=True) or {}
+    language = str(body.get("language", "en")).strip().lower()
+    if language not in {"en", "es", "it"}:
+        return jsonify({"error": "invalid language"}), 400
+
+    user = db.update_user_language(session["user_id"], language)
+    session["lang"] = language
+    return jsonify({"ok": True, "language": user.get("language", language)})

@@ -664,17 +664,6 @@
       <span style="color:var(--text-primary);font-size:14px;font-weight:600;letter-spacing:-0.01em;">Look<strong>At</strong><span style="color:var(--accent);">Me</span></span>
     </div>
 
-    <!-- User -->
-    <div class="sidebar-section">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img id="sidebar-avatar" src="" alt="You" class="sidebar-avatar" onerror="this.src=defaultAvatarSvg()" />
-        <div style="min-width:0;flex:1;">
-          <p id="sidebar-display-name" style="font-size:12.5px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;">—</p>
-          <p id="sidebar-user" style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-        </div>
-      </div>
-    </div>
-
     <!-- Workspace selector -->
     <div class="sidebar-section" style="padding:10px 12px;display:none;">
       <div style="font-size:9.5px;font-weight:700;color:var(--border-color);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Workspace</div>
@@ -689,6 +678,13 @@
 
     <!-- Nav -->
     <nav style="flex:1;padding:10px 10px;display:flex;flex-direction:column;gap:2px;">
+
+      <a href="/profile" class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        {{ _('Profile') }}
+      </a>
 
       <a href="/" class="nav-item active">
         <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -736,12 +732,6 @@
         </svg>
         {{ _('Notes') }}
       </a>
-      <a href="/profile" class="nav-item">
-        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        {{ _('Profile') }}
-      </a>
 
     </nav>
 
@@ -758,6 +748,14 @@
         <button class="theme-btn" data-theme="dark"  onclick="setTheme('dark')">🌙</button>
         <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️</button>
         <button class="theme-btn" data-theme="sepia" onclick="setTheme('sepia')">📜</button>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label for="lang-select" style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:4px;">Switch language</label>
+        <select id="lang-select" class="field-input" style="font-size:12px;padding:6px 8px;" onchange="setLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+        </select>
       </div>
       <button onclick="logout()" class="btn-outline">{{ _('Sign out') }}</button>
       <button id="install-btn" class="hidden btn-primary" style="width:100%;margin-top:6px;padding:7px 0;font-size:12px;">
@@ -1543,6 +1541,8 @@
         if (nameEl) nameEl.textContent = u.display_name || u.email;
         const emailEl = document.getElementById('widget-email');
         if (emailEl) emailEl.textContent = u.email;
+        const langSel = document.getElementById('lang-select');
+        if (langSel) langSel.value = u.language || 'en';
         const bioEl = document.getElementById('widget-bio');
         if (bioEl && u.bio) { bioEl.textContent = u.bio; bioEl.classList.remove('hidden'); }
 
@@ -1564,6 +1564,18 @@
       } catch { /* non-critical */ }
     }
     loadProfileWidget();
+
+    async function setLanguage(language) {
+      try {
+        const res = await fetch('/api/profile/language', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language }),
+        });
+        if (!res.ok) return;
+        window.location.reload();
+      } catch { /* non-critical */ }
+    }
 
     // ── Activity Feed ─────────────────────────────────────────────────
     const ACTIVITY_ICONS = {

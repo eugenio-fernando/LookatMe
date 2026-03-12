@@ -83,6 +83,28 @@ model ActivityEvent {
   @@index([space_id])
 }
 
+model Space {
+  id          Int      @id @default(autoincrement())
+  name        String
+  owner_id    Int
+  invite_code String   @unique
+  created_at  DateTime @default(now())
+
+  @@index([owner_id])
+}
+
+model SpaceMember {
+  id        Int      @id @default(autoincrement())
+  space_id  Int
+  user_id   Int
+  role      String   @default("member")
+  joined_at DateTime @default(now())
+
+  @@index([space_id])
+  @@index([user_id])
+  @@unique([space_id, user_id])
+}
+
 model ActivityReaction {
   id            Int      @id @default(autoincrement())
   event_id      Int
@@ -131,6 +153,8 @@ model User {
   display_name  String @default("")
   nickname      String @default("")
   avatar_url    String @default("")
+  avatar_path   String @default("")
+  language      String @default("en")
   bio           String @default("")
   company       String @default("")
   address       String @default("")
@@ -187,6 +211,29 @@ model User {
   focus_streak          Int    @default(0)
   longest_focus_streak  Int    @default(0)
   focus_day_key         String @default("")
+}
+
+model Challenge {
+  id         Int      @id @default(autoincrement())
+  space_id   Int
+  title      String
+  goal       Int
+  metric     String
+  created_by Int
+  created_at DateTime @default(now())
+
+  @@index([space_id])
+}
+
+model ChallengeProgress {
+  id           Int @id @default(autoincrement())
+  challenge_id Int
+  user_id      Int
+  progress     Int @default(0)
+
+  @@index([challenge_id])
+  @@index([user_id])
+  @@unique([challenge_id, user_id])
 }
 
 model FocusSession {

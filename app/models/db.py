@@ -7,6 +7,7 @@ import json
 import os
 import hashlib
 import logging
+import secrets
 from datetime import datetime, timedelta
 
 from prisma import Prisma
@@ -338,7 +339,7 @@ def create_activity_event(
 
 
 def get_activity_event_feed_for_user(user_id: int, limit: int = 20) -> list[dict]:
-    space_ids = [w["id"] for w in get_user_workspaces(user_id)]
+    space_ids = [s["id"] for s in get_user_spaces(user_id)]
     visibility_filters = [
         {"visibility": "public"},
         {"visibility": "private", "user_id": user_id},
@@ -506,7 +507,7 @@ def get_users_public_by_ids(user_ids: list[int]) -> dict[int, dict]:
             "id": r.id,
             "display_name": (r.display_name or r.email.split("@")[0]),
             "email": r.email,
-            "avatar_url": r.avatar_url or "",
+            "avatar_url": r.avatar_path or r.avatar_url or "",
         }
         for r in rows
     }
@@ -523,7 +524,9 @@ def _user_to_dict(row) -> dict:
         "created_at":   row.created_at,
         "display_name": row.display_name,
         "nickname":     row.nickname,
-        "avatar_url":   row.avatar_url,
+        "avatar_url":   row.avatar_path or row.avatar_url,
+        "avatar_path":  row.avatar_path,
+        "language":     row.language or "en",
         "bio":          row.bio,
         "company":      row.company,
         "address":      row.address,
@@ -595,7 +598,7 @@ def get_user_by_id(user_id: int) -> dict | None:
 
 
 _PROFILE_FIELDS = {
-    "display_name", "avatar_url", "bio", "company",
+    "display_name", "avatar_url", "avatar_path", "language", "bio", "company",
     "address", "city", "zip_code", "phone", "hobbies", "interests", "gender",
     "instagram_username", "favorite_topics", "favorite_news_sources", "favorite_teams",
 }
@@ -606,6 +609,12 @@ def update_profile(user_id: int, **fields) -> dict:
     data = {k: v for k, v in fields.items() if k in _PROFILE_FIELDS}
     with Prisma() as client:
         row = client.user.update(where={"id": user_id}, data=data)
+    return _user_to_dict(row)
+
+
+def update_user_language(user_id: int, language: str) -> dict:
+    with Prisma() as client:
+        row = client.user.update(where={"id": user_id}, data={"language": language})
     return _user_to_dict(row)
 
 
@@ -988,6 +997,184 @@ def invite_to_workspace(workspace_id: int, email: str) -> dict | None:
     return _member_to_dict(row, {"email": user["email"], "display_name": user.get("display_name", "")})
 
 
+# ── Spaces ─────────────────────────────────────────────────────────────
+
+def _space_to_dict(row) -> dict:
+    created_at = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "name": row.name,
+        "owner_id": row.owner_id,
+        "invite_code": row.invite_code,
+        "created_at": created_at,
+    }
+
+
+def _space_member_to_dict(row) -> dict:
+    joined_at = row.joined_at.isoformat() if hasattr(row.joined_at, "isoformat") else str(row.joined_at)
+    return {
+        "id": row.id,
+        "space_id": row.space_id,
+        "user_id": row.user_id,
+        "role": row.role,
+        "joined_at": joined_at,
+    }
+
+
+def create_space(owner_id: int, name: str) -> dict:
+    invite_code = secrets.token_urlsafe(8)
+    with Prisma() as client:
+        space = client.space.create(data={
+            "name": name.strip(),
+            "owner_id": owner_id,
+            "invite_code": invite_code,
+        })
+        client.spacemember.create(data={
+            "space_id": space.id,
+            "user_id": owner_id,
+            "role": "owner",
+        })
+    return _space_to_dict(space)
+
+
+def get_space_by_id(space_id: int) -> dict | None:
+    with Prisma() as client:
+        row = client.space.find_unique(where={"id": space_id})
+    return _space_to_dict(row) if row else None
+
+
+def get_space_by_invite_code(invite_code: str) -> dict | None:
+    with Prisma() as client:
+        row = client.space.find_unique(where={"invite_code": invite_code})
+    return _space_to_dict(row) if row else None
+
+
+def get_user_spaces(user_id: int) -> list[dict]:
+    with Prisma() as client:
+        members = client.spacemember.find_many(where={"user_id": user_id})
+        space_ids = [m.space_id for m in members]
+        if not space_ids:
+            return []
+        rows = client.space.find_many(where={"id": {"in": space_ids}}, order={"id": "desc"})
+    return [_space_to_dict(r) for r in rows]
+
+
+def add_space_member(space_id: int, user_id: int, role: str = "member") -> dict:
+    with Prisma() as client:
+        existing = client.spacemember.find_first(where={"space_id": space_id, "user_id": user_id})
+        if existing:
+            return _space_member_to_dict(existing)
+        row = client.spacemember.create(data={
+            "space_id": space_id,
+            "user_id": user_id,
+            "role": role,
+        })
+    return _space_member_to_dict(row)
+
+
+def is_space_member(space_id: int, user_id: int) -> bool:
+    with Prisma() as client:
+        row = client.spacemember.find_first(where={"space_id": space_id, "user_id": user_id})
+    return row is not None
+
+
+def get_space_members(space_id: int) -> list[dict]:
+    with Prisma() as client:
+        rows = client.spacemember.find_many(where={"space_id": space_id})
+    return [_space_member_to_dict(r) for r in rows]
+
+
+def join_space_by_invite_code(user_id: int, invite_code: str) -> dict | None:
+    space = get_space_by_invite_code(invite_code.strip())
+    if not space:
+        return None
+    add_space_member(space["id"], user_id, role="member")
+    return space
+
+
+# ── Challenges ────────────────────────────────────────────────────────
+
+def _challenge_to_dict(row) -> dict:
+    created_at = row.created_at.isoformat() if hasattr(row.created_at, "isoformat") else str(row.created_at)
+    return {
+        "id": row.id,
+        "space_id": row.space_id,
+        "title": row.title,
+        "goal": row.goal,
+        "metric": row.metric,
+        "created_by": row.created_by,
+        "created_at": created_at,
+    }
+
+
+def create_challenge(space_id: int, title: str, goal: int, metric: str, created_by: int) -> dict:
+    with Prisma() as client:
+        row = client.challenge.create(data={
+            "space_id": space_id,
+            "title": title.strip(),
+            "goal": int(goal),
+            "metric": metric.strip(),
+            "created_by": created_by,
+        })
+        client.challengeprogress.upsert(
+            where={"challenge_id_user_id": {"challenge_id": row.id, "user_id": created_by}},
+            data={"create": {"challenge_id": row.id, "user_id": created_by, "progress": 0}, "update": {}},
+        )
+    return _challenge_to_dict(row)
+
+
+def get_challenges_for_user(user_id: int, space_id: int | None = None) -> list[dict]:
+    user_space_ids = [s["id"] for s in get_user_spaces(user_id)]
+    if space_id is not None:
+        if space_id not in user_space_ids:
+            return []
+        scope_ids = [space_id]
+    else:
+        scope_ids = user_space_ids
+    if not scope_ids:
+        return []
+    with Prisma() as client:
+        challenges = client.challenge.find_many(
+            where={"space_id": {"in": scope_ids}},
+            order={"id": "desc"},
+        )
+        progress_rows = client.challengeprogress.find_many(
+            where={"challenge_id": {"in": [c.id for c in challenges]}},
+        )
+    progress_map: dict[tuple[int, int], int] = {}
+    for row in progress_rows:
+        progress_map[(row.challenge_id, row.user_id)] = row.progress
+
+    result = []
+    for challenge in challenges:
+        item = _challenge_to_dict(challenge)
+        item["my_progress"] = progress_map.get((challenge.id, user_id), 0)
+        item["completed"] = item["my_progress"] >= item["goal"]
+        result.append(item)
+    return result
+
+
+def upsert_challenge_progress(challenge_id: int, user_id: int, progress: int) -> dict | None:
+    with Prisma() as client:
+        challenge = client.challenge.find_unique(where={"id": challenge_id})
+        if not challenge:
+            return None
+        row = client.challengeprogress.upsert(
+            where={"challenge_id_user_id": {"challenge_id": challenge_id, "user_id": user_id}},
+            data={
+                "create": {"challenge_id": challenge_id, "user_id": user_id, "progress": progress},
+                "update": {"progress": progress},
+            },
+        )
+    return {
+        "challenge_id": row.challenge_id,
+        "user_id": row.user_id,
+        "progress": row.progress,
+        "goal": challenge.goal,
+        "completed": row.progress >= challenge.goal,
+    }
+
+
 # ── Workspace Invites ──────────────────────────────────────────────────
 
 def _invite_to_dict(row) -> dict:
@@ -1296,7 +1483,7 @@ def get_friends(user_id: int) -> list[dict]:
             "username":          u.display_name or u.email.split("@")[0],
             "display_name":      u.display_name,
             "email":             u.email,
-            "avatar_url":        u.avatar_url,
+            "avatar_url":        u.avatar_path or u.avatar_url,
             "current_streak":    u.current_streak,
             "streak":            u.current_streak,
             "last_active":       u.last_completed_date,
@@ -1341,7 +1528,7 @@ def get_friend_public_profile(viewer_user_id: int, friend_id: int) -> dict | Non
         "id": user.id,
         "display_name": user.display_name or user.email.split("@")[0],
         "nickname": user.nickname or "",
-        "avatar_url": user.avatar_url or "",
+        "avatar_url": user.avatar_path or user.avatar_url or "",
         "bio": user.bio or "",
         "city": user.city or "",
         "company": user.company or "",
@@ -1676,7 +1863,7 @@ def get_friends_focus_status(user_id: int) -> list[dict]:
             payload.append({
                 "id": u.id,
                 "username": (u.display_name or u.email.split("@")[0]),
-                "profile_image": u.avatar_url or "",
+                "profile_image": u.avatar_path or u.avatar_url or "",
                 "focus_status": "focusing",
                 "remaining_focus_time": remaining,
             })
@@ -1684,7 +1871,7 @@ def get_friends_focus_status(user_id: int) -> list[dict]:
             payload.append({
                 "id": u.id,
                 "username": (u.display_name or u.email.split("@")[0]),
-                "profile_image": u.avatar_url or "",
+                "profile_image": u.avatar_path or u.avatar_url or "",
                 "focus_status": "just_finished",
                 "remaining_focus_time": 0,
             })

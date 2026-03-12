@@ -64,6 +64,12 @@ def activity_feed():
     return render_template("activity_feed.html", feed_items=feed_items)
 
 
+@views_bp.route("/spaces")
+@login_required
+def spaces():
+    return render_template("spaces.html")
+
+
 @views_bp.route("/invite/<token>")
 def invite_page(token):
     return render_template("invite.html", token=token)

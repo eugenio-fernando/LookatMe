@@ -73,7 +73,7 @@ def react_to_activity():
     if visibility == "public":
         socketio.emit("reaction:new", payload)
     elif visibility == "space" and isinstance(space_id, int):
-        members = db.get_workspace_members(space_id)
+        members = db.get_space_members(space_id)
         recipient_ids = {m["user_id"] for m in members}
         recipient_ids.add(event["user_id"])
         recipient_ids.add(user_id)

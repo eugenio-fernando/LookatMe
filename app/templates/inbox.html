@@ -121,24 +121,36 @@
     </div>
 
     <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <a href="/profile" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21a8 8 0 00-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        {{ _('Profile') }}
+      </a>
       <a href="/" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         {{ _('Dashboard') }}
       </a>
       <a href="/focus" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-        {{ _('Focus Mode') }}
+        {{ _('Focus') }}
       </a>
-      <a href="/learning" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-        {{ _('Learning') }}
+      <a href="/activity-feed" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        {{ _('Activity Feed') }}
+      </a>
+      <a href="/invitations" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        {{ _('Friends') }}
       </a>
       <a href="/inbox" class="nav-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
         <span class="relative flex-shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           <span id="inbox-badge" class="hidden absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full text-white text-[8px] font-bold flex items-center justify-center leading-none" style="background:var(--accent);"></span>
         </span>
-        {{ _('Inbox') }}
+        {{ _('Messages') }}
+      </a>
+      <a href="/#notes-section" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        {{ _('Notes') }}
       </a>
     </nav>
 
